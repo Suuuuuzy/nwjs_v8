@@ -87,6 +87,15 @@ declare_args() {
   v8_enable_google_benchmark = false
 
   cppgc_is_standalone = false
+
+  # Taint tracking arguments:
+  #
+  # Adds capnp path to the build for taint tracking
+  v8_capnp_include_dir = ""
+
+  # Sets -DV8_TAINT_TRACKING_INCLUDE_CONCOLIC for setting up a concolic
+  # execution build
+  v8_taint_tracking_include_concolic = false
 }
 
 if (v8_use_external_startup_data == "") {
