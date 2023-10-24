@@ -969,7 +969,7 @@
         '../src/gdb-jit.cc',
         '../src/gdb-jit.h',
         '../src/global-handles.cc',
-        '../src/global-handles.h',
+        '../src/handles/global-handles.h',
         '../src/globals.h',
         '../src/handles-inl.h',
         '../src/handles.cc',

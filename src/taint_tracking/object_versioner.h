@@ -4,7 +4,7 @@
 // Used to store an immutable copy of an object during symbolic execution
 
 
-#include "src/objects.h"
+#include "src/objects/objects.h"
 
 #include "src/taint_tracking-inl.h"
 

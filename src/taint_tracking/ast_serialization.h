@@ -9,6 +9,9 @@
 
 #include "symbolic_state.h"
 
+#include "src/heap/factory-inl.h"
+#include "src/objects/lookup.h"
+
 #include <capnp/message.h>
 #include <capnp/serialize.h>
 #include <ast.capnp.h>
@@ -102,13 +105,13 @@ public:
       const SymbolicFactory& fact,
       ExpressionSlot* owner) {
     UNREACHABLE();
-  };
+  }
 
   virtual std::shared_ptr<SymbolicState> StaticValue(
       const SymbolicFactory& fact,
       ExpressionSlot* owner) {
     UNREACHABLE();
-  };
+  }
 
   virtual void InitSlot(ExpressionSlot* slot) {}
 
@@ -116,7 +119,7 @@ public:
       const SymbolicFactory& fact,
       ExpressionSlot* owner) {
     UNREACHABLE();
-  };
+  }
 
   virtual void OnBeforeExecute(ExpressionSlot* slot) {}
 

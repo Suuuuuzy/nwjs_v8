@@ -494,6 +494,14 @@ config("internal_config_base") {
     "$target_gen_dir",
     "$target_gen_dir/include",
   ]
+
+  # Used to link with the capnp library for taint tracking code
+  libs = [ "capnp", "kj" ]
+  if (!(v8_capnp_include_dir == "")) {
+    lib_dirs = [ "$v8_capnp_include_dir/lib" ]
+    include_dirs += [ "$v8_capnp_include_dir/include" ]
+  }
+
 }
 
 config("internal_config") {
@@ -864,6 +872,10 @@ config("features") {
   if (v8_allow_javascript_in_promise_hooks) {
     defines += [ "V8_ALLOW_JAVASCRIPT_IN_PROMISE_HOOKS" ]
   }
+  # For taint tracking
+  if (v8_taint_tracking_include_concolic) {
+    defines += [ "V8_TAINT_TRACKING_INCLUDE_CONCOLIC" ]
+  }
 }
 
 config("toolchain") {
@@ -1207,6 +1219,35 @@ config("v8_gcov_coverage_ldflags") {
 ###############################################################################
 # Actions
 #
+
+action("v8_capnp_generate") {
+  visibility = [ ":*" ]
+
+  # Needed by taint logging
+  script = "tools/run.py"
+
+  sources = [
+    "src/taint_tracking/protos/logrecord.capnp",
+    "src/taint_tracking/protos/ast.capnp",
+  ]
+
+  outputs = [
+    "$target_gen_dir/logrecord.capnp.c++",
+    "$target_gen_dir/logrecord.capnp.h",
+    "$target_gen_dir/ast.capnp.c++",
+    "$target_gen_dir/ast.capnp.h",
+  ]
+
+  args = [
+    "/home/suzy/Documents/capnproto-install-clang/bin/capnp",
+    "compile",
+    "--src-prefix=" + rebase_path(
+        "src/taint_tracking/protos/", root_build_dir),
+    "--output=c++:" + rebase_path("$target_gen_dir/", root_build_dir),
+    rebase_path("src/taint_tracking/protos/logrecord.capnp", root_build_dir),
+    rebase_path("src/taint_tracking/protos/ast.capnp", root_build_dir),
+  ]
+}
 
 # Only for Windows clang builds. Converts the embedded.S file produced by
 # mksnapshot into an embedded.cc file with corresponding inline assembly.
@@ -3055,6 +3096,14 @@ v8_header_set("v8_internal_headers") {
     "src/strings/unicode-inl.h",
     "src/strings/unicode.h",
     "src/strings/uri.h",
+    "src/taint_tracking.h",
+    "src/taint_tracking-inl.h",
+    # "src/taint_tracking/taint_tracking.cc",
+    "src/taint_tracking/log_listener.h",
+    # "$target_gen_dir/logrecord.capnp.c++",
+    "$target_gen_dir/logrecord.capnp.h",
+    # "$target_gen_dir/ast.capnp.c++",
+    "$target_gen_dir/ast.capnp.h",
     "src/tasks/cancelable-task.h",
     "src/tasks/operations-barrier.h",
     "src/tasks/task-utils.h",
@@ -3420,6 +3469,7 @@ v8_header_set("v8_internal_headers") {
     ":generate_bytecode_builtins_list",
     ":run_torque",
     ":v8_libbase",
+    ":v8_capnp_generate",
   ]
 }
 
@@ -4025,6 +4075,14 @@ v8_source_set("v8_base_without_compiler") {
     "src/tasks/operations-barrier.cc",
     "src/tasks/task-utils.cc",
     "src/third_party/siphash/halfsiphash.cc",
+    # "src/taint_tracking.h",
+    # "src/taint_tracking-inl.h",
+    "src/taint_tracking/taint_tracking.cc",
+    # "src/taint_tracking/log_listener.h",
+    "$target_gen_dir/logrecord.capnp.c++",
+    # "$target_gen_dir/logrecord.capnp.h",
+    "$target_gen_dir/ast.capnp.c++",
+    # "$target_gen_dir/ast.capnp.h",
     "src/tracing/trace-event.cc",
     "src/tracing/traced-value.cc",
     "src/tracing/tracing-category-observer.cc",
@@ -4355,6 +4413,7 @@ v8_source_set("v8_base_without_compiler") {
     ":v8_tracing",
     ":v8_version",
     "src/inspector:inspector",
+    ":v8_capnp_generate",
   ]
 
   public_deps = [
@@ -4433,6 +4492,9 @@ v8_source_set("v8_base_without_compiler") {
       "src/tracing/trace-categories.h",
     ]
   }
+
+  # Include capnp for taint tracking logging
+  include_dirs = [ rebase_path("$target_gen_dir/", root_build_dir) ]
 }
 
 group("v8_base") {

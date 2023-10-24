@@ -3197,8 +3197,13 @@ enum class NewStringType {
  */
 class V8_EXPORT String : public Name {
  public:
+  // static constexpr int kMaxLength =
+      // internal::kApiSystemPointerSize == 4 ? (1 << 28) - 16 : (1 << 29) - 24;
+  // 8 + 4 + 4
+  // 16 + 4 + 4
+  // jianjia
   static constexpr int kMaxLength =
-      internal::kApiSystemPointerSize == 4 ? (1 << 28) - 16 : (1 << 29) - 24;
+      internal::kApiSystemPointerSize == 4 ? (1 << 28) - 18 : (1 << 29) - 26;
 
   enum Encoding {
     UNKNOWN_ENCODING = 0x1,
@@ -3310,7 +3315,170 @@ class V8_EXPORT String : public Name {
    */
   bool IsExternalOneByte() const;
 
-  class V8_EXPORT ExternalStringResourceBase {
+  typedef uint8_t TaintData;
+
+
+  // A taint type stores a single byte of taint information about a single
+  // character of string data. The most significant three bits are used for the
+  // encoding and the last significant 5 bits are used for the taint type.
+  //
+  // 0 0 0      0 0 0 0 0
+  // \___/      \_______/
+  //   |            |
+  // encoding    taint type
+  //
+  // Must be kept in sync with
+  // ../../third_party/WebKit/Source/wtf/text/TaintTracking.h
+  enum TaintType {
+    UNTAINTED = 0,
+    TAINTED = 1,
+    COOKIE = 2,
+    MESSAGE = 3,
+    URL = 4,
+    URL_HASH = 5,
+    URL_PROTOCOL = 6,
+    URL_HOST = 7,
+    URL_HOSTNAME = 8,
+    URL_ORIGIN = 9,
+    URL_PORT = 10,
+    URL_PATHNAME = 11,
+    URL_SEARCH = 12,
+    DOM = 13,
+    REFERRER = 14,
+    WINDOWNAME = 15,
+    STORAGE = 16,
+    NETWORK = 17,
+    MULTIPLE_TAINTS = 18,       // Used when combining multiple bytes with
+                                // different taints.
+    MESSAGE_ORIGIN = 19,
+
+    // This must be less than the value of URL_ENCODED
+    MAX_TAINT_TYPE = 20,
+
+    // Encoding types
+    URL_ENCODED = 32,            // 1 << 5
+    URL_COMPONENT_ENCODED = 64,  // 2 << 5
+    ESCAPE_ENCODED = 96,         // 3 << 5
+    MULTIPLE_ENCODINGS = 128,    // 4 << 5
+    URL_DECODED = 160,           // 5 << 5
+    URL_COMPONENT_DECODED = 192, // 6 << 5
+    ESCAPE_DECODED = 224,        // 7 << 5
+
+    NO_ENCODING = 0,            // Must use the encoding mask to compare to no
+                                // encoding.
+
+    // Masks
+    TAINT_TYPE_MASK = 31,       // 1 << 5 - 1 (all ones in lower 5 bits)
+    ENCODING_TYPE_MASK = 224   // 7 << 5 (all ones in top 3 bits)
+  };
+
+  enum TaintSinkLabel {
+    URL_SINK,
+    EMBED_SRC_SINK,
+    IFRAME_SRC_SINK,
+    ANCHOR_SRC_SINK,
+    IMG_SRC_SINK,
+    SCRIPT_SRC_URL_SINK,
+
+    JAVASCRIPT,
+    JAVASCRIPT_EVENT_HANDLER_ATTRIBUTE,
+    JAVASCRIPT_SET_TIMEOUT,
+    JAVASCRIPT_SET_INTERVAL,
+
+    HTML,
+    MESSAGE_DATA,
+    COOKIE_SINK,
+    STORAGE_SINK,
+    ORIGIN,
+    DOM_URL,
+    JAVASCRIPT_URL,
+    ELEMENT,
+    CSS,
+    CSS_STYLE_ATTRIBUTE,
+    LOCATION_ASSIGNMENT
+  };
+
+  void WriteTaint(TaintData* buffer,
+                  int start = 0,
+                  int length = -1) const;
+
+  int64_t GetTaintInfo() const;
+
+  template <typename Char>
+  static int64_t LogIfBufferTainted(TaintData* buffer,
+                                    Char* stringdata,
+                                    size_t length,
+
+                                    // Should be retrieved from the function
+                                    // arguments.
+                                    int symbolic_data,
+                                    v8::Isolate* isolate,
+                                    TaintSinkLabel label);
+
+  // Returns -1 if not tainted. Otherwise returns the message ID of the logged
+  // message.
+  int64_t LogIfTainted(TaintSinkLabel label,
+
+                       // Should be the index of the function arguments
+                       int symbolic_data);
+  static void SetTaint(v8::Local<v8::Value> val,
+                       v8::Isolate* isolate,
+                       TaintType type);
+  static void SetTaintInfo(v8::Local<v8::Value> val,
+                           int64_t info);
+
+  static int64_t NewUniqueId(v8::Isolate* isolate);
+
+  class V8_EXPORT TaintTrackingBase {
+    public:
+
+      virtual ~TaintTrackingBase() {}
+
+      /**
+       * Return the taint information. May return NULL if untainted.
+       */
+      virtual TaintData* GetTaintChars() const = 0;
+
+      /**
+       * Return the taint information for writing. May not return NULL.
+       */
+      virtual TaintData* InitTaintChars(size_t) = 0;
+  };
+
+
+  // Inherit from this class to get an implementation of the taint tracking
+  // interface that stores a malloc-ed pointer on Set.
+  class V8_EXPORT TaintTrackingStringBufferImpl :
+    public virtual TaintTrackingBase {
+    public:
+
+      TaintTrackingStringBufferImpl() : taint_data_(nullptr) {}
+
+      virtual TaintData* GetTaintChars() const {
+        return taint_data_.get();
+      }
+
+      virtual TaintData* InitTaintChars(size_t length) {
+        TaintData* answer = taint_data_.get();
+        if (!taint_data_) {
+          answer = new TaintData[length];
+          taint_data_.reset(answer);
+          return answer;
+        } else {
+          return answer;
+        }
+      }
+
+      virtual void SetTaintChars(TaintData* buffer) {
+        taint_data_.reset(buffer);
+      }
+
+    private:
+      std::unique_ptr<TaintData> taint_data_;
+  };
+
+  class V8_EXPORT ExternalStringResourceBase
+    : public virtual TaintTrackingBase {  // NOLINT
    public:
     virtual ~ExternalStringResourceBase() = default;
 
@@ -3657,6 +3825,12 @@ inline V8_WARN_UNUSED_RESULT Local<String> String::NewFromUtf8Literal(
     Isolate* isolate, const char (&literal)[1], NewStringType type) {
   return String::Empty(isolate);
 }
+
+class V8_EXPORT TaintTracking {
+ public:
+  static void LogInitializeNavigate(v8::Local<v8::String> url);
+};
+
 
 /**
  * A JavaScript symbol (ECMA-262 edition 6)
@@ -10579,6 +10753,10 @@ class V8_EXPORT Context : public Data {
 
   /** Returns the security token of this context.*/
   Local<Value> GetSecurityToken();
+
+  /** Used by tainttracking logging to identify different execution contexts **/
+  void SetTaintTrackingContextId(Local<Value> token);
+
 
   /**
    * Enter this context.  After entering a context, all code compiled

@@ -203,8 +203,9 @@ class Internals {
   // the implementation of v8.
   static const int kHeapObjectMapOffset = 0;
   static const int kMapInstanceTypeOffset = 1 * kApiTaggedSize + kApiInt32Size;
+  // jianjia: need to change kStringResourceOffset, I think this is to add one pointer to the taint
   static const int kStringResourceOffset =
-      1 * kApiTaggedSize + 2 * kApiInt32Size;
+      2 * kApiTaggedSize + 2 * kApiInt32Size;
 
   static const int kOddballKindOffset = 4 * kApiTaggedSize + kApiDoubleSize;
   static const int kJSObjectHeaderSize = 3 * kApiTaggedSize;
