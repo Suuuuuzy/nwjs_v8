@@ -640,6 +640,8 @@ class SeqOneByteString
   // Get the address of the characters in this string.
   inline Address GetCharsAddress() const;
 
+  inline byte* GetTaintChars();
+
   // Get a pointer to the characters of the string. May only be called when a
   // SharedStringAccessGuard is not needed (i.e. on the main thread or on
   // read-only strings).
@@ -685,6 +687,8 @@ class SeqTwoByteString
 
   // Get the address of the characters in this string.
   inline Address GetCharsAddress() const;
+
+  inline byte* GetTaintChars();
 
   // Get a pointer to the characters of the string. May only be called when a
   // SharedStringAccessGuard is not needed (i.e. on the main thread or on

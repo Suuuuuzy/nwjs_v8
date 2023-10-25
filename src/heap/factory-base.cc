@@ -26,6 +26,7 @@
 #include "src/objects/string.h"
 #include "src/objects/swiss-name-dictionary-inl.h"
 #include "src/objects/template-objects-inl.h"
+#include "src/taint_tracking.h"
 
 namespace v8 {
 namespace internal {
@@ -555,6 +556,7 @@ MaybeHandle<SeqOneByteString> FactoryBase<Impl>::NewRawOneByteString(
   string.set_length(length);
   string.set_raw_hash_field(String::kEmptyHashField);
   DCHECK_EQ(size, string.Size());
+  tainttracking::InitTaintData(string);
   return handle(string, isolate());
 }
 

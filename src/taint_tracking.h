@@ -233,14 +233,14 @@ const TaintFlag kTaintFlagUntainted = 0;
 // const bool kInternalizedStringsEnabled = !kTaintTrackingEnabled;
 
 
-// // Functions for manipulating taint data
-// template <class T>
-// void InitTaintData(T* str, TaintType type = TaintType::UNTAINTED);
+// Functions for manipulating taint data
+template <class T>
+void InitTaintData(T str, TaintType type = TaintType::UNTAINTED);
 
-// template <> void InitTaintData<v8::internal::SeqOneByteString>(
-//     v8::internal::SeqOneByteString* str, TaintType type);
-// template <> void InitTaintData<v8::internal::SeqTwoByteString>(
-//     v8::internal::SeqTwoByteString* str, TaintType type);
+template <> void InitTaintData<v8::internal::SeqOneByteString>(
+    v8::internal::SeqOneByteString str, TaintType type);
+template <> void InitTaintData<v8::internal::SeqTwoByteString>(
+    v8::internal::SeqTwoByteString str, TaintType type);
 
 // template <class T>
 // void CopyOut(T* source, TaintData* dest, int offset, int len);
@@ -272,8 +272,8 @@ template <class T> void FlattenTaintData(
 
 // template <class T>
 // TaintType GetTaintStatusRange(T* source, size_t idx_start, size_t length);
-// template <class T> TaintType GetTaintStatus(T* object, size_t idx);
-// template <class T> void SetTaintStatus(T* object, size_t idx, TaintType type);
+template <class T> TaintType GetTaintStatus(T object, int idx);
+template <class T> void SetTaintStatus(T object, int idx, TaintType type);
 // template <class T> TaintData* GetWriteableStringTaintData(T* str);
 
 
@@ -475,6 +475,6 @@ template <class T> void FlattenTaintData(
 
 #endif
 
-// // Local Variables:
-// // mode: c++
-// // End:
+// Local Variables:
+// mode: c++
+// End:

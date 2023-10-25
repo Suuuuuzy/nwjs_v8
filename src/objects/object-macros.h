@@ -81,12 +81,23 @@
   inline type name() const;     \
   inline type name(PtrComprCageBase cage_base) const;
 
+#define DECL_GETTER_NOT_CONST(name, type) \
+  inline type name();     \
+  inline type name(PtrComprCageBase cage_base);
+
 #define DEF_GETTER(holder, name, type)                       \
   type holder::name() const {                                \
     PtrComprCageBase cage_base = GetPtrComprCageBase(*this); \
     return holder::name(cage_base);                          \
   }                                                          \
   type holder::name(PtrComprCageBase cage_base) const
+
+#define DEF_GETTER_NOT_CONST(holder, name, type)                       \
+  type holder::name() {                                \
+    PtrComprCageBase cage_base = GetPtrComprCageBase(*this); \
+    return holder::name(cage_base);                          \
+  }                                                          \
+  type holder::name(PtrComprCageBase cage_base) 
 
 #define DECL_SETTER(name, type)      \
   inline void set_##name(type value, \

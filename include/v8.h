@@ -3197,13 +3197,13 @@ enum class NewStringType {
  */
 class V8_EXPORT String : public Name {
  public:
-  // static constexpr int kMaxLength =
-      // internal::kApiSystemPointerSize == 4 ? (1 << 28) - 16 : (1 << 29) - 24;
+  static constexpr int kMaxLength =
+      internal::kApiSystemPointerSize == 4 ? (1 << 28) - 16 : (1 << 29) - 24;
   // 8 + 4 + 4
   // 16 + 4 + 4
   // jianjia
-  static constexpr int kMaxLength =
-      internal::kApiSystemPointerSize == 4 ? (1 << 28) - 18 : (1 << 29) - 26;
+  // static constexpr int kMaxLength =
+  //     internal::kApiSystemPointerSize == 4 ? (1 << 28) - 18 : (1 << 29) - 26;
 
   enum Encoding {
     UNKNOWN_ENCODING = 0x1,
@@ -3477,8 +3477,7 @@ class V8_EXPORT String : public Name {
       std::unique_ptr<TaintData> taint_data_;
   };
 
-  class V8_EXPORT ExternalStringResourceBase
-    : public virtual TaintTrackingBase {  // NOLINT
+  class V8_EXPORT ExternalStringResourceBase{  // NOLINT
    public:
     virtual ~ExternalStringResourceBase() = default;
 

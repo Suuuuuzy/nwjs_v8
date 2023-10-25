@@ -29,38 +29,38 @@ public:
   ~TestCase() {}
 };
 
-// TEST(TaintLarge) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   Factory* factory = CcTest::i_isolate()->factory();
-//   Handle<String> test = factory->NewStringFromStaticChars(
-//       "asdfasdfasdfasdfasdfasdfasdfasdfasdfasdf");
-//   CHECK_EQ(GetTaintStatus(*test, 2), TaintType::UNTAINTED);
-//   SetTaintStatus(*test, 2, TaintType::TAINTED);
-//   SetTaintStatus(*test, 0, TaintType::TAINTED);
-//   SetTaintStatus(*test, 39, TaintType::TAINTED);
-//   CHECK_EQ(GetTaintStatus(*test, 2), TaintType::TAINTED);
-//   CHECK_EQ(GetTaintStatus(*test, 0), TaintType::TAINTED);
-//   CHECK_EQ(GetTaintStatus(*test, 39), TaintType::TAINTED);
-//   std::unique_ptr<char[]> value = test->ToCString();
-//   CHECK_EQ(strcmp(value.get(), "asdfasdfasdfasdfasdfasdfasdfasdfasdfasdf"), 0);
-//   CHECK_EQ(test->length(), 40);
-// }
+TEST(TaintLarge) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  Factory* factory = CcTest::i_isolate()->factory();
+  Handle<String> test = factory->NewStringFromStaticChars(
+      "asdfasdfasdfasdfasdfasdfasdfasdfasdfasdf");
+  CHECK_EQ(GetTaintStatus(*test, 2), TaintType::UNTAINTED);
+  SetTaintStatus(*test, 2, TaintType::TAINTED);
+  SetTaintStatus(*test, 0, TaintType::TAINTED);
+  SetTaintStatus(*test, 39, TaintType::TAINTED);
+  CHECK_EQ(GetTaintStatus(*test, 2), TaintType::TAINTED);
+  CHECK_EQ(GetTaintStatus(*test, 0), TaintType::TAINTED);
+  CHECK_EQ(GetTaintStatus(*test, 39), TaintType::TAINTED);
+  std::unique_ptr<char[]> value = test->ToCString();
+  CHECK_EQ(strcmp(value.get(), "asdfasdfasdfasdfasdfasdfasdfasdfasdfasdf"), 0);
+  CHECK_EQ(test->length(), 40);
+}
 
-// TEST(TaintLargeModOne) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   Factory* factory = CcTest::i_isolate()->factory();
-//   Handle<String> test = factory->NewStringFromStaticChars(
-//       "asdfasdfasdfasdfasdfasdfasdfasdfasdfasdfa");
-//   CHECK_EQ(GetTaintStatus(*test, 2), TaintType::UNTAINTED);
-//   CHECK_EQ(GetTaintStatus(*test, 40), TaintType::UNTAINTED);
-//   CHECK_EQ(GetTaintStatus(*test, 5), TaintType::UNTAINTED);
-//   SetTaintStatus(*test, 2, TaintType::TAINTED);
-//   CHECK_EQ(GetTaintStatus(*test, 2), TaintType::TAINTED);
-//   CHECK_EQ(GetTaintStatus(*test, 40), TaintType::UNTAINTED);
-//   CHECK_EQ(GetTaintStatus(*test, 5), TaintType::UNTAINTED);
-// }
+TEST(TaintLargeModOne) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  Factory* factory = CcTest::i_isolate()->factory();
+  Handle<String> test = factory->NewStringFromStaticChars(
+      "asdfasdfasdfasdfasdfasdfasdfasdfasdfasdfa");
+  CHECK_EQ(GetTaintStatus(*test, 2), TaintType::UNTAINTED);
+  CHECK_EQ(GetTaintStatus(*test, 40), TaintType::UNTAINTED);
+  CHECK_EQ(GetTaintStatus(*test, 5), TaintType::UNTAINTED);
+  SetTaintStatus(*test, 2, TaintType::TAINTED);
+  CHECK_EQ(GetTaintStatus(*test, 2), TaintType::TAINTED);
+  CHECK_EQ(GetTaintStatus(*test, 40), TaintType::UNTAINTED);
+  CHECK_EQ(GetTaintStatus(*test, 5), TaintType::UNTAINTED);
+}
 
 // TEST(TaintConsStringSelf) {
 //   TestCase test_case;
@@ -836,21 +836,21 @@ public:
 //   CHECK_EQ(listener->GetScripts().size(), 1);
 // }
 
-TEST(TaintStringUpper) {
-  TestCase test_case;
-  v8::HandleScope scope(CcTest::isolate());
-  v8::Local<v8::String> source = v8_str(
-      CcTest::isolate(),
-      "var a = 'aaaaa'; "
-      "a.__setTaint__(1);"
-      "eval('\"' + a.toUpperCase() + '\"'); ");
-  TestTaintListener* listener = new TestTaintListener();
-  CHECK_EQ(listener->GetScripts().size(), 0);
-  TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
-  auto result = v8::Script::Compile(
-      CcTest::isolate()->GetCurrentContext(), source).ToLocalChecked()->Run();
-  CHECK_EQ(listener->GetScripts().size(), 1);
-}
+// TEST(TaintStringUpper) {
+//   TestCase test_case;
+//   v8::HandleScope scope(CcTest::isolate());
+//   v8::Local<v8::String> source = v8_str(
+//       CcTest::isolate(),
+//       "var a = 'aaaaa'; "
+//       "a.__setTaint__(1);"
+//       "eval('\"' + a.toUpperCase() + '\"'); ");
+//   TestTaintListener* listener = new TestTaintListener();
+//   CHECK_EQ(listener->GetScripts().size(), 0);
+//   TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
+//   auto result = v8::Script::Compile(
+//       CcTest::isolate()->GetCurrentContext(), source).ToLocalChecked()->Run();
+//   CHECK_EQ(listener->GetScripts().size(), 1);
+// }
 
 // TEST(TaintStringLower) {
 //   TestCase test_case;

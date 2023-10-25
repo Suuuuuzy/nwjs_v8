@@ -777,6 +777,16 @@ void SeqOneByteString::SeqOneByteStringSet(int index, uint16_t value) {
   WriteField<byte>(kHeaderSize + index * kCharSize, static_cast<byte>(value));
 }
 
+byte* SeqOneByteString::GetTaintChars() {
+  return reinterpret_cast<byte*>(field_address(
+            kHeaderSize + (length() * kCharSize)));
+}
+
+byte* SeqTwoByteString::GetTaintChars() {
+  return reinterpret_cast<byte*>(field_address(
+            kHeaderSize + (length() * kShortSize)));
+}
+
 Address SeqOneByteString::GetCharsAddress() const {
   return field_address(kHeaderSize);
 }
