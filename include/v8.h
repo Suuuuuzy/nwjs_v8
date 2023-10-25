@@ -3424,8 +3424,8 @@ class V8_EXPORT String : public Name {
   static void SetTaint(v8::Local<v8::Value> val,
                        v8::Isolate* isolate,
                        TaintType type);
-  static void SetTaintInfo(v8::Local<v8::Value> val,
-                           int64_t info);
+  // static void SetTaintInfo(v8::Local<v8::Value> val,
+  //                          int64_t info);
 
   static int64_t NewUniqueId(v8::Isolate* isolate);
 
