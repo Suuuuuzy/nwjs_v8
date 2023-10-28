@@ -1,0 +1,10 @@
+is_component_build = true
+is_debug = true
+symbol_level = 2
+target_cpu = "x64"
+use_goma = false
+v8_enable_backtrace = true
+v8_enable_fast_mksnapshot = true
+v8_enable_slow_dchecks = true
+v8_optimized_debug = false
+v8_capnp_include_dir="/home/suzy/Documents/capnproto-install-clang"

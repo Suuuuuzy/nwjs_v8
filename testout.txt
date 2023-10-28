@@ -1,10 +1,10 @@
-Build found: /media/dataj/nwjsv8/v8/out/x64.debug/
+Build found: /media/dataj/test/v8/v8/out/x64.debug/
 >>> Autodetected:
 pointer_compression
 pointer_compression_shared_cage
 webassembly
 >>> Running tests for x64.debug
 >>> Running with test processors
-[00:01|%   0|+   1|-   0]: cctest/test-taint-tracking/TaintLarge                                                                [00:01|%   0|+   2|-   0]: cctest/test-taint-tracking/TaintLargeModOne                                                                      [00:01|%   0|+   2|-   0]: Done
+[00:01|%   0|+   1|-   0]: cctest/test-taint-tracking/TaintLargeModOne                                                                      [00:01|%   0|+   2|-   0]: cctest/test-taint-tracking/TaintLarge                                                                [00:01|%   0|+   2|-   0]: Done
 >>> 7165 base tests produced 2 (0%) non-filtered tests
 >>> 2 tests ran

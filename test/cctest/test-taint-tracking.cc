@@ -62,48 +62,48 @@ TEST(TaintLargeModOne) {
   CHECK_EQ(GetTaintStatus(*test, 5), TaintType::UNTAINTED);
 }
 
-// TEST(TaintConsStringSelf) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   Factory* factory = CcTest::i_isolate()->factory();
-//   Handle<String> test = factory->NewStringFromStaticChars(
-//       "asdfasdfasdfasdfasdfasdfasdfasdfasdfasdfa");
-//   SetTaintStatus(*test, 2, TaintType::TAINTED);
+TEST(TaintConsStringSelf) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  Factory* factory = CcTest::i_isolate()->factory();
+  Handle<String> test = factory->NewStringFromStaticChars(
+      "asdfasdfasdfasdfasdfasdfasdfasdfasdfasdfa");
+  SetTaintStatus(*test, 2, TaintType::TAINTED);
 
-//   Handle<String> cons = factory->NewConsString(test, test).ToHandleChecked();
-//   CHECK_EQ(GetTaintStatus(*cons, 3), TaintType::UNTAINTED);
-//   SetTaintStatus(*cons, 3, TaintType::TAINTED);
-//   CHECK_EQ(GetTaintStatus(*cons, 3), TaintType::TAINTED);
+  Handle<String> cons = factory->NewConsString(test, test).ToHandleChecked();
+  CHECK_EQ(GetTaintStatus(*cons, 3), TaintType::UNTAINTED);
+  SetTaintStatus(*cons, 3, TaintType::TAINTED);
+  CHECK_EQ(GetTaintStatus(*cons, 3), TaintType::TAINTED);
 
-//   // Setting taint status on parent should flow through the Cons
-//   CHECK_EQ(GetTaintStatus(*cons, 2), TaintType::TAINTED);
-//   CHECK_EQ(GetTaintStatus(*cons, 43), TaintType::TAINTED);
-// }
+  // Setting taint status on parent should flow through the Cons
+  CHECK_EQ(GetTaintStatus(*cons, 2), TaintType::TAINTED);
+  CHECK_EQ(GetTaintStatus(*cons, 43), TaintType::TAINTED);
+}
 
-// TEST(TaintConsStringTwo) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   Factory* factory = CcTest::i_isolate()->factory();
-//   Handle<String> first = factory->NewStringFromStaticChars("firstfirstfirst");
-//   Handle<String> second =
-//     factory->NewStringFromStaticChars("secondsecondsecond");
-//   SetTaintStatus(*first, 2, TaintType::TAINTED);
-//   SetTaintStatus(*second, 2, TaintType::TAINTED);
+TEST(TaintConsStringTwo) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  Factory* factory = CcTest::i_isolate()->factory();
+  Handle<String> first = factory->NewStringFromStaticChars("firstfirstfirst");
+  Handle<String> second =
+    factory->NewStringFromStaticChars("secondsecondsecond");
+  SetTaintStatus(*first, 2, TaintType::TAINTED);
+  SetTaintStatus(*second, 2, TaintType::TAINTED);
 
-//   Handle<String> cons = factory->NewConsString(first, second).ToHandleChecked();
-//   CHECK_EQ(GetTaintStatus(*cons, 3), TaintType::UNTAINTED);
-//   SetTaintStatus(*cons, 3, TaintType::TAINTED);
-//   CHECK_EQ(GetTaintStatus(*cons, 3), TaintType::TAINTED);
+  Handle<String> cons = factory->NewConsString(first, second).ToHandleChecked();
+  CHECK_EQ(GetTaintStatus(*cons, 3), TaintType::UNTAINTED);
+  SetTaintStatus(*cons, 3, TaintType::TAINTED);
+  CHECK_EQ(GetTaintStatus(*cons, 3), TaintType::TAINTED);
 
-//   // Setting taint status on parent should flow through the Cons
-//   CHECK_EQ(GetTaintStatus(*cons, 2), TaintType::TAINTED);
-//   CHECK_EQ(GetTaintStatus(*cons, 17), TaintType::TAINTED);
+  // Setting taint status on parent should flow through the Cons
+  CHECK_EQ(GetTaintStatus(*cons, 2), TaintType::TAINTED);
+  CHECK_EQ(GetTaintStatus(*cons, 17), TaintType::TAINTED);
 
-//   Handle<String> flat = String::Flatten(cons);
-//   CHECK_EQ(GetTaintStatus(*flat, 2), TaintType::TAINTED);
-//   CHECK_EQ(GetTaintStatus(*flat, 17), TaintType::TAINTED);
-//   CHECK_EQ(GetTaintStatus(*flat, 3), TaintType::TAINTED);
-// }
+  Handle<String> flat = String::Flatten(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()), cons);
+  CHECK_EQ(GetTaintStatus(*flat, 2), TaintType::TAINTED);
+  CHECK_EQ(GetTaintStatus(*flat, 17), TaintType::TAINTED);
+  CHECK_EQ(GetTaintStatus(*flat, 3), TaintType::TAINTED);
+}
 
 // TEST(TaintConsStringShort) {
 //   TestCase test_case;

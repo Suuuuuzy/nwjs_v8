@@ -229,8 +229,8 @@ const TaintFlag kTaintFlagUntainted = 0;
 //   std::unique_ptr<Impl> impl_;
 // };
 
-// const bool kTaintTrackingEnabled = true;
-// const bool kInternalizedStringsEnabled = !kTaintTrackingEnabled;
+const bool kTaintTrackingEnabled = true;
+const bool kInternalizedStringsEnabled = !kTaintTrackingEnabled;
 
 
 // Functions for manipulating taint data
@@ -251,8 +251,8 @@ template <> void InitTaintData<v8::internal::SeqTwoByteString>(
 
 template <class T> void FlattenTaintData(
     T source, TaintData* dest, int from_offset, int from_len);
-// template <class T, class S>
-// void FlattenTaint(S* source, T* dest, int from_offset, int from_len);
+template <class T, class S>
+void FlattenTaint(S source, T dest, int from_offset, int from_len);
 
 // int64_t LogIfTainted(
 //     v8::internal::Handle<v8::internal::String> str,
@@ -274,20 +274,20 @@ template <class T> void FlattenTaintData(
 // TaintType GetTaintStatusRange(T* source, size_t idx_start, size_t length);
 template <class T> TaintType GetTaintStatus(T object, int idx);
 template <class T> void SetTaintStatus(T object, int idx, TaintType type);
-// template <class T> TaintData* GetWriteableStringTaintData(T* str);
+template <class T> TaintData* GetWriteableStringTaintData(T str);
 
 
 // // Event listeners for New strings and operations
 // template <class T> void OnNewStringLiteral(T* source);
 // void OnNewDeserializedString(v8::internal::String* source);
 // template <class T> void OnNewExternalString(T* str);
-// template <class T, class S> void OnNewSubStringCopy(
-//     T* source, S* dest, int offset, int length);
-// template <class T, class S, class R> void OnNewConcatStringCopy(
-//     T* dest, S* first, R* second);
-// void OnNewConsString(v8::internal::ConsString* target,
-//                      v8::internal::String* first,
-//                      v8::internal::String* second);
+template <class T, class S> void OnNewSubStringCopy(
+    T source, S dest, int offset, int length);
+template <class T, class S, class R> void OnNewConcatStringCopy(
+    T dest, S first, R second);
+void OnNewConsString(v8::internal::ConsString target,
+                     v8::internal::String first,
+                     v8::internal::String second);
 // void OnNewSlicedString(v8::internal::SlicedString* target,
 //                        v8::internal::String* first,
 //                        int offset, int length);

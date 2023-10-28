@@ -576,6 +576,7 @@ MaybeHandle<SeqTwoByteString> FactoryBase<Impl>::NewRawTwoByteString(
   string.set_length(length);
   string.set_raw_hash_field(String::kEmptyHashField);
   DCHECK_EQ(size, string.Size());
+  tainttracking::InitTaintData(string);
   return handle(string, isolate());
 }
 
@@ -637,6 +638,7 @@ MaybeHandle<String> FactoryBase<Impl>::NewConsString(
             right->template GetChars<uint8_t>(no_gc, access_guard);
         CopyChars(dest + left_length, src, right_length);
       }
+      tainttracking::OnNewConcatStringCopy(*result, *left, *right);
       return result;
     }
 
@@ -649,6 +651,7 @@ MaybeHandle<String> FactoryBase<Impl>::NewConsString(
     String::WriteToFlat(*left, sink, 0, left->length(), access_guard);
     String::WriteToFlat(*right, sink + left->length(), 0, right->length(),
                         access_guard);
+    tainttracking::OnNewConcatStringCopy(*result, *left, *right);
     return result;
   }
 

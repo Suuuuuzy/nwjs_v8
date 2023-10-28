@@ -107,12 +107,14 @@ extern class SeqString extends String {
 @doNotGenerateCast
 extern class SeqOneByteString extends SeqString {
   const chars[length]: char8;
+  const taint[length]: char8;
 }
 @generateCppClass
 @generateBodyDescriptor
 @doNotGenerateCast
 extern class SeqTwoByteString extends SeqString {
   const chars[length]: char16;
+  const taint[length]: char8;
 }
 
 @generateCppClass
@@ -140,9 +142,9 @@ macro AllocateNonEmptySeqOneByteString<Iterator: type>(
   return new SeqOneByteString{
     map: kOneByteStringMap,
     raw_hash_field: kNameEmptyHashField,
-    // taint_info: 0,
     length: Signed(length),
-    chars: ...content
+    chars: ...content,
+    taint: ...content
   };
 }
 
@@ -152,9 +154,9 @@ macro AllocateNonEmptySeqTwoByteString<Iterator: type>(
   return new SeqTwoByteString{
     map: kStringMap,
     raw_hash_field: kNameEmptyHashField,
-    // taint_info: 0,
     length: Signed(length),
-    chars: ...content
+    chars: ...content,
+    taint: ...content
   };
 }
 

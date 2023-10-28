@@ -58,7 +58,7 @@ namespace tainttracking {
 
 // const int kPointerStrSize = 64;
 // const int kBitsPerByte = 8;
-// const int kStackTraceInfoSize = 4000;
+const int kStackTraceInfoSize = 4000;
 // const char kEnableHeaderLoggingName[] = "enableHeaderLogging";
 // const char kEnableBodyLoggingName[] = "enableBodyLogging";
 // const char kLoggingFilenamePrefix[] = "loggingFilenamePrefix";
@@ -94,25 +94,30 @@ inline bool IsValidTaintType(TaintType type) {
 
 inline void CheckTaintError(TaintType type, String object) {
 #ifdef DEBUG
+  std::cerr << "TaintType: "
+                << std::to_string(static_cast<uint8_t>(type)).c_str()
+                << std::endl;
   if (!IsValidTaintType(type)) {
     // Isolate* isolate = object.GetIsolate();
+    v8::internal::Isolate* isolate = v8::internal::Isolate::Current();
+    std::unique_ptr<char[]> strval = object.ToCString();
+    char stack_trace [kStackTraceInfoSize];
+    FixedStringAllocator alloc(stack_trace, sizeof(stack_trace));
+    StringStream stream(
+        &alloc, StringStream::ObjectPrintMode::kPrintObjectConcise);
+    isolate->PrintStack(&stream);
+    
+    // isolate->PrintStack(stdout);
 
-    // std::unique_ptr<char[]> strval = object.ToCString();
-    // char stack_trace [kStackTraceInfoSize];
-    // FixedStringAllocator alloc(stack_trace, sizeof(stack_trace));
-    // StringStream stream(
-    //     &alloc, StringStream::ObjectPrintMode::kPrintObjectConcise);
-    // isolate->PrintStack(&stream);
-
-    // std::cerr << "Taint tracking memory error: "
-    //           << std::to_string(static_cast<uint8_t>(type)).c_str()
-    //           << std::endl;
-    // std::cerr << "String length: " << object.length() << std::endl;
-    // std::cerr << "String type: " << object.map().instance_type()
-    //           << std::endl;
-    // std::cerr << "String value: " << strval.get() << std::endl;
-    // std::cerr << "JS Stack trace: " << stack_trace << std::endl;
-    // std::cerr << "String address: " << ( object) << std::endl;
+    std::cerr << "Taint tracking memory error: "
+              << std::to_string(static_cast<uint8_t>(type)).c_str()
+              << std::endl;
+    std::cerr << "String length: " << object.length() << std::endl;
+    std::cerr << "String type: " << object.map().instance_type()
+              << std::endl;
+    std::cerr << "String value: " << strval.get() << std::endl;
+    std::cerr << "JS Stack trace: " << stack_trace << std::endl;
+    std::cerr << "String address: " << ( object) << std::endl;
     FATAL("Taint Tracking Memory Error");
   }
 #endif
@@ -156,6 +161,9 @@ private:
 #ifdef DEBUG
     if (taint_info != nullptr && !writeable_) {
       for (int i = 0; i < size; i++) {
+        std::cerr << "jianjia Taint tracking memory error: "
+              << offset << " " << i << " " << (void *)taint_info << " " << size 
+              << std::endl;
         CheckTaintError(
             static_cast<TaintType>(*(taint_info + offset + i)),
             GetVisitee());
@@ -896,29 +904,29 @@ TaintData* StringTaintData_TryAllocate(T str) {
   return answer;
 }
 
-// template<> TaintData* GetWriteableStringTaintData<SeqOneByteString>(
-//     SeqOneByteString* str) {
-//   return StringTaintData(str);
-// }
-// template<> TaintData* GetWriteableStringTaintData<SeqTwoByteString>(
-//     SeqTwoByteString* str) {
-//   return StringTaintData(str);
-// }
+template<> TaintData* GetWriteableStringTaintData<SeqOneByteString>(
+    SeqOneByteString str) {
+  return StringTaintData(str);
+}
+template<> TaintData* GetWriteableStringTaintData<SeqTwoByteString>(
+    SeqTwoByteString str) {
+  return StringTaintData(str);
+}
 // template<> TaintData* GetWriteableStringTaintData<ExternalOneByteString>(
-//     ExternalOneByteString* str) {
+//     ExternalOneByteString str) {
 //   return StringTaintData_TryAllocate(str);
 // }
 // template<> TaintData* GetWriteableStringTaintData<ExternalTwoByteString>(
-//     ExternalTwoByteString* str) {
+//     ExternalTwoByteString str) {
 //   return StringTaintData_TryAllocate(str);
 // }
-// template<> TaintData* GetWriteableStringTaintData<SeqString>(SeqString* str) {
-//   if (str.IsSeqOneByteString()) {
-//     return GetWriteableStringTaintData(SeqOneByteString::cast(str));
-//   } else {
-//     return GetWriteableStringTaintData(SeqTwoByteString::cast(str));
-//   }
-// }
+template<> TaintData* GetWriteableStringTaintData<SeqString>(SeqString str) {
+  if (str.IsSeqOneByteString()) {
+    return GetWriteableStringTaintData(SeqOneByteString::cast(str));
+  } else {
+    return GetWriteableStringTaintData(SeqTwoByteString::cast(str));
+  }
+}
 
 void MarkNewString(String str) {
   // Isolate* isolate = str.GetIsolate();
@@ -1316,21 +1324,21 @@ void FlattenTaintData(T source, TaintData* dest,
   visitor.run(source, from_offset, from_len);
 }
 
-// template <class T, class S>
-// void FlattenTaint(S* source, T* dest, int from_offset, int from_len) {
-//   DCHECK_GE(from_offset, 0);
-//   DCHECK_GE(source.length(), from_offset + from_len);
-//   DCHECK_GE(dest->length(), from_len);
-//   FlattenTaintData(source, GetWriteableStringTaintData(dest),
-//                    from_offset, from_len);
-// }
+template <class T, class S>
+void FlattenTaint(S source, T dest, int from_offset, int from_len) {
+  DCHECK_GE(from_offset, 0);
+  DCHECK_GE(source.length(), from_offset + from_len);
+  DCHECK_GE(dest.length(), from_len);
+  FlattenTaintData(source, GetWriteableStringTaintData(dest),
+                   from_offset, from_len);
+}
 
-// template <class T, class One, class Two>
-// void ConcatTaint(T* result, One* first, Two* second) {
-//   CopyVisitor visitor(GetWriteableStringTaintData(result));
-//   visitor.run(first, 0, first.length());
-//   visitor.run(second, 0, second->length());
-// }
+template <class T, class One, class Two>
+void ConcatTaint(T result, One first, Two second) {
+  CopyVisitor visitor(GetWriteableStringTaintData(result));
+  visitor.run(first, 0, first.length());
+  visitor.run(second, 0, second.length());
+}
 
 // template <class T>
 // void CopyOut(T* source, TaintData* dest, int offset, int len) {
@@ -2011,23 +2019,23 @@ void FlattenTaintData(T source, TaintData* dest,
 //   return ret;
 // }
 
-// template void OnNewConcatStringCopy<SeqOneByteString, String, String>(
-//     SeqOneByteString*, String*, String*);
-// template void OnNewConcatStringCopy<SeqTwoByteString, String, String>(
-//     SeqTwoByteString*, String*, String*);
+template void OnNewConcatStringCopy<SeqOneByteString, String, String>(
+    SeqOneByteString, String, String);
+template void OnNewConcatStringCopy<SeqTwoByteString, String, String>(
+    SeqTwoByteString, String, String);
 
-// template void OnNewSubStringCopy<String, SeqOneByteString>(
-//     String*, SeqOneByteString*, int, int);
-// template void OnNewSubStringCopy<SeqOneByteString, SeqOneByteString>(
-//     SeqOneByteString*, SeqOneByteString*, int, int);
-// template void OnNewSubStringCopy<String, SeqTwoByteString>(
-//     String*, SeqTwoByteString*, int, int);
-// template void OnNewSubStringCopy<ConsString, SeqString>(
-//     ConsString*, SeqString*, int, int);
-// template void OnNewSubStringCopy<SeqOneByteString, SeqString>(
-//     SeqOneByteString*, SeqString*, int, int);
-// template void OnNewSubStringCopy<String, SeqString>(
-//     String*, SeqString*, int, int);
+template void OnNewSubStringCopy<String, SeqOneByteString>(
+    String, SeqOneByteString, int, int);
+template void OnNewSubStringCopy<SeqOneByteString, SeqOneByteString>(
+    SeqOneByteString, SeqOneByteString, int, int);
+template void OnNewSubStringCopy<String, SeqTwoByteString>(
+    String, SeqTwoByteString, int, int);
+template void OnNewSubStringCopy<ConsString, SeqString>(
+    ConsString, SeqString, int, int);
+template void OnNewSubStringCopy<SeqOneByteString, SeqString>(
+    SeqOneByteString, SeqString, int, int);
+template void OnNewSubStringCopy<String, SeqString>(
+    String, SeqString, int, int);
 
 // template void FlattenTaintData<ExternalString>(
 //     ExternalString, TaintData*, int, int);
@@ -2074,10 +2082,10 @@ template void SetTaintStatus<String>(String, int, TaintType);
 // template void OnJoinManyStrings<SeqTwoByteString, FixedArray>(
 //     SeqTwoByteString*, FixedArray*);
 
-// template void FlattenTaint<SeqOneByteString, String>(
-//     String*, SeqOneByteString*, int, int);
-// template void FlattenTaint<SeqTwoByteString, String>(
-//     String*, SeqTwoByteString*, int, int);
+template void FlattenTaint<SeqOneByteString, String>(
+    String, SeqOneByteString, int, int);
+template void FlattenTaint<SeqTwoByteString, String>(
+    String, SeqTwoByteString, int, int);
 
 
 
@@ -2124,13 +2132,13 @@ template void SetTaintStatus<String>(String, int, TaintType);
 //   OnNewStringLiteral(source);
 // }
 
-// template <class T, class S>
-// void OnNewSubStringCopy(T* source, S* dest, int offset, int length) {
-//   FlattenTaint(source, dest, offset, length);
-//   if (FLAG_taint_tracking_enable_symbolic) {
-//     LogSymbolic<1>(dest, {{source}}, std::to_string(offset), SLICE);
-//   }
-// }
+template <class T, class S>
+void OnNewSubStringCopy(T source, S dest, int offset, int length) {
+  FlattenTaint(source, dest, offset, length);
+  // if (FLAG_taint_tracking_enable_symbolic) {
+  //   LogSymbolic<1>(dest, {{source}}, std::to_string(offset), SLICE);
+  // }
+}
 
 // void OnNewSlicedString(SlicedString* target, String* first,
 //                        int offset, int length) {
@@ -2140,20 +2148,20 @@ template void SetTaintStatus<String>(String, int, TaintType);
 //   }
 // }
 
-// template <class T, class S, class R>
-// void OnNewConcatStringCopy(T* dest, S* first, R* second) {
-//   ConcatTaint(dest, first, second);
-//   if (FLAG_taint_tracking_enable_symbolic) {
-//     LogSymbolic<2>(dest, {{first, second}}, "", CONCAT);
-//   }
-// }
+template <class T, class S, class R>
+void OnNewConcatStringCopy(T dest, S first, R second) {
+  ConcatTaint(dest, first, second);
+  // if (FLAG_taint_tracking_enable_symbolic) {
+  //   LogSymbolic<2>(dest, {{first, second}}, "", CONCAT);
+  // }
+}
 
-// void OnNewConsString(ConsString* target, String* first, String* second) {
-//   MarkNewString(target);
-//   if (FLAG_taint_tracking_enable_symbolic) {
-//     LogSymbolic<2>(target, {{first, second}}, "", CONCAT);
-//   }
-// }
+void OnNewConsString(ConsString target, String first, String second) {
+  MarkNewString(target);
+  // if (FLAG_taint_tracking_enable_symbolic) {
+  //   LogSymbolic<2>(target, {{first, second}}, "", CONCAT);
+  // }
+}
 
 // void OnNewFromJsonString(SeqString* target, String* source) {
 //   if (FLAG_taint_tracking_enable_symbolic) {
@@ -2807,6 +2815,6 @@ template void SetTaintStatus<String>(String, int, TaintType);
 
 }
 
-STATIC_ASSERT(tainttracking::TaintType::UNTAINTED == 0);
+// STATIC_ASSERT(tainttracking::TaintType::UNTAINTED == 0);
 STATIC_ASSERT(sizeof(tainttracking::TaintFlag) * kBitsPerByte >=
               tainttracking::TaintType::MAX_TAINT_TYPE);
