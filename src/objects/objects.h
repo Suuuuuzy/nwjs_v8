@@ -192,6 +192,14 @@
 //  Smi:        [31 bit signed int] 0
 //  HeapObject: [32 bit direct pointer] (4 byte aligned) | 01
 
+
+namespace tainttracking {
+  inline int SizeForTaint(int length) {
+    return length * v8::internal::kCharSize;
+  }
+}
+
+
 namespace v8 {
 namespace internal {
 

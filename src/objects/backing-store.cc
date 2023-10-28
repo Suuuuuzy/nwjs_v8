@@ -218,6 +218,17 @@ BackingStore::~BackingStore() {
     Clear();
     return;
   }
+
+  if (is_nodejs_) {
+    // JSArrayBuffer backing store. Deallocate through the embedder's allocator.
+    auto allocator = reinterpret_cast<v8::ArrayBuffer::Allocator*>(
+        get_v8_api_array_buffer_allocator());
+    TRACE_BS("BSn:free   bs=%p mem=%p (length=%zu, capacity=%zu)\n", this,
+             buffer_start_, byte_length(), byte_capacity_);
+    allocator->Free(buffer_start_, byte_length_, v8::ArrayBuffer::Allocator::AllocationMode::kNodeJS);
+    Clear();
+    return;
+  }
   if (free_on_destruct_) {
     // JSArrayBuffer backing store. Deallocate through the embedder's allocator.
     auto allocator = get_v8_api_array_buffer_allocator();
@@ -708,7 +719,7 @@ BackingStore::ResizeOrGrowResult BackingStore::GrowInPlace(
 
 std::unique_ptr<BackingStore> BackingStore::WrapAllocation(
     Isolate* isolate, void* allocation_base, size_t allocation_length,
-    SharedFlag shared, bool free_on_destruct) {
+    SharedFlag shared, bool free_on_destruct, bool is_nodejs) {
   auto result = new BackingStore(allocation_base,               // start
                                  allocation_length,             // length
                                  allocation_length,             // capacity
@@ -720,6 +731,7 @@ std::unique_ptr<BackingStore> BackingStore::WrapAllocation(
                                  false,             // custom_deleter
                                  false);            // empty_deleter
   result->SetAllocatorFromIsolate(isolate);
+  result->is_nodejs_ = is_nodejs;
   TRACE_BS("BS:wrap   bs=%p mem=%p (length=%zu)\n", result,
            result->buffer_start(), result->byte_length());
   return std::unique_ptr<BackingStore>(result);
@@ -728,7 +740,7 @@ std::unique_ptr<BackingStore> BackingStore::WrapAllocation(
 std::unique_ptr<BackingStore> BackingStore::WrapAllocation(
     void* allocation_base, size_t allocation_length,
     v8::BackingStore::DeleterCallback deleter, void* deleter_data,
-    SharedFlag shared) {
+    SharedFlag shared, bool is_nodejs) {
   bool is_empty_deleter = (deleter == v8::BackingStore::EmptyDeleter);
   auto result = new BackingStore(allocation_base,               // start
                                  allocation_length,             // length
@@ -740,6 +752,7 @@ std::unique_ptr<BackingStore> BackingStore::WrapAllocation(
                                  false,              // has_guard_regions
                                  true,               // custom_deleter
                                  is_empty_deleter);  // empty_deleter
+  result->is_nodejs_ = is_nodejs;
   result->type_specific_data_.deleter = {deleter, deleter_data};
   TRACE_BS("BS:wrap   bs=%p mem=%p (length=%zu)\n", result,
            result->buffer_start(), result->byte_length());

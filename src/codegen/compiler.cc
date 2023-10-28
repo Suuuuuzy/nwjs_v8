@@ -2832,7 +2832,9 @@ MaybeHandle<SharedFunctionInfo> Compiler::GetSharedFunctionInfoForScript(
     maybe_result = compilation_cache->LookupScript(
         source, script_details.name_obj, script_details.line_offset,
         script_details.column_offset, origin_options, language_mode);
-    if (!maybe_result.is_null()) {
+    //NWJS#5168: will hit previous cache, use 0 source_length trick to
+    //bypass and try to consume cache
+    if (!maybe_result.is_null() && source_length) {
       compile_timer.set_hit_isolate_cache();
     } else if (can_consume_code_cache) {
       compile_timer.set_consuming_code_cache();

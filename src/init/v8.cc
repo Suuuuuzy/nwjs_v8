@@ -45,7 +45,13 @@ V8_DECLARE_ONCE(init_natives_once);
 V8_DECLARE_ONCE(init_snapshot_once);
 #endif
 
+base::Thread::LocalStorageKey platform_tls_key_;
+
 v8::Platform* V8::platform_ = nullptr;
+
+void V8::SetTLSPlatform(v8::Platform* platform) {
+  base::Thread::SetThreadLocal(platform_tls_key_, platform);
+}
 
 bool V8::Initialize() {
   InitializeOncePerProcess();
@@ -173,7 +179,6 @@ void V8::InitializeOncePerProcessImpl() {
 #endif
   IsolateAllocator::InitializeOncePerProcess();
   Isolate::InitializeOncePerProcess();
-
 #if defined(USE_SIMULATOR)
   Simulator::InitializeOncePerProcess();
 #endif
@@ -196,6 +201,8 @@ void V8::InitializePlatform(v8::Platform* platform) {
   CHECK(!platform_);
   CHECK(platform);
   platform_ = platform;
+  platform_tls_key_ = base::Thread::CreateThreadLocalKey();
+  base::Thread::SetThreadLocal(platform_tls_key_, platform);
   v8::base::SetPrintStackTrace(platform_->GetStackTracePrinter());
   v8::tracing::TracingCategoryObserver::SetUp();
 #if defined(V8_OS_WIN) && defined(V8_ENABLE_SYSTEM_INSTRUMENTATION)
@@ -219,7 +226,11 @@ void V8::ShutdownPlatform() {
 }
 
 v8::Platform* V8::GetCurrentPlatform() {
-  v8::Platform* platform = reinterpret_cast<v8::Platform*>(
+  v8::Platform* platform;
+  platform = reinterpret_cast<v8::Platform*>(base::Thread::GetThreadLocal(platform_tls_key_));
+  if (platform)
+    return platform;
+  platform = reinterpret_cast<v8::Platform*>(
       base::Relaxed_Load(reinterpret_cast<base::AtomicWord*>(&platform_)));
   DCHECK(platform);
   return platform;

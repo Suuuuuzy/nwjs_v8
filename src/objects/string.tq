@@ -140,6 +140,7 @@ macro AllocateNonEmptySeqOneByteString<Iterator: type>(
   return new SeqOneByteString{
     map: kOneByteStringMap,
     raw_hash_field: kNameEmptyHashField,
+    // taint_info: 0,
     length: Signed(length),
     chars: ...content
   };
@@ -151,6 +152,7 @@ macro AllocateNonEmptySeqTwoByteString<Iterator: type>(
   return new SeqTwoByteString{
     map: kStringMap,
     raw_hash_field: kNameEmptyHashField,
+    // taint_info: 0,
     length: Signed(length),
     chars: ...content
   };

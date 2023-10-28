@@ -18,6 +18,8 @@ bool InitializeICU(const char* icu_data_file);
 bool InitializeICUDefaultLocation(const char* exec_path,
                                   const char* icu_data_file);
 
+void* RawICUData();
+
 }  // namespace internal
 }  // namespace v8
 

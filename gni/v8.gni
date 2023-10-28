@@ -87,6 +87,15 @@ declare_args() {
   v8_enable_google_benchmark = false
 
   cppgc_is_standalone = false
+
+  # Taint tracking arguments:
+  #
+  # Adds capnp path to the build for taint tracking
+  v8_capnp_include_dir = ""
+
+  # Sets -DV8_TAINT_TRACKING_INCLUDE_CONCOLIC for setting up a concolic
+  # execution build
+  v8_taint_tracking_include_concolic = false
 }
 
 if (v8_use_external_startup_data == "") {
@@ -223,6 +232,15 @@ template("v8_source_set") {
 
 template("v8_header_set") {
   source_set(target_name) {
+    forward_variables_from(invoker, "*", [ "configs" ])
+    configs -= v8_remove_configs
+    configs += v8_add_configs
+    configs += invoker.configs
+  }
+}
+
+template("v8_static_lib") {
+  static_library(target_name) {
     forward_variables_from(invoker, "*", [ "configs" ])
     configs -= v8_remove_configs
     configs += v8_add_configs

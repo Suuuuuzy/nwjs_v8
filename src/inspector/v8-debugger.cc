@@ -139,6 +139,7 @@ std::vector<std::unique_ptr<V8DebuggerScript>> V8Debugger::getCompiledScripts(
   for (size_t i = 0; i < scripts.Size(); ++i) {
     v8::Local<v8::debug::Script> script = scripts.Get(i);
     if (!script->WasCompiled()) continue;
+    if (!script->LineEnds().size()) continue;
     if (!script->IsEmbedded()) {
       int contextId;
       if (!script->ContextId().To(&contextId)) continue;

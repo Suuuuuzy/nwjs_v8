@@ -131,6 +131,8 @@ class V8_EXPORT_PRIVATE Deserializer : public SerializerDeserializer {
 
   Handle<HeapObject> ReadObject();
 
+  bool valid_ = true;
+
  private:
   class RelocInfoVisitor;
   // A circular queue of hot objects. This is added to in the same order as in

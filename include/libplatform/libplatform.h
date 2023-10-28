@@ -36,7 +36,7 @@ enum class MessageLoopBehavior : bool {
  * If |tracing_controller| is nullptr, the default platform will create a
  * v8::platform::TracingController instance and use it.
  */
-V8_PLATFORM_EXPORT std::unique_ptr<v8::Platform> NewDefaultPlatform(
+V8_EXPORT std::unique_ptr<v8::Platform> NewDefaultPlatform(
     int thread_pool_size = 0,
     IdleTaskSupport idle_task_support = IdleTaskSupport::kDisabled,
     InProcessStackDumping in_process_stack_dumping =
@@ -74,7 +74,8 @@ V8_PLATFORM_EXPORT std::unique_ptr<v8::JobHandle> NewDefaultJobHandle(
  * the |behavior| parameter, this call does not block if no task is pending. The
  * |platform| has to be created using |NewDefaultPlatform|.
  */
-V8_PLATFORM_EXPORT bool PumpMessageLoop(
+
+V8_EXPORT bool PumpMessageLoop(
     v8::Platform* platform, v8::Isolate* isolate,
     MessageLoopBehavior behavior = MessageLoopBehavior::kDoNotWait);
 
@@ -85,7 +86,7 @@ V8_PLATFORM_EXPORT bool PumpMessageLoop(
  * This call does not block if no task is pending. The |platform| has to be
  * created using |NewDefaultPlatform|.
  */
-V8_PLATFORM_EXPORT void RunIdleTasks(v8::Platform* platform,
+V8_EXPORT void RunIdleTasks(v8::Platform* platform,
                                      v8::Isolate* isolate,
                                      double idle_time_in_seconds);
 
@@ -96,7 +97,7 @@ V8_PLATFORM_EXPORT void RunIdleTasks(v8::Platform* platform,
  *
  */
 V8_DEPRECATE_SOON("Access the DefaultPlatform directly")
-V8_PLATFORM_EXPORT void SetTracingController(
+V8_EXPORT void SetTracingController(
     v8::Platform* platform,
     v8::platform::tracing::TracingController* tracing_controller);
 

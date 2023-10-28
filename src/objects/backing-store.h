@@ -74,12 +74,13 @@ class V8_EXPORT_PRIVATE BackingStore : public BackingStoreBase {
                                                       void* allocation_base,
                                                       size_t allocation_length,
                                                       SharedFlag shared,
-                                                      bool free_on_destruct);
+                                                      bool free_on_destruct,
+                                                      bool is_nodejs = false);
 
   static std::unique_ptr<BackingStore> WrapAllocation(
       void* allocation_base, size_t allocation_length,
       v8::BackingStore::DeleterCallback deleter, void* deleter_data,
-      SharedFlag shared);
+      SharedFlag shared, bool is_nodejs = false);
 
   // Create an empty backing store.
   static std::unique_ptr<BackingStore> EmptyBackingStore(SharedFlag shared);
@@ -94,6 +95,7 @@ class V8_EXPORT_PRIVATE BackingStore : public BackingStoreBase {
   bool is_shared() const { return is_shared_; }
   bool is_resizable() const { return is_resizable_; }
   bool is_wasm_memory() const { return is_wasm_memory_; }
+  bool is_node_js() const { return is_nodejs_; }
   bool has_guard_regions() const { return has_guard_regions_; }
   bool free_on_destruct() const { return free_on_destruct_; }
 
@@ -104,6 +106,7 @@ class V8_EXPORT_PRIVATE BackingStore : public BackingStoreBase {
   ResizeOrGrowResult GrowInPlace(Isolate* isolate, size_t new_byte_length,
                                  size_t new_committed_length);
 
+  void set_nodejs(bool nodejs) { is_nodejs_ = nodejs; }
   // Wrapper around ArrayBuffer::Allocator::Reallocate.
   bool Reallocate(Isolate* isolate, size_t new_byte_length);
 
@@ -175,6 +178,7 @@ class V8_EXPORT_PRIVATE BackingStore : public BackingStoreBase {
         is_shared_(shared == SharedFlag::kShared),
         is_resizable_(resizable == ResizableFlag::kResizable),
         is_wasm_memory_(is_wasm_memory),
+        is_nodejs_(false),
         holds_shared_ptr_to_allocator_(false),
         free_on_destruct_(free_on_destruct),
         has_guard_regions_(has_guard_regions),
@@ -227,6 +231,7 @@ class V8_EXPORT_PRIVATE BackingStore : public BackingStoreBase {
   // Backing stores for (Resizable|GrowableShared)ArrayBuffer
   bool is_resizable_ : 1;
   bool is_wasm_memory_ : 1;
+  bool is_nodejs_ : 1;
   bool holds_shared_ptr_to_allocator_ : 1;
   bool free_on_destruct_ : 1;
   bool has_guard_regions_ : 1;

@@ -73,6 +73,7 @@ class JSArrayBuffer
 
   // [was_detached]: true => the buffer was previously detached.
   DECL_BOOLEAN_ACCESSORS(was_detached)
+  DECL_BOOLEAN_ACCESSORS(is_node_js)
 
   // [is_asmjs_memory]: true => this buffer was once used as asm.js memory.
   DECL_BOOLEAN_ACCESSORS(is_asmjs_memory)

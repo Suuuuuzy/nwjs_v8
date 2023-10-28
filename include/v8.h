@@ -1386,6 +1386,10 @@ class V8_EXPORT PrimitiveArray {
   int Length() const;
   void Set(Isolate* isolate, int index, Local<Primitive> item);
   Local<Primitive> Get(Isolate* isolate, int index);
+
+  V8_DEPRECATED("Use Isolate version")
+                void Set(int index, Local<Primitive> item);
+  V8_DEPRECATED("Use Isolate version") Local<Primitive> Get(int index);
 };
 
 /**
@@ -2099,6 +2103,18 @@ class V8_EXPORT ScriptCompiler {
       CompileOptions options = kNoCompileOptions,
       NoCacheReason no_cache_reason = kNoCacheNoReason);
 
+  static MaybeLocal<Module> CompileModuleWithCache(Isolate* isolate, Source* source);
+  /**
+   * Compiles a streamed module script.
+   *
+   * This can only be called after the streaming has finished
+   * (ScriptStreamingTask has been run). V8 doesn't construct the source string
+   * during streaming, so the embedder needs to pass the full source here.
+   */
+  static V8_WARN_UNUSED_RESULT MaybeLocal<Module> CompileModule(
+      Local<Context> context, StreamedSource* v8_source,
+      Local<String> full_source_string, const ScriptOrigin& origin);
+
   /**
    * Compiles a streamed module script.
    *
@@ -2283,6 +2299,8 @@ class V8_EXPORT StackTrace {
   /**
    * Returns a StackFrame at a particular index.
    */
+  V8_DEPRECATED("Use Isolate version")
+                Local<StackFrame> GetFrame(uint32_t index) const;
   Local<StackFrame> GetFrame(Isolate* isolate, uint32_t index) const;
 
   /**
@@ -3066,6 +3084,11 @@ class V8_EXPORT Value : public Data {
    */
   Local<Boolean> ToBoolean(Isolate* isolate) const;
 
+  V8_DEPRECATED("Use maybe version") Local<Boolean> ToBoolean() const;
+  V8_DEPRECATED("Use maybe version") Local<String> ToString() const;
+  V8_DEPRECATED("Use maybe version") Local<Object> ToObject() const;
+  V8_DEPRECATED("Use maybe version") Local<Integer> ToInteger() const;
+
   /**
    * Attempts to convert a string to an array index.
    * Returns an empty handle if the conversion fails.
@@ -3087,7 +3110,14 @@ class V8_EXPORT Value : public Data {
   /** Returns the equivalent of `ToInt32()->Value()`. */
   V8_WARN_UNUSED_RESULT Maybe<int32_t> Int32Value(Local<Context> context) const;
 
+  V8_DEPRECATED("Use maybe version") bool BooleanValue() const;
+  V8_DEPRECATED("Use maybe version") double NumberValue() const;
+  V8_DEPRECATED("Use maybe version") int64_t IntegerValue() const;
+  V8_DEPRECATED("Use maybe version") uint32_t Uint32Value() const;
+  V8_DEPRECATED("Use maybe version") int32_t Int32Value() const;
+
   /** JS == */
+  V8_DEPRECATED("Use maybe version") bool Equals(Local<Value> that) const;
   V8_WARN_UNUSED_RESULT Maybe<bool> Equals(Local<Context> context,
                                            Local<Value> that) const;
   bool StrictEquals(Local<Value> that) const;
@@ -3180,6 +3210,11 @@ class V8_EXPORT String : public Name {
  public:
   static constexpr int kMaxLength =
       internal::kApiSystemPointerSize == 4 ? (1 << 28) - 16 : (1 << 29) - 24;
+  // 8 + 4 + 4
+  // 16 + 4 + 4
+  // jianjia
+  // static constexpr int kMaxLength =
+  //     internal::kApiSystemPointerSize == 4 ? (1 << 28) - 18 : (1 << 29) - 26;
 
   enum Encoding {
     UNKNOWN_ENCODING = 0x1,
@@ -3195,6 +3230,8 @@ class V8_EXPORT String : public Name {
    * Returns the number of bytes in the UTF-8 encoded
    * representation of this string.
    */
+  V8_DEPRECATED("Use Isolate version instead") int Utf8Length() const;
+
   int Utf8Length(Isolate* isolate) const;
 
   /**
@@ -3251,13 +3288,24 @@ class V8_EXPORT String : public Name {
   // 16-bit character codes.
   int Write(Isolate* isolate, uint16_t* buffer, int start = 0, int length = -1,
             int options = NO_OPTIONS) const;
+  V8_DEPRECATED("Use Isolate* version")
+                int Write(uint16_t* buffer, int start = 0, int length = -1,
+                          int options = NO_OPTIONS) const;
   // One byte characters.
   int WriteOneByte(Isolate* isolate, uint8_t* buffer, int start = 0,
                    int length = -1, int options = NO_OPTIONS) const;
+  V8_DEPRECATED("Use Isolate* version")
+                int WriteOneByte(uint8_t* buffer, int start = 0,
+                                 int length = -1, int options = NO_OPTIONS)
+                    const;
   // UTF-8 encoded characters.
   int WriteUtf8(Isolate* isolate, char* buffer, int length = -1,
                 int* nchars_ref = nullptr, int options = NO_OPTIONS) const;
 
+  V8_DEPRECATED("Use Isolate* version")
+                int WriteUtf8(char* buffer, int length = -1,
+                              int* nchars_ref = NULL, int options = NO_OPTIONS)
+                    const;
   /**
    * A zero length string.
    */
@@ -3278,7 +3326,169 @@ class V8_EXPORT String : public Name {
    */
   bool IsExternalOneByte() const;
 
-  class V8_EXPORT ExternalStringResourceBase {
+  typedef uint8_t TaintData;
+
+
+  // A taint type stores a single byte of taint information about a single
+  // character of string data. The most significant three bits are used for the
+  // encoding and the last significant 5 bits are used for the taint type.
+  //
+  // 0 0 0      0 0 0 0 0
+  // \___/      \_______/
+  //   |            |
+  // encoding    taint type
+  //
+  // Must be kept in sync with
+  // ../../third_party/WebKit/Source/wtf/text/TaintTracking.h
+  enum TaintType {
+    UNTAINTED = 0,
+    TAINTED = 1,
+    COOKIE = 2,
+    MESSAGE = 3,
+    URL = 4,
+    URL_HASH = 5,
+    URL_PROTOCOL = 6,
+    URL_HOST = 7,
+    URL_HOSTNAME = 8,
+    URL_ORIGIN = 9,
+    URL_PORT = 10,
+    URL_PATHNAME = 11,
+    URL_SEARCH = 12,
+    DOM = 13,
+    REFERRER = 14,
+    WINDOWNAME = 15,
+    STORAGE = 16,
+    NETWORK = 17,
+    MULTIPLE_TAINTS = 18,       // Used when combining multiple bytes with
+                                // different taints.
+    MESSAGE_ORIGIN = 19,
+
+    // This must be less than the value of URL_ENCODED
+    MAX_TAINT_TYPE = 20,
+
+    // Encoding types
+    URL_ENCODED = 32,            // 1 << 5
+    URL_COMPONENT_ENCODED = 64,  // 2 << 5
+    ESCAPE_ENCODED = 96,         // 3 << 5
+    MULTIPLE_ENCODINGS = 128,    // 4 << 5
+    URL_DECODED = 160,           // 5 << 5
+    URL_COMPONENT_DECODED = 192, // 6 << 5
+    ESCAPE_DECODED = 224,        // 7 << 5
+
+    NO_ENCODING = 0,            // Must use the encoding mask to compare to no
+                                // encoding.
+
+    // Masks
+    TAINT_TYPE_MASK = 31,       // 1 << 5 - 1 (all ones in lower 5 bits)
+    ENCODING_TYPE_MASK = 224   // 7 << 5 (all ones in top 3 bits)
+  };
+
+  enum TaintSinkLabel {
+    URL_SINK,
+    EMBED_SRC_SINK,
+    IFRAME_SRC_SINK,
+    ANCHOR_SRC_SINK,
+    IMG_SRC_SINK,
+    SCRIPT_SRC_URL_SINK,
+
+    JAVASCRIPT,
+    JAVASCRIPT_EVENT_HANDLER_ATTRIBUTE,
+    JAVASCRIPT_SET_TIMEOUT,
+    JAVASCRIPT_SET_INTERVAL,
+
+    HTML,
+    MESSAGE_DATA,
+    COOKIE_SINK,
+    STORAGE_SINK,
+    ORIGIN,
+    DOM_URL,
+    JAVASCRIPT_URL,
+    ELEMENT,
+    CSS,
+    CSS_STYLE_ATTRIBUTE,
+    LOCATION_ASSIGNMENT
+  };
+
+  void WriteTaint(TaintData* buffer,
+                  int start = 0,
+                  int length = -1) const;
+
+  int64_t GetTaintInfo() const;
+
+  template <typename Char>
+  static int64_t LogIfBufferTainted(TaintData* buffer,
+                                    Char* stringdata,
+                                    size_t length,
+
+                                    // Should be retrieved from the function
+                                    // arguments.
+                                    int symbolic_data,
+                                    v8::Isolate* isolate,
+                                    TaintSinkLabel label);
+
+  // Returns -1 if not tainted. Otherwise returns the message ID of the logged
+  // message.
+  int64_t LogIfTainted(TaintSinkLabel label,
+
+                       // Should be the index of the function arguments
+                       int symbolic_data);
+  static void SetTaint(v8::Local<v8::Value> val,
+                       v8::Isolate* isolate,
+                       TaintType type);
+  // static void SetTaintInfo(v8::Local<v8::Value> val,
+  //                          int64_t info);
+
+  static int64_t NewUniqueId(v8::Isolate* isolate);
+
+  class V8_EXPORT TaintTrackingBase {
+    public:
+
+      virtual ~TaintTrackingBase() {}
+
+      /**
+       * Return the taint information. May return NULL if untainted.
+       */
+      virtual TaintData* GetTaintChars() const = 0;
+
+      /**
+       * Return the taint information for writing. May not return NULL.
+       */
+      virtual TaintData* InitTaintChars(size_t) = 0;
+  };
+
+
+  // Inherit from this class to get an implementation of the taint tracking
+  // interface that stores a malloc-ed pointer on Set.
+  class V8_EXPORT TaintTrackingStringBufferImpl :
+    public virtual TaintTrackingBase {
+    public:
+
+      TaintTrackingStringBufferImpl() : taint_data_(nullptr) {}
+
+      virtual TaintData* GetTaintChars() const {
+        return taint_data_.get();
+      }
+
+      virtual TaintData* InitTaintChars(size_t length) {
+        TaintData* answer = taint_data_.get();
+        if (!taint_data_) {
+          answer = new TaintData[length];
+          taint_data_.reset(answer);
+          return answer;
+        } else {
+          return answer;
+        }
+      }
+
+      virtual void SetTaintChars(TaintData* buffer) {
+        taint_data_.reset(buffer);
+      }
+
+    private:
+      std::unique_ptr<TaintData> taint_data_;
+  };
+
+  class V8_EXPORT ExternalStringResourceBase{  // NOLINT
    public:
     virtual ~ExternalStringResourceBase() = default;
 
@@ -3495,6 +3705,9 @@ class V8_EXPORT String : public Name {
    */
   static Local<String> Concat(Isolate* isolate, Local<String> left,
                               Local<String> right);
+  V8_DEPRECATED("Use Isolate* version") static
+                       Local<String> Concat(Local<String> left,
+                                            Local<String> right);
 
   /**
    * Creates a new external string using the data defined in the given
@@ -3559,6 +3772,8 @@ class V8_EXPORT String : public Name {
    */
   class V8_EXPORT Utf8Value {
    public:
+    V8_DEPRECATED("Use Isolate version")
+                  explicit Utf8Value(Local<v8::Value> obj);
     Utf8Value(Isolate* isolate, Local<v8::Value> obj);
     ~Utf8Value();
     char* operator*() { return str_; }
@@ -3582,6 +3797,7 @@ class V8_EXPORT String : public Name {
    */
   class V8_EXPORT Value {
    public:
+    V8_DEPRECATED("Use Isolate version") explicit Value(Local<v8::Value> obj);
     Value(Isolate* isolate, Local<v8::Value> obj);
     ~Value();
     uint16_t* operator*() { return str_; }
@@ -3610,6 +3826,19 @@ class V8_EXPORT String : public Name {
                                               NewStringType type, int length);
 
   static void CheckCast(v8::Data* that);
+};
+
+// Zero-length string specialization (templated string size includes
+// terminator).
+template <>
+inline V8_WARN_UNUSED_RESULT Local<String> String::NewFromUtf8Literal(
+    Isolate* isolate, const char (&literal)[1], NewStringType type) {
+  return String::Empty(isolate);
+}
+
+class V8_EXPORT TaintTracking {
+ public:
+  static void LogInitializeNavigate(v8::Local<v8::String> url);
 };
 
 // Zero-length string specialization (templated string size includes
@@ -5108,6 +5337,9 @@ class V8_EXPORT WasmModuleObject : public Object {
   static void CheckCast(Value* obj);
 };
 
+ V8_DEPRECATED("Use WasmModuleObject")
+              typedef WasmModuleObject WasmCompiledModule;
+
 /**
  * The V8 interface for WebAssembly streaming compilation. When streaming
  * compilation is initiated, V8 passes a {WasmStreaming} object to the embedder
@@ -5388,7 +5620,8 @@ class V8_EXPORT ArrayBuffer : public Object {
      * while kReservation is for larger allocations with the ability to set
      * access permissions.
      */
-    enum class AllocationMode { kNormal, kReservation };
+    enum class AllocationMode { kNormal, kReservation, kNodeJS };
+    virtual void Free(void* data, size_t length, AllocationMode mode);
 
     /**
      * malloc/free based convenience allocator.
@@ -5426,6 +5659,8 @@ class V8_EXPORT ArrayBuffer : public Object {
    */
   static Local<ArrayBuffer> New(Isolate* isolate,
                                 std::shared_ptr<BackingStore> backing_store);
+  static Local<ArrayBuffer> NewNode(Isolate* isolate,
+                                    std::shared_ptr<BackingStore> backing_store);
 
   /**
    * Returns a new standalone BackingStore that is allocated using the array
@@ -5462,6 +5697,8 @@ class V8_EXPORT ArrayBuffer : public Object {
    * ArrayBuffer should have been externalized and must be detachable.
    */
   void Detach();
+
+  void set_nodejs(bool);
 
   /**
    * Get a shared pointer to the backing store of this array buffer. This
@@ -5913,6 +6150,8 @@ class V8_EXPORT BooleanObject : public Object {
 class V8_EXPORT StringObject : public Object {
  public:
   static Local<Value> New(Isolate* isolate, Local<String> value);
+  V8_DEPRECATED("Use Isolate* version") static
+                       Local<Value> New(Local<String> value);
 
   Local<String> ValueOf() const;
 
@@ -7077,7 +7316,10 @@ class V8_EXPORT Extension {
   bool auto_enable_;
 };
 
+void V8_EXPORT SetTLSPlatform(Platform* platform);
 void V8_EXPORT RegisterExtension(std::unique_ptr<Extension>);
+void V8_EXPORT FixSourceNWBin(Isolate* v8_isolate, Local<UnboundScript> script);
+void V8_EXPORT FixSourceNWBin(Isolate* v8_isolate, Local<Module> module);
 
 // --- Statics ---
 
@@ -8265,6 +8507,8 @@ class V8_EXPORT MeasureMemoryDelegate {
  */
 class V8_EXPORT Isolate {
  public:
+  ArrayBuffer::Allocator* array_buffer_allocator();
+  
   /**
    * Initial configuration parameters for a new Isolate.
    */
@@ -8347,6 +8591,9 @@ class V8_EXPORT Isolate {
         "that they do not use.")
     std::vector<std::string> supported_import_assertions;
   };
+
+  void SetArrayBufferAllocatorShared(
+                                     std::shared_ptr<ArrayBuffer::Allocator> allocator);
 
   /**
    * Stack-allocated class which sets the isolate for all operations
@@ -9846,6 +10093,7 @@ class V8_EXPORT V8 {
    */
   static bool InitializeICUDefaultLocation(const char* exec_path,
                                            const char* icu_data_file = nullptr);
+  static void* RawICUData();
 
   /**
    * Initialize the external startup data. The embedder only needs to
@@ -10522,6 +10770,10 @@ class V8_EXPORT Context : public Data {
 
   /** Returns the security token of this context.*/
   Local<Value> GetSecurityToken();
+
+  /** Used by tainttracking logging to identify different execution contexts **/
+  void SetTaintTrackingContextId(Local<Value> token);
+
 
   /**
    * Enter this context.  After entering a context, all code compiled

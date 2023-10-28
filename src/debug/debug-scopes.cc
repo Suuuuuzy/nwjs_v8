@@ -276,7 +276,10 @@ void ScopeIterator::TryParseAndRetrieveScopes(ReparseStrategy strategy) {
 
   info_ = std::make_unique<ParseInfo>(isolate_, flags, &compile_state);
 
-  const bool parse_result =
+  bool has_source_code = shared_info->HasSourceCode();
+  bool parse_result = false;
+  if (has_source_code)
+    parse_result =
       flags.is_toplevel()
           ? parsing::ParseProgram(info_.get(), script, maybe_outer_scope,
                                   isolate_, parsing::ReportStatisticsMode::kNo)

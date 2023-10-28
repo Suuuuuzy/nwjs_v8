@@ -1330,7 +1330,9 @@ class SeqString(String):
 
 class ExternalString(String):
   # TODO(vegorov) fix ExternalString for X64 architecture
-  RESOURCE_OFFSET = 12
+  RESOURCE_OFFSET = 16
+  # # jianjia: fix this for string kResourceOffset
+  # RESOURCE_OFFSET = 16
 
   WEBKIT_RESOUCE_STRING_IMPL_OFFSET = 4
   WEBKIT_STRING_IMPL_CHARS_OFFSET = 8

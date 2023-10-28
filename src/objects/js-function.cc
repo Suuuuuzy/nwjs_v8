@@ -950,6 +950,13 @@ Handle<String> JSFunction::ToString(Handle<JSFunction> function) {
     return NativeCodeFunctionSourceString(shared_info);
   }
 
+  //NWJS#6061: moved here or it will crash when trying to print
+  //function as a class
+  // Check if we have source code for the {function}.
+  if (!shared_info->HasSourceCode()) {
+    return NativeCodeFunctionSourceString(shared_info);
+  }
+
   // Check if we should print {function} as a class.
   Handle<Object> maybe_class_positions = JSReceiver::GetDataProperty(
       function, isolate->factory()->class_positions_symbol());
@@ -962,11 +969,6 @@ Handle<String> JSFunction::ToString(Handle<JSFunction> function) {
         String::cast(Script::cast(shared_info->script()).source()), isolate);
     return isolate->factory()->NewSubString(script_source, start_position,
                                             end_position);
-  }
-
-  // Check if we have source code for the {function}.
-  if (!shared_info->HasSourceCode()) {
-    return NativeCodeFunctionSourceString(shared_info);
   }
 
   // If this function was compiled from asm.js, use the recorded offset

@@ -84,7 +84,7 @@ def UpdateCompileCommands():
 def CompileLanguageServer():
   print(">>> Compiling Torque Language Server...")
   PrepareBuildDir("x64", "release")
-  _Call("autoninja -C out/x64.release torque-language-server")
+  _Call("autoninja -C out/x64.debug torque-language-server")
 
 def GenerateCCFiles():
   print(">>> Generating generated C++ source files...")

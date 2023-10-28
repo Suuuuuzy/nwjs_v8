@@ -8,12 +8,14 @@
 #include "src/execution/isolate.h"
 #include "src/handles/handles.h"
 #include "src/objects/objects-inl.h"
+#include "src/taint_tracking.h"
 
 namespace v8 {
 namespace internal {
 
 template <typename Char, typename Base>
-class SimpleStringResource : public Base {
+class SimpleStringResource : 
+      public Base, public v8::String::TaintTrackingStringBufferImpl{
  public:
   // Takes ownership of |data|.
   SimpleStringResource(Char* data, size_t length)
@@ -81,16 +83,24 @@ void ExternalizeStringExtension::Externalize(
   }
   if (string->IsOneByteRepresentation() && !force_two_byte) {
     uint8_t* data = new uint8_t[string->length()];
+    tainttracking::TaintData* taint_data =
+      new tainttracking::TaintData[string->length()];
     String::WriteToFlat(*string, data, 0, string->length());
+    tainttracking::FlattenTaintData(*string, taint_data, 0, string->length());
     SimpleOneByteStringResource* resource = new SimpleOneByteStringResource(
         reinterpret_cast<char*>(data), string->length());
+    resource->SetTaintChars(taint_data);
     result = Utils::ToLocal(string)->MakeExternal(resource);
     if (!result) delete resource;
   } else {
     uc16* data = new uc16[string->length()];
+    tainttracking::TaintData* taint_data =
+      new tainttracking::TaintData[string->length()];
     String::WriteToFlat(*string, data, 0, string->length());
+    tainttracking::FlattenTaintData(*string, taint_data, 0, string->length());
     SimpleTwoByteStringResource* resource = new SimpleTwoByteStringResource(
         data, string->length());
+    resource->SetTaintChars(taint_data);
     result = Utils::ToLocal(string)->MakeExternal(resource);
     if (!result) delete resource;
   }

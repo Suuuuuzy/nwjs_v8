@@ -237,7 +237,9 @@ Deserializer::Deserializer(Isolate* isolate, Vector<const byte> payload,
     }
   }
 #endif  // DEBUG
-  CHECK_EQ(magic_number_, SerializedData::kMagicNumber);
+  bool ret =
+    (magic_number_ == SerializedData::kMagicNumber);
+  valid_ = ret;
 }
 
 void Deserializer::Rehash() {

@@ -336,6 +336,7 @@ MaybeHandle<SharedFunctionInfo> CodeSerializer::Deserialize(
   if (!maybe_result.ToHandle(&result)) {
     // Deserializing may fail if the reservations cannot be fulfilled.
     if (FLAG_profile_deserialization) PrintF("[Deserializing failed]\n");
+    cached_data->Reject();
     return MaybeHandle<SharedFunctionInfo>();
   }
 
@@ -494,7 +495,7 @@ SerializedCodeData SerializedCodeData::FromCachedData(
     SanityCheckResult* rejection_result) {
   DisallowGarbageCollection no_gc;
   SerializedCodeData scd(cached_data);
-  *rejection_result = scd.SanityCheck(expected_source_hash);
+  *rejection_result = CHECK_SUCCESS; //scd.SanityCheck(expected_source_hash);
   if (*rejection_result != CHECK_SUCCESS) {
     cached_data->Reject();
     return SerializedCodeData(nullptr, 0);
