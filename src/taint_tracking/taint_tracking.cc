@@ -2826,6 +2826,6 @@ void OnGenericOperation(SymbolicType type, T source) {
 
 }
 
-// STATIC_ASSERT(tainttracking::TaintType::UNTAINTED == 0);
+STATIC_ASSERT(tainttracking::TaintType::UNTAINTED == 0);
 STATIC_ASSERT(sizeof(tainttracking::TaintFlag) * kBitsPerByte >=
               tainttracking::TaintType::MAX_TAINT_TYPE);
