@@ -622,7 +622,9 @@ MaybeHandle<String> FactoryBase<Impl>::NewConsString(
 
   int length = left_length + right_length;
 
-  if (length == 2) {
+  // suzy: here we need to disable internalize the two charater string 
+  // because this method does not carry taint info
+  if (length == 2 && tainttracking::kInternalizedStringsEnabled) {
     uint16_t c1 = left->Get(0, isolate());
     uint16_t c2 = right->Get(0, isolate());
     return MakeOrFindTwoCharacterString(c1, c2);
