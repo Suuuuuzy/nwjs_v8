@@ -479,7 +479,8 @@ template <typename Impl>
 template <class StringTableKey>
 Handle<String> FactoryBase<Impl>::InternalizeStringWithKey(
     StringTableKey* key) {
-  return isolate()->string_table()->LookupKey(isolate(), key);
+  Handle<String> answer = isolate()->string_table()->LookupKey(isolate(), key);
+  return answer;
 }
 
 template EXPORT_TEMPLATE_DEFINE(V8_EXPORT_PRIVATE)
@@ -519,25 +520,50 @@ Handle<String> FactoryBase<Impl>::InternalizeString(
 }
 
 template <typename Impl>
-Handle<SeqOneByteString> FactoryBase<Impl>::NewOneByteInternalizedString(
+Handle<SeqOneByteString> FactoryBase<Impl>::NewOneByteInternalizedStringHelper(
     const Vector<const uint8_t>& str, uint32_t raw_hash_field) {
   Handle<SeqOneByteString> result =
       AllocateRawOneByteInternalizedString(str.length(), raw_hash_field);
   DisallowGarbageCollection no_gc;
   MemCopy(result->GetChars(no_gc, SharedStringAccessGuardIfNeeded::NotNeeded()),
           str.begin(), str.length());
+  tainttracking::InitTaintData(*result);
   return result;
 }
 
 template <typename Impl>
-Handle<SeqTwoByteString> FactoryBase<Impl>::NewTwoByteInternalizedString(
+Handle<SeqOneByteString> FactoryBase<Impl>::NewOneByteInternalizedString(
+    const Vector<const uint8_t>& str, uint32_t raw_hash_field) {
+  Handle<SeqOneByteString> answer =
+    NewOneByteInternalizedStringHelper(str, raw_hash_field);
+  {
+    DisallowHeapAllocation no_gc;
+    tainttracking::OnNewStringLiteral(*answer);
+  }
+  return answer;
+}
+
+template <typename Impl>
+Handle<SeqTwoByteString> FactoryBase<Impl>::NewTwoByteInternalizedStringHelper(
     const Vector<const uc16>& str, uint32_t raw_hash_field) {
   Handle<SeqTwoByteString> result =
       AllocateRawTwoByteInternalizedString(str.length(), raw_hash_field);
   DisallowGarbageCollection no_gc;
   MemCopy(result->GetChars(no_gc, SharedStringAccessGuardIfNeeded::NotNeeded()),
           str.begin(), str.length() * kUC16Size);
+  tainttracking::InitTaintData(*result);
   return result;
+}
+
+template <typename Impl>
+Handle<SeqTwoByteString> FactoryBase<Impl>::NewTwoByteInternalizedString(
+    const Vector<const uc16>& str, uint32_t raw_hash_field) {
+  Handle<SeqTwoByteString> answer = NewTwoByteInternalizedStringHelper(str, raw_hash_field);
+  {
+    DisallowHeapAllocation no_gc;
+    tainttracking::OnNewStringLiteral(*answer);
+  }
+  return answer;
 }
 
 template <typename Impl>

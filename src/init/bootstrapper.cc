@@ -3375,7 +3375,8 @@ void Genesis::InitializeGlobal(Handle<JSGlobalObject> global_object,
                         Builtins::kTypedArrayPrototypeByteOffset, true);
     SimpleInstallGetter(isolate_, prototype, factory->length_string(),
                         Builtins::kTypedArrayPrototypeLength, true);
-    SimpleInstallGetter(isolate_, prototype, factory->to_string_tag_symbol(),
+    Handle<Symbol> tmp = factory->to_string_tag_symbol();
+    SimpleInstallGetter(isolate_, prototype, tmp,
                         Builtins::kTypedArrayPrototypeToStringTag, true);
 
     // Install "keys", "values" and "entries" methods on the {prototype}.

@@ -105,63 +105,63 @@ TEST(TaintConsStringTwo) {
   CHECK_EQ(GetTaintStatus(*flat, 3), TaintType::TAINTED);
 }
 
-// TEST(TaintConsStringShort) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   Factory* factory = CcTest::i_isolate()->factory();
-//   Handle<String> first = factory->NewStringFromStaticChars("fir");
-//   Handle<String> second = factory->NewStringFromStaticChars("sec");
-//   SetTaintStatus(*first, 2, TaintType::TAINTED);
-//   SetTaintStatus(*second, 2, TaintType::TAINTED);
+TEST(TaintConsStringShort) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  Factory* factory = CcTest::i_isolate()->factory();
+  Handle<String> first = factory->NewStringFromStaticChars("fir");
+  Handle<String> second = factory->NewStringFromStaticChars("sec");
+  SetTaintStatus(*first, 2, TaintType::TAINTED);
+  SetTaintStatus(*second, 2, TaintType::TAINTED);
 
-//   Handle<String> cons = factory->NewConsString(first, second).ToHandleChecked();
-//   CHECK_EQ(GetTaintStatus(*cons, 3), TaintType::UNTAINTED);
-//   CHECK_EQ(GetTaintStatus(*cons, 2), TaintType::TAINTED);
-//   CHECK_EQ(GetTaintStatus(*cons, 5), TaintType::TAINTED);
-//   SetTaintStatus(*cons, 3, TaintType::TAINTED);
-//   CHECK_EQ(GetTaintStatus(*cons, 3), TaintType::TAINTED);
+  Handle<String> cons = factory->NewConsString(first, second).ToHandleChecked();
+  CHECK_EQ(GetTaintStatus(*cons, 3), TaintType::UNTAINTED);
+  CHECK_EQ(GetTaintStatus(*cons, 2), TaintType::TAINTED);
+  CHECK_EQ(GetTaintStatus(*cons, 5), TaintType::TAINTED);
+  SetTaintStatus(*cons, 3, TaintType::TAINTED);
+  CHECK_EQ(GetTaintStatus(*cons, 3), TaintType::TAINTED);
 
-//   // Setting taint status on parent should flow through the Cons
-//   CHECK_EQ(GetTaintStatus(*cons, 2), TaintType::TAINTED);
+  // Setting taint status on parent should flow through the Cons
+  CHECK_EQ(GetTaintStatus(*cons, 2), TaintType::TAINTED);
 
-//   Handle<String> flat = String::Flatten(cons);
-//   CHECK_EQ(GetTaintStatus(*flat, 2), TaintType::TAINTED);
-//   CHECK_EQ(GetTaintStatus(*flat, 3), TaintType::TAINTED);
-//   CHECK_EQ(GetTaintStatus(*flat, 5), TaintType::TAINTED);
-// }
+  Handle<String> flat = String::Flatten(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()), cons);
+  CHECK_EQ(GetTaintStatus(*flat, 2), TaintType::TAINTED);
+  CHECK_EQ(GetTaintStatus(*flat, 3), TaintType::TAINTED);
+  CHECK_EQ(GetTaintStatus(*flat, 5), TaintType::TAINTED);
+}
 
-// TEST(TaintConsStringTwoChar) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   Factory* factory = CcTest::i_isolate()->factory();
-//   Handle<String> first = factory->NewStringFromStaticChars("f");
-//   Handle<String> second = factory->NewStringFromStaticChars("s");
-//   SetTaintStatus(*first, 0, TaintType::TAINTED);
-//   SetTaintStatus(*second, 0, TaintType::TAINTED);
+TEST(TaintConsStringTwoChar) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  Factory* factory = CcTest::i_isolate()->factory();
+  Handle<String> first = factory->NewStringFromStaticChars("f");
+  Handle<String> second = factory->NewStringFromStaticChars("s");
+  SetTaintStatus(*first, 0, TaintType::TAINTED);
+  SetTaintStatus(*second, 0, TaintType::TAINTED);
 
-//   Handle<String> cons = factory->NewConsString(first, second).ToHandleChecked();
-//   CHECK_EQ(GetTaintStatus(*cons, 0), TaintType::TAINTED);
-//   CHECK_EQ(GetTaintStatus(*cons, 1), TaintType::TAINTED);
-// }
+  Handle<String> cons = factory->NewConsString(first, second).ToHandleChecked();
+  CHECK_EQ(GetTaintStatus(*cons, 0), TaintType::TAINTED);
+  CHECK_EQ(GetTaintStatus(*cons, 1), TaintType::TAINTED);
+}
 
-// TEST(TaintConcatStringContent) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   Factory* factory = CcTest::i_isolate()->factory();
-//   const uint16_t two_byte_str[] = {0x0024, 0x20AC, 0x0064};
-//   Handle<String> first = factory->NewStringFromTwoByte(
-//       Vector<const uc16>(two_byte_str, 3)).ToHandleChecked();
-//   Handle<String> second = factory->NewStringFromTwoByte(
-//       Vector<const uc16>(two_byte_str, 3)).ToHandleChecked();
-//   SetTaintStatus(*first, 0, TaintType::TAINTED);
-//   SetTaintStatus(*second, 0, TaintType::TAINTED);
+TEST(TaintConcatStringContent) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  Factory* factory = CcTest::i_isolate()->factory();
+  const uint16_t two_byte_str[] = {0x0024, 0x20AC, 0x0064};
+  Handle<String> first = factory->NewStringFromTwoByte(
+      Vector<const uc16>(two_byte_str, 3)).ToHandleChecked();
+  Handle<String> second = factory->NewStringFromTwoByte(
+      Vector<const uc16>(two_byte_str, 3)).ToHandleChecked();
+  SetTaintStatus(*first, 0, TaintType::TAINTED);
+  SetTaintStatus(*second, 0, TaintType::TAINTED);
 
-//   Handle<String> cons = factory->NewConsString(first, second).ToHandleChecked();
-//   CHECK(cons->IsTwoByteRepresentation());
-//   CHECK(cons->IsSeqString());
-//   CHECK_EQ(GetTaintStatus(*cons, 0), TaintType::TAINTED);
-//   CHECK_EQ(GetTaintStatus(*cons, 3), TaintType::TAINTED);
-// }
+  Handle<String> cons = factory->NewConsString(first, second).ToHandleChecked();
+  CHECK(cons->IsTwoByteRepresentation());
+  CHECK(cons->IsSeqString());
+  CHECK_EQ(GetTaintStatus(*cons, 0), TaintType::TAINTED);
+  CHECK_EQ(GetTaintStatus(*cons, 3), TaintType::TAINTED);
+}
 
 // TEST(TaintSlicedString) {
 //   TestCase test_case;

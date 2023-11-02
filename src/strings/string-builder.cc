@@ -7,6 +7,7 @@
 #include "src/execution/isolate-inl.h"
 #include "src/objects/fixed-array-inl.h"
 #include "src/objects/js-array-inl.h"
+#include "src/taint_tracking.h"
 
 namespace v8 {
 namespace internal {
@@ -307,6 +308,9 @@ void IncrementalStringBuilder::AppendStringByCopy(Handle<String> string) {
     DisallowGarbageCollection no_gc;
     String::WriteToFlat(*string, part->GetChars(no_gc) + current_index_, 0,
                         string->length());
+    // src, dest, from len
+    tainttracking::TaintData* tmp = part->GetTaintChars(no_gc) + current_index_; 
+    tainttracking::FlattenTaintData(*string, tmp, 0, string->length());
   }
   current_index_ += string->length();
   DCHECK(current_index_ <= part_length_);

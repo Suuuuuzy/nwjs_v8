@@ -13,6 +13,7 @@
 #include "src/objects/objects.h"
 #include "src/objects/string-inl.h"
 #include "src/utils/utils.h"
+#include "src/taint_tracking.h"
 
 namespace v8 {
 namespace internal {
@@ -120,7 +121,8 @@ class IncrementalStringBuilder {
   V8_INLINE String::Encoding CurrentEncoding() { return encoding_; }
 
   template <typename SrcChar, typename DestChar>
-  V8_INLINE void Append(SrcChar c);
+  V8_INLINE void Append(SrcChar c, 
+    tainttracking::TaintType type = tainttracking::TaintType::UNTAINTED);
 
   V8_INLINE void AppendCharacter(uint8_t c) {
     if (encoding_ == String::ONE_BYTE_ENCODING) {
@@ -130,20 +132,24 @@ class IncrementalStringBuilder {
     }
   }
 
-  V8_INLINE void AppendCString(const char* s) {
+  V8_INLINE void AppendCString(const char* s,
+           tainttracking::TaintType taint =
+         tainttracking::TaintType::UNTAINTED) {
     const uint8_t* u = reinterpret_cast<const uint8_t*>(s);
     if (encoding_ == String::ONE_BYTE_ENCODING) {
-      while (*u != '\0') Append<uint8_t, uint8_t>(*(u++));
+      while (*u != '\0') Append<uint8_t, uint8_t>(*(u++), taint);
     } else {
-      while (*u != '\0') Append<uint8_t, uc16>(*(u++));
+      while (*u != '\0') Append<uint8_t, uc16>(*(u++), taint);
     }
   }
 
-  V8_INLINE void AppendCString(const uc16* s) {
+  V8_INLINE void AppendCString(const uc16* s,
+           tainttracking::TaintType taint =
+         tainttracking::TaintType::UNTAINTED) {
     if (encoding_ == String::ONE_BYTE_ENCODING) {
-      while (*s != '\0') Append<uc16, uint8_t>(*(s++));
+      while (*s != '\0') Append<uc16, uint8_t>(*(s++), taint);
     } else {
-      while (*s != '\0') Append<uc16, uc16>(*(s++));
+      while (*s != '\0') Append<uc16, uc16>(*(s++), taint);
     }
   }
 
@@ -196,17 +202,28 @@ class IncrementalStringBuilder {
       if (sizeof(DestChar) == 1) {
         start_ = reinterpret_cast<DestChar*>(
             Handle<SeqOneByteString>::cast(string)->GetChars(no_gc) + offset);
+        start_taint_ = tainttracking::GetWriteableStringTaintData(
+            *Handle<SeqOneByteString>::cast(string));
       } else {
         start_ = reinterpret_cast<DestChar*>(
             Handle<SeqTwoByteString>::cast(string)->GetChars(no_gc) + offset);
+        start_taint_ = tainttracking::GetWriteableStringTaintData(
+            *Handle<SeqTwoByteString>::cast(string));
       }
       cursor_ = start_;
     }
 
-    V8_INLINE void Append(DestChar c) { *(cursor_++) = c; }
-    V8_INLINE void AppendCString(const char* s) {
+    V8_INLINE void Append(DestChar c,
+    tainttracking::TaintType type =
+                       tainttracking::TaintType::UNTAINTED) { 
+        *(start_taint_++) = static_cast<tainttracking::TaintData>(type);
+        *(cursor_++) = c; 
+    }
+    V8_INLINE void AppendCString(const char* s,
+               tainttracking::TaintType type =
+           tainttracking::TaintType::UNTAINTED) {
       const uint8_t* u = reinterpret_cast<const uint8_t*>(s);
-      while (*u != '\0') Append(*(u++));
+      while (*u != '\0') Append(*(u++), type);
     }
 
     int written() { return static_cast<int>(cursor_ - start_); }
@@ -214,6 +231,7 @@ class IncrementalStringBuilder {
    private:
     DestChar* start_;
     DestChar* cursor_;
+    tainttracking::TaintData* start_taint_;
     DISALLOW_GARBAGE_COLLECTION(no_gc_)
   };
 
@@ -302,14 +320,17 @@ class IncrementalStringBuilder {
 };
 
 template <typename SrcChar, typename DestChar>
-void IncrementalStringBuilder::Append(SrcChar c) {
+void IncrementalStringBuilder::Append(SrcChar c,
+    tainttracking::TaintType type) {
   DCHECK_EQ(encoding_ == String::ONE_BYTE_ENCODING, sizeof(DestChar) == 1);
   if (sizeof(DestChar) == 1) {
     DCHECK_EQ(String::ONE_BYTE_ENCODING, encoding_);
+    tainttracking::SetTaintStatus(*current_part_, current_index_, type);
     SeqOneByteString::cast(*current_part_)
         .SeqOneByteStringSet(current_index_++, c);
   } else {
     DCHECK_EQ(String::TWO_BYTE_ENCODING, encoding_);
+    tainttracking::SetTaintStatus(*current_part_, current_index_, type);
     SeqTwoByteString::cast(*current_part_)
         .SeqTwoByteStringSet(current_index_++, c);
   }

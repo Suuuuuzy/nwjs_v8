@@ -67,6 +67,7 @@
 #include "src/objects/transitions-inl.h"
 #include "src/roots/roots.h"
 #include "src/strings/unicode-inl.h"
+#include "src/taint_tracking.h"
 
 namespace v8 {
 namespace internal {
@@ -790,6 +791,7 @@ Handle<String> Factory::AllocateInternalizedStringImpl(T t, int chars,
   } else {
     WriteTwoByteData(t, SeqTwoByteString::cast(result).GetChars(no_gc), chars);
   }
+  tainttracking::InitTaintData(SeqString::cast(result));
   return handle(result, isolate());
 }
 

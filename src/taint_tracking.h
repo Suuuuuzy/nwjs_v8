@@ -242,12 +242,12 @@ template <> void InitTaintData<v8::internal::SeqOneByteString>(
 template <> void InitTaintData<v8::internal::SeqTwoByteString>(
     v8::internal::SeqTwoByteString str, TaintType type);
 
-// template <class T>
-// void CopyOut(T* source, TaintData* dest, int offset, int len);
-// template <class T>
-// void CopyIn(T* dest, TaintType source, int offset, int len);
-// template <class T>
-// void CopyIn(T* dest, const TaintData* source, int offset, int len);
+template <class T>
+void CopyOut(T source, TaintData* dest, int offset, int len);
+template <class T>
+void CopyIn(T dest, TaintType source, int offset, int len);
+template <class T>
+void CopyIn(T dest, const TaintData* source, int offset, int len);
 
 template <class T> void FlattenTaintData(
     T source, TaintData* dest, int from_offset, int from_len);
@@ -278,7 +278,7 @@ template <class T> TaintData* GetWriteableStringTaintData(T str);
 
 
 // // Event listeners for New strings and operations
-// template <class T> void OnNewStringLiteral(T* source);
+template <class T> void OnNewStringLiteral(T source);
 // void OnNewDeserializedString(v8::internal::String* source);
 // template <class T> void OnNewExternalString(T* str);
 template <class T, class S> void OnNewSubStringCopy(

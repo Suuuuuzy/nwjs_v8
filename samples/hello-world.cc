@@ -8,6 +8,8 @@
 
 #include "include/libplatform/libplatform.h"
 #include "include/v8.h"
+#include <iostream>
+
 
 int main(int argc, char* argv[]) {
   // Initialize V8.
@@ -49,6 +51,7 @@ int main(int argc, char* argv[]) {
       // Convert the result to an UTF8 string and print it.
       v8::String::Utf8Value utf8(isolate, result);
       printf("%s\n", *utf8);
+      // std::cerr << *source << std::endl;
     }
 
     {

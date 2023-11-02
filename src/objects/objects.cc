@@ -4561,6 +4561,11 @@ MaybeHandle<String> Name::ToFunctionName(Isolate* isolate, Handle<Name> name,
   ASSIGN_RETURN_ON_EXCEPTION(isolate, name_string,
                              ToFunctionName(isolate, name), String);
   IncrementalStringBuilder builder(isolate);
+  // byte* taint_tmp = Handle<SeqOneByteString>::cast(prefix)->GetTaintChars();
+  // std::cerr << "jianjia check Taint prefix " 
+  //             << std::to_string(static_cast<uint8_t>(*taint_tmp)).c_str()
+  //             << std::endl;
+  // std::cerr << *prefix << std::endl;
   builder.AppendString(prefix);
   builder.AppendCharacter(' ');
   builder.AppendString(name_string);

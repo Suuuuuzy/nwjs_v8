@@ -24,6 +24,7 @@
 #include "src/strings/string-stream.h"
 #include "src/strings/unicode-inl.h"
 #include "src/utils/ostreams.h"
+#include "src/taint_tracking.h"
 
 namespace v8 {
 namespace internal {
@@ -57,6 +58,8 @@ Handle<String> String::SlowFlatten(Isolate* isolate, Handle<ConsString> cons,
     DisallowGarbageCollection no_gc;
     WriteToFlat(*cons, flat->GetChars(no_gc), 0, length);
     result = flat;
+    // jianjia flatten
+    tainttracking::OnNewSubStringCopy(*cons, *result, 0, length);
   } else {
     Handle<SeqTwoByteString> flat =
         isolate->factory()
@@ -1402,14 +1405,30 @@ Handle<String> SeqString::Truncate(Handle<SeqString> string, int new_length) {
   int new_size, old_size;
   int old_length = string->length();
   if (old_length <= new_length) return string;
+  // DisallowGarbageCollection no_gc;
 
-  if (string->IsSeqOneByteString()) {
+  bool one_byte = string->IsSeqOneByteString();
+
+  if (one_byte) {
     old_size = SeqOneByteString::SizeFor(old_length);
     new_size = SeqOneByteString::SizeFor(new_length);
+    // byte* taintChars = Handle<SeqOneByteString>::cast(string)->GetTaintChars(no_gc);
   } else {
     DCHECK(string->IsSeqTwoByteString());
     old_size = SeqTwoByteString::SizeFor(old_length);
     new_size = SeqTwoByteString::SizeFor(new_length);
+    // byte* taintChars = Handle<SeqTwoByteString>::cast(string)->GetTaintChars(no_gc);
+  }
+
+  byte taint_data[new_length];
+  if (one_byte) {
+    DisallowHeapAllocation no_gc;
+    tainttracking::CopyOut(
+        SeqOneByteString::cast(*string), taint_data, 0, new_length);
+  } else {
+    DisallowHeapAllocation no_gc;
+    tainttracking::CopyOut(
+        SeqTwoByteString::cast(*string), taint_data, 0, new_length);
   }
 
   int delta = old_size - new_size;
@@ -1427,17 +1446,27 @@ Handle<String> SeqString::Truncate(Handle<SeqString> string, int new_length) {
   // for the left-over space to avoid races with the sweeper thread.
   string->set_length(new_length, kReleaseStore);
 
+  if (one_byte) {
+    DisallowHeapAllocation no_gc;
+    tainttracking::CopyIn(
+        SeqOneByteString::cast(*string), taint_data, 0, new_length);
+  } else {
+    DisallowHeapAllocation no_gc;
+    tainttracking::CopyIn(
+        SeqTwoByteString::cast(*string), taint_data, 0, new_length);
+  }
+
   return string;
 }
 
 void SeqOneByteString::clear_padding() {
-  int data_size = SeqString::kHeaderSize + length() * kOneByteSize;
+  int data_size = SeqString::kHeaderSize + length() * kOneByteSize + length() * kOneByteSize;
   memset(reinterpret_cast<void*>(address() + data_size), 0,
          SizeFor(length()) - data_size);
 }
 
 void SeqTwoByteString::clear_padding() {
-  int data_size = SeqString::kHeaderSize + length() * kUC16Size;
+  int data_size = SeqString::kHeaderSize + length() * kUC16Size + length() * kOneByteSize;
   memset(reinterpret_cast<void*>(address() + data_size), 0,
          SizeFor(length()) - data_size);
 }

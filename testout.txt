@@ -5,6 +5,6 @@ pointer_compression_shared_cage
 webassembly
 >>> Running tests for x64.debug
 >>> Running with test processors
-[00:01|%   0|+   1|-   0]: cctest/test-taint-tracking/TaintLargeModOne                                                                      [00:01|%   0|+   2|-   0]: cctest/test-taint-tracking/TaintLarge                                                                [00:01|%   0|+   2|-   0]: Done
->>> 7165 base tests produced 2 (0%) non-filtered tests
->>> 2 tests ran
+[00:01|%   0|+   1|-   0]: cctest/test-taint-tracking/TaintLargeModOne                                                                      [00:01|%   0|+   2|-   0]: cctest/test-taint-tracking/TaintConsStringSelf                                                                         [00:01|%   0|+   3|-   0]: cctest/test-taint-tracking/TaintConsStringTwo                                                                        [00:01|%   0|+   4|-   0]: cctest/test-taint-tracking/TaintLarge                                                                [00:01|%   0|+   4|-   0]: Done
+>>> 7167 base tests produced 4 (0%) non-filtered tests
+>>> 4 tests ran

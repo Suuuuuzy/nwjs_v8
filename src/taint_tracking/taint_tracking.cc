@@ -94,9 +94,6 @@ inline bool IsValidTaintType(TaintType type) {
 
 inline void CheckTaintError(TaintType type, String object) {
 #ifdef DEBUG
-  std::cerr << "TaintType: "
-                << std::to_string(static_cast<uint8_t>(type)).c_str()
-                << std::endl;
   if (!IsValidTaintType(type)) {
     // Isolate* isolate = object.GetIsolate();
     v8::internal::Isolate* isolate = v8::internal::Isolate::Current();
@@ -161,9 +158,6 @@ private:
 #ifdef DEBUG
     if (taint_info != nullptr && !writeable_) {
       for (int i = 0; i < size; i++) {
-        std::cerr << "jianjia Taint tracking memory error: "
-              << offset << " " << i << " " << (void *)taint_info << " " << size 
-              << std::endl;
         CheckTaintError(
             static_cast<TaintType>(*(taint_info + offset + i)),
             GetVisitee());
@@ -878,11 +872,13 @@ template <class T>
 TaintData* StringTaintData(T str);
 template <> TaintData* StringTaintData<SeqOneByteString>(
     SeqOneByteString str) {
-  return str.GetTaintChars();
+  DisallowGarbageCollection no_gc;
+  return str.GetTaintChars(no_gc);
 }
 template <> TaintData* StringTaintData<SeqTwoByteString>(
     SeqTwoByteString str) {
-  return str.GetTaintChars();
+  DisallowGarbageCollection no_gc;
+  return str.GetTaintChars(no_gc);
 }
 // template <> TaintData* StringTaintData<ExternalOneByteString>(
 //     ExternalOneByteString str) {
@@ -1226,33 +1222,33 @@ private:
 
 // template TaintFlag CheckTaint<String>(String* object);
 
-// class WritingVisitor : public TaintVisitor {
-// public:
-//   WritingVisitor(const TaintData* in_data) :
-//     TaintVisitor(true), in_data_(in_data), already_written_(0) {};
+class WritingVisitor : public TaintVisitor {
+public:
+  WritingVisitor(const TaintData* in_data) :
+    TaintVisitor(true), in_data_(in_data), already_written_(0) {}
 
-//   void Visit(const uint16_t* visitee,
-//              TaintData* taint_data,
-//              int offset,
-//              int size) override {
-//     VisitInline(taint_data, offset, size);
-//   }
-//   void Visit(const uint8_t* visitee,
-//              TaintData* taint_data,
-//              int offset,
-//              int size) override {
-//     VisitInline(taint_data, offset, size);
-//   }
+  void Visit(const uint16_t* visitee,
+             TaintData* taint_data,
+             int offset,
+             int size) override {
+    VisitInline(taint_data, offset, size);
+  }
+  void Visit(const uint8_t* visitee,
+             TaintData* taint_data,
+             int offset,
+             int size) override {
+    VisitInline(taint_data, offset, size);
+  }
 
-// private:
-//   inline void VisitInline(TaintData* taint_data, int offset, int size) {
-//     MemCopy(taint_data + offset, in_data_ + already_written_, size);
-//     already_written_ += size;
-//   }
+private:
+  inline void VisitInline(TaintData* taint_data, int offset, int size) {
+    MemCopy(taint_data + offset, in_data_ + already_written_, size);
+    already_written_ += size;
+  }
 
-//   const TaintData* in_data_;
-//   int already_written_;
-// };
+  const TaintData* in_data_;
+  int already_written_;
+};
 
 
 // void InitTaintInfo(const std::vector<std::tuple<TaintType, int>>& range_data,
@@ -1340,24 +1336,24 @@ void ConcatTaint(T result, One first, Two second) {
   visitor.run(second, 0, second.length());
 }
 
-// template <class T>
-// void CopyOut(T* source, TaintData* dest, int offset, int len) {
-//   CopyVisitor visitor(dest);
-//   visitor.run(source, offset, len);
-// }
+template <class T>
+void CopyOut(T source, TaintData* dest, int offset, int len) {
+  CopyVisitor visitor(dest);
+  visitor.run(source, offset, len);
+}
 
-// template <class T>
-// void CopyIn(T* dest, TaintType source, int offset, int len) {
-//   DCHECK_GE(dest->length(), len);
-//   SingleWritingVisitor visitor(source);
-//   visitor.run(dest, offset, len);
-// }
+template <class T>
+void CopyIn(T dest, TaintType source, int offset, int len) {
+  DCHECK_GE(dest.length(), len);
+  SingleWritingVisitor visitor(source);
+  visitor.run(dest, offset, len);
+}
 
-// template <class T>
-// void CopyIn(T* dest, const TaintData* source, int offset, int len) {
-//   WritingVisitor visitor(source);
-//   visitor.run(dest, offset, len);
-// }
+template <class T>
+void CopyIn(T dest, const TaintData* source, int offset, int len) {
+  WritingVisitor visitor(source);
+  visitor.run(dest, offset, len);
+}
 
 
 // void LogSetTaintString(Handle<String> str, TaintType type) {
@@ -2051,20 +2047,20 @@ template void SetTaintStatus<SeqTwoByteString>(
     SeqTwoByteString, int, TaintType);
 template void SetTaintStatus<String>(String, int, TaintType);
 
-// template void CopyIn<SeqOneByteString>(
-//     SeqOneByteString*, TaintType, int, int);
+template void CopyIn<SeqOneByteString>(
+    SeqOneByteString, TaintType, int, int);
 
-// template void CopyIn<SeqOneByteString>(
-//     SeqOneByteString*, const TaintData*, int, int);
-// template void CopyIn<SeqTwoByteString>(
-//     SeqTwoByteString*, const TaintData*, int, int);
-// template void CopyIn<SeqString>(SeqString*, const TaintData*, int, int);
+template void CopyIn<SeqOneByteString>(
+    SeqOneByteString, const TaintData*, int, int);
+template void CopyIn<SeqTwoByteString>(
+    SeqTwoByteString, const TaintData*, int, int);
+template void CopyIn<SeqString>(SeqString, const TaintData*, int, int);
 
-// template void CopyOut<SeqString>(SeqString*, TaintData*, int, int);
-// template void CopyOut<SeqOneByteString>(
-//     SeqOneByteString*, TaintData*, int, int);
-// template void CopyOut<SeqTwoByteString>(
-//     SeqTwoByteString*, TaintData*, int, int);
+template void CopyOut<SeqString>(SeqString, TaintData*, int, int);
+template void CopyOut<SeqOneByteString>(
+    SeqOneByteString, TaintData*, int, int);
+template void CopyOut<SeqTwoByteString>(
+    SeqTwoByteString, TaintData*, int, int);
 
 // template void OnNewReplaceRegexpWithString<SeqOneByteString>(
 //     String* subject, SeqOneByteString* result, JSRegExp* pattern,
@@ -2118,14 +2114,14 @@ template void FlattenTaint<SeqTwoByteString, String>(
 // }
 
 
-// template <class T> void OnNewStringLiteral(T* source) {
-//   if (FLAG_taint_tracking_enable_symbolic) {
-//     LogSymbolic<0>(source, {{}}, "", LITERAL);
-//   }
-// }
-// template void OnNewStringLiteral(String* source);
-// template void OnNewStringLiteral(SeqOneByteString* source);
-// template void OnNewStringLiteral(SeqTwoByteString* source);
+template <class T> void OnNewStringLiteral(T source) {
+  // if (FLAG_taint_tracking_enable_symbolic) {
+  //   LogSymbolic<0>(source, {{}}, "", LITERAL);
+  // }
+}
+template void OnNewStringLiteral(String source);
+template void OnNewStringLiteral(SeqOneByteString source);
+template void OnNewStringLiteral(SeqTwoByteString source);
 
 // void OnNewDeserializedString(String* source) {
 //   MarkNewString(source);

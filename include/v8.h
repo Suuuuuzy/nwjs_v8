@@ -3330,7 +3330,7 @@ class V8_EXPORT String : public Name {
   // Must be kept in sync with
   // ../../third_party/WebKit/Source/wtf/text/TaintTracking.h
   enum TaintType {
-    UNTAINTED = 0,
+    UNTAINTED = 15,
     TAINTED = 1,
     COOKIE = 2,
     MESSAGE = 3,
