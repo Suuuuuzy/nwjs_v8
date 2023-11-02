@@ -163,99 +163,99 @@ TEST(TaintConcatStringContent) {
   CHECK_EQ(GetTaintStatus(*cons, 3), TaintType::TAINTED);
 }
 
-// TEST(TaintSlicedString) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   Factory* factory = CcTest::i_isolate()->factory();
-//   Handle<String> parent = factory->NewStringFromStaticChars(
-//       "parentparentparent");
-//   SetTaintStatus(*parent, 2, TaintType::TAINTED);
+TEST(TaintSlicedString) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  Factory* factory = CcTest::i_isolate()->factory();
+  Handle<String> parent = factory->NewStringFromStaticChars(
+      "parentparentparent");
+  SetTaintStatus(*parent, 2, TaintType::TAINTED);
 
-//   Handle<String> slice = factory->NewSubString(parent, 1, 17);
-//   CHECK_EQ(GetTaintStatus(*slice, 3), TaintType::UNTAINTED);
-//   SetTaintStatus(*slice, 3, TaintType::TAINTED);
-//   CHECK_EQ(GetTaintStatus(*slice, 3), TaintType::TAINTED);
+  Handle<String> slice = factory->NewSubString(parent, 1, 17);
+  CHECK_EQ(GetTaintStatus(*slice, 3), TaintType::UNTAINTED);
+  SetTaintStatus(*slice, 3, TaintType::TAINTED);
+  CHECK_EQ(GetTaintStatus(*slice, 3), TaintType::TAINTED);
 
-//   // Setting taint status on parent should flow through the Cons
-//   CHECK_EQ(GetTaintStatus(*slice, 1), TaintType::TAINTED);
-//   CHECK_EQ(GetTaintStatus(*slice, 15), TaintType::UNTAINTED);
+  // Setting taint status on parent should flow through the Cons
+  CHECK_EQ(GetTaintStatus(*slice, 1), TaintType::TAINTED);
+  CHECK_EQ(GetTaintStatus(*slice, 15), TaintType::UNTAINTED);
 
-//   Handle<String> flat = String::Flatten(slice);
-//   CHECK_EQ(GetTaintStatus(*flat, 1), TaintType::TAINTED);
-//   CHECK_EQ(GetTaintStatus(*flat, 15), TaintType::UNTAINTED);
-// }
+  Handle<String> flat = String::Flatten(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()), slice);
+  CHECK_EQ(GetTaintStatus(*flat, 1), TaintType::TAINTED);
+  CHECK_EQ(GetTaintStatus(*flat, 15), TaintType::UNTAINTED);
+}
 
-// TEST(TaintSlicedStringOne) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   Factory* factory = CcTest::i_isolate()->factory();
-//   Handle<String> parent = factory->NewStringFromStaticChars(
-//       "parentparentparent");
-//   SetTaintStatus(*parent, 1, TaintType::TAINTED);
-//   Handle<String> slice = factory->NewSubString(parent, 1, 2);
-//   CHECK_EQ(GetTaintStatus(*slice, 0), TaintType::TAINTED);
-// }
+TEST(TaintSlicedStringOne) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  Factory* factory = CcTest::i_isolate()->factory();
+  Handle<String> parent = factory->NewStringFromStaticChars(
+      "parentparentparent");
+  SetTaintStatus(*parent, 1, TaintType::TAINTED);
+  Handle<String> slice = factory->NewSubString(parent, 1, 2);
+  CHECK_EQ(GetTaintStatus(*slice, 0), TaintType::TAINTED);
+}
 
-// TEST(TaintSlicedStringTwo) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   Factory* factory = CcTest::i_isolate()->factory();
-//   Handle<String> parent = factory->NewStringFromStaticChars(
-//       "parentparentparent");
-//   SetTaintStatus(*parent, 1, TaintType::TAINTED);
-//   Handle<String> slice = factory->NewSubString(parent, 1, 3);
-//   CHECK_EQ(GetTaintStatus(*slice, 0), TaintType::TAINTED);
-//   CHECK_EQ(GetTaintStatus(*slice, 1), TaintType::UNTAINTED);
-// }
+TEST(TaintSlicedStringTwo) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  Factory* factory = CcTest::i_isolate()->factory();
+  Handle<String> parent = factory->NewStringFromStaticChars(
+      "parentparentparent");
+  SetTaintStatus(*parent, 1, TaintType::TAINTED);
+  Handle<String> slice = factory->NewSubString(parent, 1, 3);
+  CHECK_EQ(GetTaintStatus(*slice, 0), TaintType::TAINTED);
+  CHECK_EQ(GetTaintStatus(*slice, 1), TaintType::UNTAINTED);
+}
 
-// TEST(TaintEncodingUriComponent) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   Isolate* isolate = CcTest::i_isolate();
-//   Factory* factory = isolate->factory();
+TEST(TaintEncodingUriComponent) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  Isolate* isolate = CcTest::i_isolate();
+  Factory* factory = isolate->factory();
 
-//   // Test encoding and decoding for normal characters
-//   Handle<String> target = factory->NewStringFromStaticChars(
-//       "astringwithspecial!;.;\"\'=-&");
-//   SetTaintStatus(*target, 0, TaintType::TAINTED);
-//   Handle<String> encoded = Uri::EncodeUriComponent(isolate, target)
-//     .ToHandleChecked();
-//   CHECK_EQ(GetTaintStatus(*encoded, 0),
-//            TaintType::TAINTED | TaintType::URL_COMPONENT_ENCODED);
-//   CHECK_EQ(GetTaintStatus(*encoded, 1),
-//            TaintType::UNTAINTED | TaintType::URL_COMPONENT_ENCODED);
+  // Test encoding and decoding for normal characters
+  Handle<String> target = factory->NewStringFromStaticChars(
+      "astringwithspecial!;.;\"\'=-&");
+  SetTaintStatus(*target, 0, TaintType::TAINTED);
+  Handle<String> encoded = Uri::EncodeUriComponent(isolate, target)
+    .ToHandleChecked();
+  CHECK_EQ(GetTaintStatus(*encoded, 0),
+           TaintType::TAINTED | TaintType::URL_COMPONENT_ENCODED);
+  CHECK_EQ(GetTaintStatus(*encoded, 1),
+           TaintType::UNTAINTED | TaintType::URL_COMPONENT_ENCODED);
 
-//   Handle<String> decoded = Uri::DecodeUriComponent(isolate, encoded)
-//     .ToHandleChecked();
-//   CHECK_EQ(decoded->length(), target->length());
-//   CHECK_EQ(GetTaintStatus(*decoded, 0), TaintType::TAINTED);
-//   CHECK_EQ(GetTaintStatus(*decoded, 1), TaintType::UNTAINTED);
+  Handle<String> decoded = Uri::DecodeUriComponent(isolate, encoded)
+    .ToHandleChecked();
+  CHECK_EQ(decoded->length(), target->length());
+  CHECK_EQ(GetTaintStatus(*decoded, 0), TaintType::TAINTED);
+  CHECK_EQ(GetTaintStatus(*decoded, 1), TaintType::UNTAINTED);
 
 
-//   // Test the tainting of encoded characters
-//   target = factory->NewStringFromStaticChars(
-//       "astringwithspecial&");
-//   SetTaintStatus(*target, 18, TaintType::TAINTED); // The & character
-//   encoded = Uri::EncodeUriComponent(isolate, target)
-//     .ToHandleChecked();
-//   CHECK_EQ(encoded->length(), 21); // Check that the & expands two characters
-//   CHECK_EQ(GetTaintStatus(*encoded, 18),
-//            TaintType::TAINTED | TaintType::URL_COMPONENT_ENCODED);
-//   CHECK_EQ(GetTaintStatus(*encoded, 19),
-//            TaintType::TAINTED | TaintType::URL_COMPONENT_ENCODED);
-//   CHECK_EQ(GetTaintStatus(*encoded, 20),
-//            TaintType::TAINTED | TaintType::URL_COMPONENT_ENCODED);
+  // Test the tainting of encoded characters
+  target = factory->NewStringFromStaticChars(
+      "astringwithspecial&");
+  SetTaintStatus(*target, 18, TaintType::TAINTED); // The & character
+  encoded = Uri::EncodeUriComponent(isolate, target)
+    .ToHandleChecked();
+  CHECK_EQ(encoded->length(), 21); // Check that the & expands two characters
+  CHECK_EQ(GetTaintStatus(*encoded, 18),
+           TaintType::TAINTED | TaintType::URL_COMPONENT_ENCODED);
+  CHECK_EQ(GetTaintStatus(*encoded, 19),
+           TaintType::TAINTED | TaintType::URL_COMPONENT_ENCODED);
+  CHECK_EQ(GetTaintStatus(*encoded, 20),
+           TaintType::TAINTED | TaintType::URL_COMPONENT_ENCODED);
 
-//   decoded = Uri::DecodeUriComponent(isolate, encoded)
-//     .ToHandleChecked();
-//   CHECK_EQ(decoded->length(), target->length());
-//   CHECK_EQ(GetTaintStatus(*decoded, 18), TaintType::TAINTED);
+  decoded = Uri::DecodeUriComponent(isolate, encoded)
+    .ToHandleChecked();
+  CHECK_EQ(decoded->length(), target->length());
+  CHECK_EQ(GetTaintStatus(*decoded, 18), TaintType::TAINTED);
 
-//   decoded = Uri::DecodeUri(isolate, encoded)
-//     .ToHandleChecked();
-//   CHECK_EQ(GetTaintStatus(*decoded, 18),
-//            TaintType::TAINTED | TaintType::MULTIPLE_ENCODINGS);
-// }
+  decoded = Uri::DecodeUri(isolate, encoded)
+    .ToHandleChecked();
+  CHECK_EQ(GetTaintStatus(*decoded, 18),
+           TaintType::TAINTED | TaintType::MULTIPLE_ENCODINGS);
+}
 
 // class TestTaintListener : public TaintListener {
 // public:

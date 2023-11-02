@@ -698,14 +698,14 @@ TaintFlag AddFlag(
 //   return (MaskForType(type) & flag) != 0;
 // }
 
-// TaintType TaintFlagToType(TaintFlag flag) {
-//   if (flag == kTaintFlagUntainted) {
-//     return TaintType::UNTAINTED;
-//   }
-//   return v8::base::bits::IsPowerOfTwo32(flag) ?
-//     static_cast<TaintType>(WhichPowerOf2(flag) + 1) :
-//     TaintType::MULTIPLE_TAINTS;
-// }
+TaintType TaintFlagToType(TaintFlag flag) {
+  if (flag == kTaintFlagUntainted) {
+    return TaintType::UNTAINTED;
+  }
+  return v8::base::bits::IsPowerOfTwo(flag) ?
+    static_cast<TaintType>(v8::base::bits::WhichPowerOfTwo(flag) + 1) :
+    TaintType::MULTIPLE_TAINTS;
+}
 
 // std::string TaintTypeToString(TaintType type) {
 //   switch (type){
@@ -1298,14 +1298,14 @@ TaintType GetTaintStatus(T object, int idx) {
   return static_cast<TaintType>(output);
 }
 
-// template <class T>
-// TaintType GetTaintStatusRange(T* source, size_t idx_start, size_t length) {
-//   IsTaintedVisitor visitor;
-//   visitor.run(source, idx_start, length);
-//   TaintType answer = TaintFlagToType(visitor.GetFlag());
-//   CheckTaintError(answer, source);
-//   return answer;
-// }
+template <class T>
+TaintType GetTaintStatusRange(T source, int idx_start, int length) {
+  IsTaintedVisitor visitor;
+  visitor.run(source, idx_start, length);
+  TaintType answer = TaintFlagToType(visitor.GetFlag());
+  CheckTaintError(answer, source);
+  return answer;
+}
 
 template <class T>
 void SetTaintStatus(T object, int idx, TaintType type) {
@@ -1354,6 +1354,14 @@ void CopyIn(T dest, const TaintData* source, int offset, int len) {
   WritingVisitor visitor(source);
   visitor.run(dest, offset, len);
 }
+
+// template <class T>
+// void CopyIn(T dest, std::vector<TaintData>* sourceTmp, int offset, int len) {
+//   TaintData* source = &sourceTmp[0];
+//   WritingVisitor visitor(source);
+//   visitor.run(dest, offset, len);
+// }
+
 
 
 // void LogSetTaintString(Handle<String> str, TaintType type) {
@@ -2037,7 +2045,7 @@ template void OnNewSubStringCopy<String, SeqString>(
 //     ExternalString, TaintData*, int, int);
 template void FlattenTaintData<String>(String, TaintData*, int, int);
 
-// template TaintType GetTaintStatusRange<String>(String*, size_t, size_t);
+template TaintType GetTaintStatusRange<String>(String, int, int);
 
 template TaintType GetTaintStatus<String>(String, int);
 
@@ -2055,6 +2063,13 @@ template void CopyIn<SeqOneByteString>(
 template void CopyIn<SeqTwoByteString>(
     SeqTwoByteString, const TaintData*, int, int);
 template void CopyIn<SeqString>(SeqString, const TaintData*, int, int);
+
+// template void CopyIn<SeqOneByteString>(
+//     SeqOneByteString dest, std::vector<TaintData>* , int, int);
+// template void CopyIn<SeqTwoByteString>(
+//     SeqTwoByteString dest, std::vector<TaintData>* , int, int);
+// template void CopyIn<SeqString>(
+//     SeqString dest, std::vector<TaintData>* , int, int);
 
 template void CopyOut<SeqString>(SeqString, TaintData*, int, int);
 template void CopyOut<SeqOneByteString>(
@@ -2136,13 +2151,13 @@ void OnNewSubStringCopy(T source, S dest, int offset, int length) {
   // }
 }
 
-// void OnNewSlicedString(SlicedString* target, String* first,
-//                        int offset, int length) {
-//   MarkNewString(target);
-//   if (FLAG_taint_tracking_enable_symbolic) {
-//     LogSymbolic<1>(target, {{first}}, std::to_string(offset), SLICE);
-//   }
-// }
+void OnNewSlicedString(SlicedString target, String first,
+                       int offset, int length) {
+  MarkNewString(target);
+  // if (FLAG_taint_tracking_enable_symbolic) {
+  //   LogSymbolic<1>(target, {{first}}, std::to_string(offset), SLICE);
+  // }
+}
 
 template <class T, class S, class R>
 void OnNewConcatStringCopy(T dest, S first, R second) {
@@ -2207,87 +2222,87 @@ void OnNewConsString(ConsString target, String first, String second) {
 // template void OnConvertCase<SeqString>(
 //     String* source, SeqString* answer);
 
-// template void OnGenericOperation<String>(SymbolicType, String*);
-// template void OnGenericOperation<SeqOneByteString>(
-//     SymbolicType, SeqOneByteString*);
-// template void OnGenericOperation<SeqTwoByteString>(
-//     SymbolicType, SeqTwoByteString*);
-// template <class T>
-// void OnGenericOperation(SymbolicType type, T* source) {
-//   if (FLAG_taint_tracking_enable_symbolic) {
-//     LogSymbolic<0>(source, {{}}, "", type);
-//   }
+template void OnGenericOperation<String>(SymbolicType, String);
+template void OnGenericOperation<SeqOneByteString>(
+    SymbolicType, SeqOneByteString);
+template void OnGenericOperation<SeqTwoByteString>(
+    SymbolicType, SeqTwoByteString);
+template <class T>
+void OnGenericOperation(SymbolicType type, T source) {
+  // if (FLAG_taint_tracking_enable_symbolic) {
+  //   LogSymbolic<0>(source, {{}}, "", type);
+  // }
 
-//   uint8_t anti_mask;
-//   uint8_t mask;
-//   switch (type) {
-//     case SymbolicType::URI_DECODE:
-//       anti_mask = TaintType::URL_ENCODED;
-//       mask = TaintType::URL_DECODED;
-//       break;
+  uint8_t anti_mask;
+  uint8_t mask;
+  switch (type) {
+    case SymbolicType::URI_DECODE:
+      anti_mask = TaintType::URL_ENCODED;
+      mask = TaintType::URL_DECODED;
+      break;
 
-//     case SymbolicType::URI_COMPONENT_DECODE:
-//       anti_mask = TaintType::URL_COMPONENT_ENCODED;
-//       mask = TaintType::URL_COMPONENT_DECODED;
-//       break;
+    case SymbolicType::URI_COMPONENT_DECODE:
+      anti_mask = TaintType::URL_COMPONENT_ENCODED;
+      mask = TaintType::URL_COMPONENT_DECODED;
+      break;
 
-//     case SymbolicType::URI_UNESCAPE:
-//       anti_mask = TaintType::ESCAPE_ENCODED;
-//       mask = TaintType::ESCAPE_DECODED;
-//       break;
+    case SymbolicType::URI_UNESCAPE:
+      anti_mask = TaintType::ESCAPE_ENCODED;
+      mask = TaintType::ESCAPE_DECODED;
+      break;
 
-//     case SymbolicType::URI_ENCODE:
-//       mask = TaintType::URL_ENCODED;
-//       anti_mask = TaintType::URL_DECODED;
-//       break;
+    case SymbolicType::URI_ENCODE:
+      mask = TaintType::URL_ENCODED;
+      anti_mask = TaintType::URL_DECODED;
+      break;
 
-//     case SymbolicType::URI_COMPONENT_ENCODE:
-//       mask = TaintType::URL_COMPONENT_ENCODED;
-//       anti_mask = TaintType::URL_COMPONENT_DECODED;
-//       break;
+    case SymbolicType::URI_COMPONENT_ENCODE:
+      mask = TaintType::URL_COMPONENT_ENCODED;
+      anti_mask = TaintType::URL_COMPONENT_DECODED;
+      break;
 
-//     case SymbolicType::URI_ESCAPE:
-//       mask = TaintType::ESCAPE_ENCODED;
-//       anti_mask = TaintType::ESCAPE_DECODED;
-//       break;
+    case SymbolicType::URI_ESCAPE:
+      mask = TaintType::ESCAPE_ENCODED;
+      anti_mask = TaintType::ESCAPE_DECODED;
+      break;
 
-//     default:
-//       return;
-//   }
+    default:
+      return;
+  }
 
-//   // The encoding operations are required to return a flat string.
-//   DCHECK(source.IsSeqString());
+  // The encoding operations are required to return a flat string.
+  DCHECK(source.IsSeqString());
 
-//   {
-//     DisallowHeapAllocation no_gc;
-//     SeqString* as_seq_ptr = SeqString::cast(source);
+  {
+    DisallowHeapAllocation no_gc;
+    SeqString as_seq_ptr = SeqString::cast(source);
 
-//     int length = as_seq_ptr->length();
-//     TaintData type_arr [length];
-//     CopyOut(as_seq_ptr, type_arr, 0, length);
+    int length = as_seq_ptr.length();
+    TaintData type_arr [length];
+    CopyOut(as_seq_ptr, type_arr, 0, length);
 
-//     for (int i = 0; i < length; i++) {
-//       uint8_t type_i = static_cast<uint8_t>(type_arr[i]);
-//       uint8_t old_encoding = type_i & TaintType::ENCODING_TYPE_MASK;
+    for (int i = 0; i < length; i++) {
+      uint8_t type_i = static_cast<uint8_t>(type_arr[i]);
+      uint8_t old_encoding = type_i & TaintType::ENCODING_TYPE_MASK;
 
-//       // If the old encoding is nothing, then we move to the mask encoding. If the
-//       // old encoding was the inverse operation, then we move to no encoding. If
-//       // it is neither, then we move to the multiple encoding state.
-//       uint8_t new_encoding = old_encoding == TaintType::NO_ENCODING
-//         ? mask : (
-//             old_encoding == anti_mask
-//             ? TaintType::NO_ENCODING
-//             : TaintType::MULTIPLE_ENCODINGS);
+      // If the old encoding is nothing, then we move to the mask encoding. If the
+      // old encoding was the inverse operation, then we move to no encoding. If
+      // it is neither, then we move to the multiple encoding state.
+      uint8_t new_encoding = old_encoding == TaintType::NO_ENCODING
+        ? mask : (
+            old_encoding == anti_mask
+            ? TaintType::NO_ENCODING
+            : TaintType::MULTIPLE_ENCODINGS);
 
-//       type_arr[i] = static_cast<TaintType>(
-//           (type_i & TaintType::TAINT_TYPE_MASK) | new_encoding);
-//     }
+      type_arr[i] = static_cast<TaintType>(
+          (type_i & TaintType::TAINT_TYPE_MASK) | new_encoding);
+    }
 
-//     // TODO: Perform this operation in-place without the copy in and copy out
-//     // calls.
-//     CopyIn(as_seq_ptr, type_arr, 0, length);
-//   }
-// }
+    // TODO: Perform this operation in-place without the copy in and copy out
+    // calls.
+    CopyIn(as_seq_ptr, type_arr, 0, length);
+  }
+}
 
 // void InsertControlFlowHook(ParseInfo* info) {
 //   DCHECK_NOT_NULL(info->literal());

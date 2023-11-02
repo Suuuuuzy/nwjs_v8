@@ -895,10 +895,10 @@ Handle<String> Factory::NewProperSubString(Handle<String> str, int begin,
 
   int length = end - begin;
   if (length <= 0) return empty_string();
-  if (length == 1) {
+  if (length == 1 && tainttracking::kInternalizedStringsEnabled) {
     return LookupSingleCharacterStringFromCode(str->Get(begin));
   }
-  if (length == 2) {
+  if (length == 2 && tainttracking::kInternalizedStringsEnabled) {
     // Optimization for 2-byte strings often used as keys in a decompression
     // dictionary.  Check whether we already have the string in the string
     // table to prevent creation of many unnecessary strings.
@@ -914,6 +914,7 @@ Handle<String> Factory::NewProperSubString(Handle<String> str, int begin,
       DisallowGarbageCollection no_gc;
       uint8_t* dest = result->GetChars(no_gc);
       String::WriteToFlat(*str, dest, begin, end);
+      tainttracking::OnNewSubStringCopy(*str, *result, begin, length);
       return result;
     } else {
       Handle<SeqTwoByteString> result =
@@ -921,6 +922,7 @@ Handle<String> Factory::NewProperSubString(Handle<String> str, int begin,
       DisallowGarbageCollection no_gc;
       uc16* dest = result->GetChars(no_gc);
       String::WriteToFlat(*str, dest, begin, end);
+      tainttracking::OnNewSubStringCopy(*str, *result, begin, length);
       return result;
     }
   }
@@ -947,6 +949,10 @@ Handle<String> Factory::NewProperSubString(Handle<String> str, int begin,
   slice.set_length(length);
   slice.set_parent(*str);
   slice.set_offset(offset);
+  {
+    DisallowHeapAllocation no_gc;
+    tainttracking::OnNewSlicedString(slice, *str, offset, length);
+  }
   return handle(slice, isolate());
 }
 

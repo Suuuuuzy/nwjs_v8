@@ -10,6 +10,7 @@
 #include "src/strings/char-predicates-inl.h"
 #include "src/strings/string-search.h"
 #include "src/strings/unicode-inl.h"
+#include "src/taint_tracking.h"
 
 namespace v8 {
 namespace internal {
@@ -73,7 +74,7 @@ int TwoDigitHex(uc16 character1, uc16 character2) {
 }
 
 template <typename T>
-void AddToBuffer(uc16 decoded, String::FlatContent* uri_content, int index,
+int AddToBuffer(uc16 decoded, String::FlatContent* uri_content, int index,
                  bool is_uri, std::vector<T>* buffer) {
   if (is_uri && IsReservedPredicate(decoded)) {
     buffer->push_back('%');
@@ -84,13 +85,17 @@ void AddToBuffer(uc16 decoded, String::FlatContent* uri_content, int index,
 
     buffer->push_back(first);
     buffer->push_back(second);
+    return 3;
   } else {
     buffer->push_back(decoded);
+    return 1;
   }
 }
 
 bool IntoTwoByte(int index, bool is_uri, int uri_length,
-                 String::FlatContent* uri_content, std::vector<uc16>* buffer) {
+                 String::FlatContent* uri_content, std::vector<uc16>* buffer,
+                 tainttracking::TaintData* taint_data_in,
+                 std::vector<tainttracking::TaintData>* taint_data_out) {
   for (int k = index; k < uri_length; k++) {
     uc16 code = uri_content->Get(k);
     if (code == '%') {
@@ -136,11 +141,15 @@ bool IntoTwoByte(int index, bool is_uri, int uri_length,
 
 bool IntoOneAndTwoByte(Handle<String> uri, bool is_uri,
                        std::vector<uint8_t>* one_byte_buffer,
-                       std::vector<uc16>* two_byte_buffer) {
+                       std::vector<uc16>* two_byte_buffer,
+                       std::vector<tainttracking::TaintData>* taint_data) {
   DisallowGarbageCollection no_gc;
   String::FlatContent uri_content = uri->GetFlatContent(no_gc);
 
   int uri_length = uri->length();
+  tainttracking::TaintData taint_data_temp [uri_length];
+  tainttracking::FlattenTaintData(*uri, taint_data_temp, 0, uri_length);
+
   for (int k = 0; k < uri_length; k++) {
     uc16 code = uri_content.Get(k);
     if (code == '%') {
@@ -154,17 +163,23 @@ bool IntoOneAndTwoByte(Handle<String> uri, bool is_uri,
       uc16 decoded = static_cast<uc16>(two_digits);
       if (decoded > unibrow::Utf8::kMaxOneByteChar) {
         return IntoTwoByte(k, is_uri, uri_length, &uri_content,
-                           two_byte_buffer);
+                           two_byte_buffer, taint_data_temp, taint_data);
       }
 
-      AddToBuffer(decoded, &uri_content, k, is_uri, one_byte_buffer);
+      int step = AddToBuffer(decoded, &uri_content, k, is_uri, one_byte_buffer);
+      taint_data->push_back(tainttracking::GetTaintStatus(*uri, k));
+      if (step == 3) {
+        taint_data->push_back(tainttracking::GetTaintStatus(*uri, k + 1));
+        taint_data->push_back(tainttracking::GetTaintStatus(*uri, k + 2));
+      }
       k += 2;
     } else {
       if (code > unibrow::Utf8::kMaxOneByteChar) {
         return IntoTwoByte(k, is_uri, uri_length, &uri_content,
-                           two_byte_buffer);
+                           two_byte_buffer, taint_data_temp, taint_data);
       }
       one_byte_buffer->push_back(code);
+      taint_data->push_back(tainttracking::GetTaintStatus(*uri, k));
     }
   }
   return true;
@@ -177,14 +192,34 @@ MaybeHandle<String> Uri::Decode(Isolate* isolate, Handle<String> uri,
   uri = String::Flatten(isolate, uri);
   std::vector<uint8_t> one_byte_buffer;
   std::vector<uc16> two_byte_buffer;
+  std::vector<tainttracking::TaintData> taint_data;
 
-  if (!IntoOneAndTwoByte(uri, is_uri, &one_byte_buffer, &two_byte_buffer)) {
+  if (!IntoOneAndTwoByte(uri, is_uri, 
+        &one_byte_buffer, &two_byte_buffer, &taint_data)) {
     THROW_NEW_ERROR(isolate, NewURIError(), String);
   }
 
+  size_t new_len = one_byte_buffer.size() + two_byte_buffer.size();
+  DCHECK_EQ(new_len, taint_data.size());
+
   if (two_byte_buffer.empty()) {
-    return isolate->factory()->NewStringFromOneByte(Vector<const uint8_t>(
+    MaybeHandle<String> result =
+        isolate->factory()->NewStringFromOneByte(Vector<const uint8_t>(
         one_byte_buffer.data(), static_cast<int>(one_byte_buffer.size())));
+    if (!result.is_null()) {
+      Handle<String> res_checked = result.ToHandleChecked();
+      DCHECK(res_checked->IsSeqString());
+      tainttracking::CopyIn(*Handle<SeqString>::cast(res_checked),
+                            &taint_data.front(),
+                            0, static_cast<int>(new_len));
+    }
+    tainttracking::OnGenericOperation(
+        is_uri
+        ? tainttracking::SymbolicType::URI_DECODE
+        : tainttracking::SymbolicType::URI_COMPONENT_DECODE,
+        *(result.ToHandleChecked()));
+
+    return result;
   }
 
   Handle<SeqTwoByteString> result;
@@ -254,7 +289,7 @@ void AddEncodedOctetToBuffer(uint8_t octet, std::vector<uint8_t>* buffer) {
   buffer->push_back(HexCharOfValue(octet & 0x0F));
 }
 
-void EncodeSingle(uc16 c, std::vector<uint8_t>* buffer) {
+int EncodeSingle(uc16 c, std::vector<uint8_t>* buffer) {
   char s[4] = {};
   int number_of_bytes;
   number_of_bytes =
@@ -262,9 +297,10 @@ void EncodeSingle(uc16 c, std::vector<uint8_t>* buffer) {
   for (int k = 0; k < number_of_bytes; k++) {
     AddEncodedOctetToBuffer(s[k], buffer);
   }
+  return number_of_bytes * 3;
 }
 
-void EncodePair(uc16 cc1, uc16 cc2, std::vector<uint8_t>* buffer) {
+int EncodePair(uc16 cc1, uc16 cc2, std::vector<uint8_t>* buffer) {
   char s[4] = {};
   int number_of_bytes =
       unibrow::Utf8::Encode(s, unibrow::Utf16::CombineSurrogatePair(cc1, cc2),
@@ -272,6 +308,7 @@ void EncodePair(uc16 cc1, uc16 cc2, std::vector<uint8_t>* buffer) {
   for (int k = 0; k < number_of_bytes; k++) {
     AddEncodedOctetToBuffer(s[k], buffer);
   }
+  return number_of_bytes * 3;
 }
 
 }  // anonymous namespace
@@ -282,7 +319,9 @@ MaybeHandle<String> Uri::Encode(Isolate* isolate, Handle<String> uri,
   int uri_length = uri->length();
   std::vector<uint8_t> buffer;
   buffer.reserve(uri_length);
-
+  // typedef uint8_t TaintData;
+  std::vector<tainttracking::TaintData> taint_buffer;
+  taint_buffer.reserve(uri_length);
   {
     DisallowGarbageCollection no_gc;
     String::FlatContent uri_content = uri->GetFlatContent(no_gc);
@@ -294,16 +333,27 @@ MaybeHandle<String> Uri::Encode(Isolate* isolate, Handle<String> uri,
         if (k < uri_length) {
           uc16 cc2 = uri->Get(k);
           if (unibrow::Utf16::IsTrailSurrogate(cc2)) {
-            EncodePair(cc1, cc2, &buffer);
+            int num = EncodePair(cc1, cc2, &buffer);
+            tainttracking::TaintType type =
+              tainttracking::GetTaintStatusRange(*uri, k - num, k);
+            for (int i = 0; i < num; i++) {
+              taint_buffer.push_back(static_cast<tainttracking::TaintData>(type));
+            }
             continue;
           }
         }
       } else if (!unibrow::Utf16::IsTrailSurrogate(cc1)) {
+        tainttracking::TaintType type = tainttracking::GetTaintStatus(*uri, k);
+        int num;
         if (IsUnescapePredicateInUriComponent(cc1) ||
             (is_uri && IsUriSeparator(cc1))) {
           buffer.push_back(cc1);
+          num = 1;
         } else {
-          EncodeSingle(cc1, &buffer);
+          num = EncodeSingle(cc1, &buffer);
+        }
+        for (int i = 0; i < num; i++) {
+          taint_buffer.push_back(static_cast<tainttracking::TaintData>(type));
         }
         continue;
       }
@@ -313,7 +363,25 @@ MaybeHandle<String> Uri::Encode(Isolate* isolate, Handle<String> uri,
     }
   }
 
-  return isolate->factory()->NewStringFromOneByte(VectorOf(buffer));
+  MaybeHandle<String> result = 
+    isolate->factory()->NewStringFromOneByte(VectorOf(buffer));
+  if (!result.is_null()) {
+    Handle<String> res_str = result.ToHandleChecked();
+    DCHECK(res_str->IsSeqString());
+    DCHECK_EQ(taint_buffer.size(), res_str->length());
+    {
+      DisallowHeapAllocation no_gc;
+      tainttracking::CopyIn(SeqString::cast(*res_str),
+                            &taint_buffer.front(),
+                            0,
+                            res_str->length());
+      tainttracking::OnGenericOperation(
+          is_uri
+        ? tainttracking::SymbolicType::URI_ENCODE
+        : tainttracking::SymbolicType::URI_COMPONENT_ENCODE, *res_str);
+    }
+  }
+  return result;
 }
 
 namespace {  // Anonymous namespace for Escape and Unescape

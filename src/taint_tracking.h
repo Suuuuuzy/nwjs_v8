@@ -125,24 +125,24 @@ enum Status {
 //   PROPERTY_LVALUE
 // };
 
-// enum SymbolicType {
-//   CONCAT,
-//   SLICE,
-//   LITERAL,
-//   EXTERNAL,
-//   PARSED_JSON,
-//   STRINGIFIED_JSON,
-//   REGEXP,
-//   JOIN,
-//   CASE_CHANGE,
-//   URI_ENCODE,
-//   URI_DECODE,
-//   URI_COMPONENT_ENCODE,
-//   URI_COMPONENT_DECODE,
-//   URI_ESCAPE,
-//   URI_UNESCAPE,
-//   INCREMENTAL_BUILD,
-// };
+enum SymbolicType {
+  CONCAT,
+  SLICE,
+  LITERAL,
+  EXTERNAL,
+  PARSED_JSON,
+  STRINGIFIED_JSON,
+  REGEXP,
+  JOIN,
+  CASE_CHANGE,
+  URI_ENCODE,
+  URI_DECODE,
+  URI_COMPONENT_ENCODE,
+  URI_COMPONENT_DECODE,
+  URI_ESCAPE,
+  URI_UNESCAPE,
+  INCREMENTAL_BUILD,
+};
 
 // enum CheckType {
 //   STATEMENT_BEFORE,
@@ -270,8 +270,8 @@ void FlattenTaint(S source, T dest, int from_offset, int from_len);
 // void SetTaintOnObject(v8::internal::Handle<v8::internal::Object> obj,
 //                       TaintType type);
 
-// template <class T>
-// TaintType GetTaintStatusRange(T* source, size_t idx_start, size_t length);
+template <class T>
+TaintType GetTaintStatusRange(T source, int idx_start, int length);
 template <class T> TaintType GetTaintStatus(T object, int idx);
 template <class T> void SetTaintStatus(T object, int idx, TaintType type);
 template <class T> TaintData* GetWriteableStringTaintData(T str);
@@ -288,9 +288,9 @@ template <class T, class S, class R> void OnNewConcatStringCopy(
 void OnNewConsString(v8::internal::ConsString target,
                      v8::internal::String first,
                      v8::internal::String second);
-// void OnNewSlicedString(v8::internal::SlicedString* target,
-//                        v8::internal::String* first,
-//                        int offset, int length);
+void OnNewSlicedString(v8::internal::SlicedString target,
+                       v8::internal::String first,
+                       int offset, int length);
 // void OnNewFromJsonString(v8::internal::SeqString* target,
 //                          v8::internal::String* source);
 // template <class T> void OnNewReplaceRegexpWithString(
@@ -302,8 +302,8 @@ void OnNewConsString(v8::internal::ConsString target,
 //     T* target, Array* array);
 // template <class T> void OnConvertCase(
 //     v8::internal::String* source, T* answer);
-// template <class T> void OnGenericOperation(
-//     SymbolicType type, T* source);
+template <class T> void OnGenericOperation(
+    SymbolicType type, T source);
 
 
 // // Opaque hash that signals a change in the memory layout format. Useful for
