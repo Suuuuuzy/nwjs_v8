@@ -96,6 +96,7 @@
 #include "src/utils/version.h"
 #include "src/zone/accounting-allocator.h"
 #include "src/zone/type-stats.h"
+#include "src/taint_tracking-inl.h"
 #ifdef V8_INTL_SUPPORT
 #include "unicode/uobject.h"
 #endif  // V8_INTL_SUPPORT
@@ -1639,6 +1640,7 @@ Object Isolate::ThrowInternal(Object raw_exception, MessageLocation* location) {
   // Notify debugger of exception.
   if (is_catchable_by_javascript(raw_exception)) {
     base::Optional<Object> maybe_exception = debug()->OnThrow(exception);
+    // tainttracking::RuntimeOnThrow(this, exception_handle, false);
     if (maybe_exception.has_value()) {
       return *maybe_exception;
     }
@@ -3005,7 +3007,9 @@ Isolate::Isolate(std::unique_ptr<i::IsolateAllocator> isolate_allocator,
       next_module_async_evaluating_ordinal_(
           SourceTextModule::kFirstAsyncEvaluatingOrdinal),
       cancelable_task_manager_(new CancelableTaskManager()),
-      is_shared_(is_shared) {
+      is_shared_(is_shared),
+      taint_tracking_data_(
+          tainttracking::TaintTracker::New(this)) {
   TRACE_ISOLATE(constructor);
   CheckIsolateLayout();
 
@@ -3177,6 +3181,9 @@ void Isolate::Deinit() {
   if (shared_isolate_) {
     DetachFromSharedIsolate();
   }
+
+  tainttracking::LogDispose(this);
+  taint_tracking_data_.reset();
 
   heap_.TearDown();
 
@@ -3847,6 +3854,9 @@ bool Isolate::Init(SnapshotData* startup_snapshot_data,
     PrintF("[Initializing isolate from scratch took %0.3f ms]\n", ms);
   }
 
+  if (!serializer_enabled()) {
+    taint_tracking_data_->Initialize(this);
+  }  
   return true;
 }
 
@@ -4771,6 +4781,10 @@ void Isolate::SetRAILMode(RAILMode rail_mode) {
   if (FLAG_trace_rail) {
     PrintIsolate(this, "RAIL mode: %s\n", RAILModeName(rail_mode));
   }
+}
+
+tainttracking::TaintTracker* Isolate::taint_tracking_data() {
+  return taint_tracking_data_.get();
 }
 
 void Isolate::IsolateInBackgroundNotification() {

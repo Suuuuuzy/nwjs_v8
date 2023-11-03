@@ -144,25 +144,25 @@ enum SymbolicType {
   INCREMENTAL_BUILD,
 };
 
-// enum CheckType {
-//   STATEMENT_BEFORE,
-//   STATEMENT_AFTER,
-//   EXPRESSION_BEFORE,
-//   EXPRESSION_AFTER,
-//   EXPRESSION_AFTER_OPTIMIZED_OUT,
-//   EXPRESSION_UNEXECUTED,
-//   STATIC_VALUE_CHECK,
-//   EXPRESSION_VARIABLE_LOAD_GLOBAL,
-//   EXPRESSION_VARIABLE_LOAD,
-//   EXPRESSION_PARAMETER_LOAD,
-//   EXPRESSION_PARAMETER_STORE,
-//   EXPRESSION_VARIABLE_LOAD_CONTEXT_LOOKUP,
-//   EXPRESSION_VARIABLE_STORE,
-//   EXPRESSION_VARIABLE_STORE_CONTEXT,
-//   EXPRESSION_PROPERTY_STORE,
-//   EXPRESSION_LVALUE,
-//   EXPRESSION_PROPERTY_LVALUE
-// };
+enum CheckType {
+  STATEMENT_BEFORE,
+  STATEMENT_AFTER,
+  EXPRESSION_BEFORE,
+  EXPRESSION_AFTER,
+  EXPRESSION_AFTER_OPTIMIZED_OUT,
+  EXPRESSION_UNEXECUTED,
+  STATIC_VALUE_CHECK,
+  EXPRESSION_VARIABLE_LOAD_GLOBAL,
+  EXPRESSION_VARIABLE_LOAD,
+  EXPRESSION_PARAMETER_LOAD,
+  EXPRESSION_PARAMETER_STORE,
+  EXPRESSION_VARIABLE_LOAD_CONTEXT_LOOKUP,
+  EXPRESSION_VARIABLE_STORE,
+  EXPRESSION_VARIABLE_STORE_CONTEXT,
+  EXPRESSION_PROPERTY_STORE,
+  EXPRESSION_LVALUE,
+  EXPRESSION_PROPERTY_LVALUE
+};
 
 // // -1 is used by the receiver parameter
 // static const int NO_VARIABLE_INDEX = -2;
@@ -179,55 +179,54 @@ enum BranchType {
 typedef uint32_t TaintFlag;
 const TaintFlag kTaintFlagUntainted = 0;
 
-// typedef int64_t InstanceCounter;
-// const InstanceCounter kUndefinedInstanceCounter = -1;
+typedef int64_t InstanceCounter;
+const InstanceCounter kUndefinedInstanceCounter = -1;
 
 // std::string TaintTypeToString(TaintType type);
 // std::string TaintFlagToString(TaintFlag flag);
 // TaintFlag AddFlag(TaintFlag current, TaintType new_value,
 //                   v8::internal::String* object = nullptr);
 
-// struct TaintInstanceInfo {
-//   char const* name;
-//   char const* source_url;
-//   char const* source_code;
-//   TaintFlag taint_flag;
-//   std::vector<std::tuple<TaintType, int>> ranges;
-// };
+struct TaintInstanceInfo {
+  char const* name;
+  char const* source_url;
+  char const* source_code;
+  TaintFlag taint_flag;
+  std::vector<std::tuple<TaintType, int>> ranges;
+};
 
-// class TaintListener {
-// public:
-//   virtual ~TaintListener() {}
-//   virtual void OnTaintedCompilation(const TaintInstanceInfo& info,
-//                                     v8::internal::Isolate* isolate) = 0;
-// };
+class TaintListener {
+public:
+  virtual ~TaintListener() {}
+  virtual void OnTaintedCompilation(const TaintInstanceInfo& info,
+                                    v8::internal::Isolate* isolate) = 0;
+};
 
-// class TaintTracker final {
-// public:
-//   class Impl;
+class TaintTracker final {
+public:
+  class Impl;
 
-//   ~TaintTracker();
+  ~TaintTracker();
 
-//   void Initialize(v8::internal::Isolate* isolate);
+  void Initialize(v8::internal::Isolate* isolate);
 
-//   void RegisterTaintListener(TaintListener* listener);
-//   bool IsRewriteAstEnabled();
+  void RegisterTaintListener(TaintListener* listener);
+  bool IsRewriteAstEnabled();
 
-//   Impl* Get();
-//   InstanceCounter* symbolic_elem_counter();
+  Impl* Get();
+  InstanceCounter* symbolic_elem_counter();
 
-//   static TaintTracker* FromIsolate(v8::internal::Isolate* isolate);
-//   static void OnBeforeCompile(
-//       v8::internal::Handle<v8::internal::Script> script,
-//       v8::internal::Isolate* isolate);
-//   static TaintTracker* New(bool enable_serializer,
-//                            v8::internal::Isolate* isolate);
+  static TaintTracker* FromIsolate(v8::internal::Isolate* isolate);
+  static void OnBeforeCompile(
+      v8::internal::Handle<v8::internal::Script> script,
+      v8::internal::Isolate* isolate);
+  static TaintTracker* New(v8::internal::Isolate* isolate);
 
-// private:
-//   TaintTracker(bool enable_serializer, v8::internal::Isolate* isolate);
+private:
+  TaintTracker(v8::internal::Isolate* isolate);
 
-//   std::unique_ptr<Impl> impl_;
-// };
+  std::unique_ptr<Impl> impl_;
+};
 
 const bool kTaintTrackingEnabled = true;
 const bool kInternalizedStringsEnabled = !kTaintTrackingEnabled;
@@ -322,7 +321,7 @@ template <class T> void OnGenericOperation(
 // void SetTaintString(v8::internal::Handle<v8::internal::String> str,
 //                     TaintType type);
 // void LogInitializeNavigate(v8::internal::Handle<v8::internal::String> url);
-// void LogDispose(v8::internal::Isolate* isolate);
+void LogDispose(v8::internal::Isolate* isolate);
 
 
 // void JSSetTaintBuffer(

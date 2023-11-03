@@ -3,8 +3,9 @@
 #include "src/objects/objects-inl.h"
 #include "src/taint_tracking.h"
 #include "src/taint_tracking-inl.h"
-#include "src/taint_tracking/log_listener.h"
+// #include "src/taint_tracking/log_listener.h"
 #include "src/strings/uri.h"
+#include "src/api/api-inl.h"
 
 #include <memory>
 #include <vector>
@@ -257,38 +258,46 @@ TEST(TaintEncodingUriComponent) {
            TaintType::TAINTED | TaintType::MULTIPLE_ENCODINGS);
 }
 
-// class TestTaintListener : public TaintListener {
-// public:
-//   ~TestTaintListener() override {}
+class TestTaintListener : public TaintListener {
+public:
+  ~TestTaintListener() override {}
 
-//   void OnTaintedCompilation(const TaintInstanceInfo& info,
-//                             v8::internal::Isolate* isolate) override {
-//     scripts_.push_back("");
-//   }
+  void OnTaintedCompilation(const TaintInstanceInfo& info,
+                            v8::internal::Isolate* isolate) override {
+    scripts_.push_back("");
+  }
 
-//   std::vector<std::string> GetScripts() {
-//     return scripts_;
-//   }
+  std::vector<std::string> GetScripts() {
+    return scripts_;
+  }
 
-// private:
-//   std::vector<std::string> scripts_;
-// };
+private:
+  std::vector<std::string> scripts_;
+};
 
-// TEST(OnBeforeCompile) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   v8::Local<v8::String> source = v8_str(CcTest::isolate(), "var a = 1;");
-//   Handle<String> source_h = v8::Utils::OpenHandle(*source);
-//   SetTaintStatus(*source_h, 0, TaintType::TAINTED);
-//   CHECK_EQ(CheckTaint(*source_h), TaintType::TAINTED);
-//   CHECK_EQ(GetTaintStatus(*source_h, 0), TaintType::TAINTED);
-//   TestTaintListener* listener = new TestTaintListener();
-//   CHECK_EQ(listener->GetScripts().size(), 0);
-//   TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
-//   v8::MaybeLocal<v8::Script> result = v8::Script::Compile(
-//       CcTest::isolate()->GetCurrentContext(), source);
-//   CHECK_EQ(listener->GetScripts().size(), 1);
-// }
+TEST(OnBeforeCompile) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  v8::Local<v8::String> source = v8_str(CcTest::isolate(), "var a = 1;");
+  Handle<String> source_h = v8::Utils::OpenHandle(*source);
+  SetTaintStatus(*source_h, 0, TaintType::TAINTED);
+  CHECK_EQ(CheckTaint(*source_h), TaintType::TAINTED);
+  CHECK_EQ(GetTaintStatus(*source_h, 0), TaintType::TAINTED);
+  TestTaintListener* listener = new TestTaintListener();
+  CHECK_EQ(listener->GetScripts().size(), 0);
+  TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
+  v8::Local<v8::Script> script = v8::Script::Compile(
+      CcTest::isolate()->GetCurrentContext(), source).ToLocalChecked();
+  v8::Local<v8::Context> context = v8::Context::New(CcTest::isolate());
+  // Run the script to get the result.
+  v8::Local<v8::Value> result = script->Run(context).ToLocalChecked();
+
+  // Convert the result to a uint32 and print it.
+  uint32_t number = result->Uint32Value(context).ToChecked();
+  printf("var a = 1; %u\n", number);
+  CHECK_EQ(listener->GetScripts().size(), 1);
+  
+}
 
 // v8::MaybeLocal<v8::Value> TestCompile(
 //     TestTaintListener* listener, const char* source_code, int taint_location) {

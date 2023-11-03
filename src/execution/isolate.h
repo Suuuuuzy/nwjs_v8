@@ -40,6 +40,8 @@
 #include "src/strings/unicode.h"
 #include "src/utils/allocation.h"
 
+#include "src/taint_tracking.h"
+
 #ifdef V8_INTL_SUPPORT
 #include "unicode/uversion.h"  // Define U_ICU_NAMESPACE.
 namespace U_ICU_NAMESPACE {
@@ -1662,6 +1664,8 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
 
   void SetRAILMode(RAILMode rail_mode);
 
+  tainttracking::TaintTracker* taint_tracking_data();
+
   RAILMode rail_mode() { return rail_mode_.load(); }
 
   void set_code_coverage_mode(debug::CoverageMode coverage_mode) {
@@ -2178,6 +2182,8 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
 
   // Set to true if this isolate is used as shared heap.
   const bool is_shared_;
+
+  std::unique_ptr<tainttracking::TaintTracker> taint_tracking_data_;
 
   // Stores the shared isolate for this client isolate. nullptr for shared
   // isolates or when no shared isolate is used.

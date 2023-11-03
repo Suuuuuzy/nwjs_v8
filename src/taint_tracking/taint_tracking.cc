@@ -72,10 +72,10 @@ const int kStackTraceInfoSize = 4000;
 
 // // Number of messages to queue before flushing the log stream.
 // const int kFlushMessageMax = 1000;
-// const int kLogBufferSize = 64 * MB;
+const int kLogBufferSize = 64 * MB;
 
-// int TaintTracker::Impl::isolate_counter_ = 0;
-// std::mutex TaintTracker::Impl::isolate_counter_mutex_;
+int TaintTracker::Impl::isolate_counter_ = 0;
+std::mutex TaintTracker::Impl::isolate_counter_mutex_;
 
 // std::unique_ptr<LogListener> global_log_listener;
 
@@ -662,15 +662,15 @@ private:
 //   }
 // }
 
-// void TaintTracker::Impl::DoFlushLog() {
-//   std::lock_guard<std::mutex> guard(log_mutex_);
-//   DCHECK(IsLogging());
-//   if (buffered_log_) {
-//     buffered_log_->flush();
-//   }
-//   log_->flush();
-//   log_flush_scheduled_ = false;
-// }
+void TaintTracker::Impl::DoFlushLog() {
+  std::lock_guard<std::mutex> guard(log_mutex_);
+  DCHECK(IsLogging());
+  if (buffered_log_) {
+    buffered_log_->flush();
+  }
+  log_->flush();
+  log_flush_scheduled_ = false;
+}
 
 // bool AllowDeserializingCode() {
 //   DCHECK(FLAG_taint_tracking_disable_code_caching ||
@@ -1214,13 +1214,13 @@ private:
 };
 
 
-// template <class T> TaintFlag CheckTaint(T* object) {
-//   IsTaintedVisitor visitor;
-//   visitor.run(object, 0, object->length());
-//   return visitor.GetFlag();
-// }
+template <class T> TaintFlag CheckTaint(T object) {
+  IsTaintedVisitor visitor;
+  visitor.run(object, 0, object.length());
+  return visitor.GetFlag();
+}
 
-// template TaintFlag CheckTaint<String>(String* object);
+template TaintFlag CheckTaint<String>(String object);
 
 class WritingVisitor : public TaintVisitor {
 public:
@@ -1492,12 +1492,12 @@ void CopyIn(T dest, const TaintData* source, int offset, int len) {
 //   }
 // }
 
-// void LogDispose(Isolate* isolate) {
-//   TaintTracker::Impl* impl = TaintTracker::FromIsolate(isolate)->Get();
-//   if (impl->IsLogging()) {
-//     impl->DoFlushLog();
-//   }
-// }
+void LogDispose(Isolate* isolate) {
+  TaintTracker::Impl* impl = TaintTracker::FromIsolate(isolate)->Get();
+  if (impl->IsLogging()) {
+    impl->DoFlushLog();
+  }
+}
 
 // class JsStringInitializer {
 // public:
@@ -1816,150 +1816,147 @@ void CopyIn(T dest, const TaintData* source, int offset, int len) {
 //       isolate, message, FlushConfig::FORCE_FLUSH);
 // }
 
-// void TaintTracker::OnBeforeCompile(Handle<Script> script, Isolate* isolate) {
-//   DisallowHeapAllocation no_gc;
-//   Object* source_obj = script->source();
-//   DCHECK(source_obj->IsString());
-//   String* source = String::cast(source_obj);
-//   IsTaintedVisitor visitor;
-//   visitor.run(source, 0, source.length());
-//   if (visitor.GetFlag() != TaintType::UNTAINTED) {
-//     TaintInstanceInfo instance;
-//     std::unique_ptr<char[]> name (
-//         Object::ToString(isolate, handle(script->name(), isolate))
-//         .ToHandleChecked()->ToCString());
-//     std::unique_ptr<char[]> source_url (
-//         Object::ToString(isolate, handle(script->source_url(), isolate))
-//         .ToHandleChecked()->ToCString());
-//     std::unique_ptr<char[]> source_code (source.ToCString());
-//     instance.taint_flag = visitor.GetFlag();
-//     instance.name = name.get();
-//     instance.source_url = source_url.get();
-//     instance.source_code = source_code.get();
-//     instance.ranges = visitor.GetRanges();
-//     FromIsolate(isolate)->Get()->Trigger(instance, isolate);
-//   }
-// }
+void TaintTracker::OnBeforeCompile(Handle<Script> script, Isolate* isolate) {
+  DisallowHeapAllocation no_gc;
+  Object source_obj = script->source();
+  DCHECK(source_obj.IsString());
+  String source = String::cast(source_obj);
+  IsTaintedVisitor visitor;
+  visitor.run(source, 0, source.length());
+  if (visitor.GetFlag() != TaintType::UNTAINTED) {
+    TaintInstanceInfo instance;
+    std::unique_ptr<char[]> name (
+        Object::ToString(isolate, handle(script->name(), isolate))
+        .ToHandleChecked()->ToCString());
+    std::unique_ptr<char[]> source_url (
+        Object::ToString(isolate, handle(script->source_url(), isolate))
+        .ToHandleChecked()->ToCString());
+    std::unique_ptr<char[]> source_code (source.ToCString());
+    instance.taint_flag = visitor.GetFlag();
+    instance.name = name.get();
+    instance.source_url = source_url.get();
+    instance.source_code = source_code.get();
+    instance.ranges = visitor.GetRanges();
+    FromIsolate(isolate)->Get()->Trigger(instance, isolate);
+  }
+}
 
-// TaintTracker* TaintTracker::New(bool enable_serializer,
-//                                 v8::internal::Isolate* isolate) {
-//   return new TaintTracker(enable_serializer, isolate);
-// }
+TaintTracker* TaintTracker::New(v8::internal::Isolate* isolate) {
+  return new TaintTracker(isolate);
+}
 
-// void TaintTracker::RegisterTaintListener(TaintListener* listener) {
-//   Get()->RegisterTaintListener(listener);
-// }
+void TaintTracker::RegisterTaintListener(TaintListener* listener) {
+  Get()->RegisterTaintListener(listener);
+}
 
-// // static
-// TaintTracker* TaintTracker::FromIsolate(Isolate* isolate) {
-//   return isolate->taint_tracking_data();
-// }
+// static
+TaintTracker* TaintTracker::FromIsolate(Isolate* isolate) {
+  return isolate->taint_tracking_data();
+}
 
 
-// TaintTracker::TaintTracker(bool enable_serializer,
-//                            v8::internal::Isolate* isolate) :
-//   impl_(std::unique_ptr<TaintTracker::Impl>(
-//             new TaintTracker::Impl(enable_serializer, isolate))) {}
+TaintTracker::TaintTracker(v8::internal::Isolate* isolate) :
+  impl_(std::unique_ptr<TaintTracker::Impl>(
+            new TaintTracker::Impl(isolate))) {}
 
-// TaintTracker::~TaintTracker() {}
+TaintTracker::~TaintTracker() {}
 
-// TaintTracker::Impl* TaintTracker::Get() {
-//   return impl_.get();
-// }
+TaintTracker::Impl* TaintTracker::Get() {
+  return impl_.get();
+}
 
-// TaintTracker::Impl::Impl(bool enable_serializer,
-//                          v8::internal::Isolate* isolate)
-//   : message_counter_(0),
-//     log_(),
-//     listeners_(),
-//     is_logging_(false),
-//     log_flush_scheduled_(false),
-//     has_heartbeat_(false),
-//     unsent_messages_(0),
-//     log_mutex_(),
-//     exec_(isolate),
-//     versioner_(new ObjectVersioner(isolate)) {
-//   symbolic_elem_counter_ = enable_serializer ? 1 : kMaxCounterSnapshot;
-//   last_message_flushed_.Start();
-// }
+TaintTracker::Impl::Impl(v8::internal::Isolate* isolate)
+  : message_counter_(0),
+    log_(),
+    listeners_(),
+    is_logging_(false),
+    log_flush_scheduled_(false),
+    has_heartbeat_(false),
+    unsent_messages_(0),
+    log_mutex_()
+    // exec_(isolate)
+    // versioner_(new ObjectVersioner(isolate)) 
+    {
+  // symbolic_elem_counter_ = enable_serializer ? 1 : kMaxCounterSnapshot;
+  last_message_flushed_.Start();
+}
 
-// void TaintTracker::Initialize(v8::internal::Isolate* isolate) {
-//   Get()->Initialize(isolate);
-// }
+void TaintTracker::Initialize(v8::internal::Isolate* isolate) {
+  Get()->Initialize(isolate);
+}
 
 // bool TaintTracker::IsRewriteAstEnabled() {
 //   return FLAG_taint_tracking_enable_ast_modification;
 // }
 
-// void TaintTracker::Impl::Initialize(v8::internal::Isolate* isolate) {
-//   if (strlen(FLAG_taint_log_file) != 0) {
-//     std::lock_guard<std::mutex> guard(log_mutex_);
-//     is_logging_ = true;
+void TaintTracker::Impl::Initialize(v8::internal::Isolate* isolate) {
+  if (strlen(FLAG_taint_log_file) != 0) {
+    std::lock_guard<std::mutex> guard(log_mutex_);
+    is_logging_ = true;
 
-//     std::unique_ptr<std::ofstream> oflog (new std::ofstream());
-//     oflog->open(LogFileName());
-//     std::swap(log_, oflog);
-//     buffer_log_storage_ = kj::heapArray<uint8_t>(kLogBufferSize);
-//     kj_log_.reset(new ::kj::std::StdOutputStream(*log_));
-//     buffered_log_.reset(new ::kj::BufferedOutputStreamWrapper(
-//                             *kj_log_,
-//                             buffer_log_storage_));
-//   }
+    std::unique_ptr<std::ofstream> oflog (new std::ofstream());
+    oflog->open(LogFileName());
+    std::swap(log_, oflog);
+    buffer_log_storage_ = kj::heapArray<uint8_t>(kLogBufferSize);
+    kj_log_.reset(new ::kj::std::StdOutputStream(*log_));
+    buffered_log_.reset(new ::kj::BufferedOutputStreamWrapper(
+                            *kj_log_,
+                            buffer_log_storage_));
+  }
 
-//   HandleScope scope(isolate);
-//   if (EnableConcolic()) {
-//     Exec().Initialize();
-//   }
+  HandleScope scope(isolate);
+  // if (EnableConcolic()) {
+  //   Exec().Initialize();
+  // }
 
-//   static const int INITIAL_SIZE = 10;
-//   Handle<Object> tmp = ObjectHashTable::New(isolate, INITIAL_SIZE);
-//   cross_origin_message_table_ =
-//     Handle<ObjectHashTable>::cast(
-//         isolate->global_handles()->Create(*tmp.location()));
-// }
+  static const int INITIAL_SIZE = 10;
+  Handle<Object> tmp = ObjectHashTable::New(isolate, INITIAL_SIZE);
+  cross_origin_message_table_ =
+    Handle<ObjectHashTable>::cast(
+        isolate->global_handles()->Create(*tmp.location()));
+}
 
-// TaintTracker::Impl::~Impl() {
-//   if (is_logging_) {
-//     std::lock_guard<std::mutex> guard(log_mutex_);
-//     log_->close();
-//   }
+TaintTracker::Impl::~Impl() {
+  if (is_logging_) {
+    std::lock_guard<std::mutex> guard(log_mutex_);
+    log_->close();
+  }
 
-//   GlobalHandles::Destroy(
-//       reinterpret_cast<Object**>(cross_origin_message_table_.location()));
-// }
+  GlobalHandles::Destroy(cross_origin_message_table_.location());
+}
 
-// void TaintTracker::Impl::RegisterTaintListener(TaintListener* listener) {
-//   listeners_.push_back(std::unique_ptr<TaintListener>(listener));
-// }
+void TaintTracker::Impl::RegisterTaintListener(TaintListener* listener) {
+  listeners_.push_back(std::unique_ptr<TaintListener>(listener));
+}
 
-// void TaintTracker::Impl::Trigger(
-//     const TaintInstanceInfo& info, Isolate* isolate) {
-//   for (auto& listener : listeners_) {
-//     listener->OnTaintedCompilation(info, isolate);
-//   }
-// }
+void TaintTracker::Impl::Trigger(
+    const TaintInstanceInfo& info, Isolate* isolate) {
+  for (auto& listener : listeners_) {
+    listener->OnTaintedCompilation(info, isolate);
+  }
+}
 
-// bool TaintTracker::Impl::IsLogging() const {
-//   return is_logging_;
-// }
+bool TaintTracker::Impl::IsLogging() const {
+  return is_logging_;
+}
 
 // bool TaintTracker::Impl::HasHeartbeat() const {
 //   return is_logging_;
 // }
 
-// void MakeUniqueLogFileName(std::ostringstream& base) {
-//   base << FLAG_taint_log_file << "_"
-//        << v8::base::OS::GetCurrentProcessId() << "_"
-//        << static_cast<int64_t>(v8::base::OS::TimeCurrentMillis());
-// }
+void MakeUniqueLogFileName(std::ostringstream& base) {
+  base << FLAG_taint_log_file << "_"
+       << v8::base::OS::GetCurrentProcessId() << "_"
+       << static_cast<int64_t>(v8::base::OS::TimeCurrentMillis());
+}
 
-// std::string TaintTracker::Impl::LogFileName() {
-//   std::lock_guard<std::mutex> lock(isolate_counter_mutex_);
-//   std::ostringstream log_fname;
-//   MakeUniqueLogFileName(log_fname);
-//   log_fname << "_" << (isolate_counter_++);
-//   return log_fname.str();
-// }
+std::string TaintTracker::Impl::LogFileName() {
+  std::lock_guard<std::mutex> lock(isolate_counter_mutex_);
+  std::ostringstream log_fname;
+  MakeUniqueLogFileName(log_fname);
+  log_fname << "_" << (isolate_counter_++);
+  return log_fname.str();
+}
 
 // InstanceCounter* TaintTracker::symbolic_elem_counter() {
 //   return &(Get()->symbolic_elem_counter_);
