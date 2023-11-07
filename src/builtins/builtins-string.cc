@@ -486,5 +486,50 @@ BUILTIN(StringRaw) {
   RETURN_RESULT_OR_FAILURE(isolate, result_builder.Finish());
 }
 
+BUILTIN(StringPrototypeSetTaint) {
+  HandleScope scope(isolate);
+  TO_THIS_STRING(string, "String.prototype.__setTaint__");
+  uint32_t taint_value;
+  Handle<Object> taint_arg = args.atOrUndefined(isolate, 1);
+  if (taint_arg->ToUint32(&taint_value)) {
+    tainttracking::SetTaintString(
+        string, static_cast<tainttracking::TaintType>(taint_value));
+    return *(isolate->factory()->undefined_value());
+  } 
+  // else if (taint_arg->IsJSArrayBuffer()) {
+  //   JSArrayBuffer taint_data = JSArrayBuffer::cast(*taint_arg);
+  //   int len = static_cast<int>(taint_data.byte_length());
+  //   if (!len) {
+  //     THROW_NEW_ERROR_RETURN_FAILURE(
+  //       isolate, NewTypeError(MessageTemplate::kInvalidArgument, taint_arg));
+  //   }
+  //   if (len != string->length()) {
+  //     THROW_NEW_ERROR_RETURN_FAILURE(
+  //       isolate, NewTypeError(MessageTemplate::kInvalidArgument, taint_arg));
+  //   }
+  //   tainttracking::JSSetTaintBuffer(string, handle(taint_data, isolate));
+  //   return *(isolate->factory()->undefined_value());
+  // }
+  THROW_NEW_ERROR_RETURN_FAILURE(
+      isolate, NewTypeError(MessageTemplate::kInvalidArgument, taint_arg));
+}
+
+// BUILTIN(StringPrototypeGetTaint) {
+//   HandleScope scope(isolate);
+//   TO_THIS_STRING(string, "String.prototype.__getTaint__");
+//   return *tainttracking::JSGetTaintStatus(string, isolate);
+// }
+
+// BUILTIN(StringPrototypeCheckTaint) {
+//   HandleScope scope(isolate);
+//   TO_THIS_STRING(string, "String.prototype.__checkTaint__");
+//   return *(tainttracking::JSCheckTaintMaybeLog(
+//                    isolate,
+//                    string,
+//                    args.atOrUndefined(isolate, 1),
+//                    0));
+// }
+
+
 }  // namespace internal
 }  // namespace v8

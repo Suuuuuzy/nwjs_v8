@@ -2151,6 +2151,12 @@ void Genesis::InitializeGlobal(Handle<JSGlobalObject> global_object,
 #endif
     SimpleInstallFunction(isolate_, prototype, "valueOf",
                           Builtins::kStringPrototypeValueOf, 0, true);
+    SimpleInstallFunction(isolate_, prototype, "__setTaint__",
+                          Builtins::kStringPrototypeSetTaint, 1, true);
+    // SimpleInstallFunction(isolate_, prototype, "__getTaint__",
+    //                       Builtins::kStringPrototypeGetTaint, 0, true);
+    // SimpleInstallFunction(isolate_, prototype, "__checkTaint__",
+    //                       Builtins::kStringPrototypeCheckTaint, 1, true);
 
     InstallFunctionAtSymbol(
         isolate_, prototype, factory->iterator_symbol(), "[Symbol.iterator]",
@@ -4746,6 +4752,13 @@ bool Genesis::InstallABunchOfRandomThings() {
         isolate(), global_object, "eval", Builtins::kGlobalEval, 1, false);
     native_context()->set_global_eval_fun(*eval);
   }
+
+  // SimpleInstallFunction(isolate(), global_object, "__printToTaintLog__",
+  //                       Builtins::kGlobalPrintToTaintLog, 2, false);
+  // SimpleInstallFunction(isolate(), global_object, "__taintConstants__",
+  //                       Builtins::kGlobalTaintConstants, 0, false);
+  // SimpleInstallFunction(isolate(), global_object, "__setTaint__",
+  //                       Builtins::kGlobalSetTaint, 2, false);
 
   // Install Global.isFinite
   InstallFunctionWithBuiltinId(isolate(), global_object, "isFinite",

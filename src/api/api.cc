@@ -6346,6 +6346,12 @@ void v8::Context::SetSecurityToken(Local<Value> token) {
   env->set_security_token(*token_handle);
 }
 
+void v8::Context::SetTaintTrackingContextId(Local<Value> token) {
+  i::Handle<i::Context> env = Utils::OpenHandle(this);
+  i::Handle<i::Object> token_handle = Utils::OpenHandle(*token);
+  env->set_taint_tracking_context_id(*token_handle);
+}
+
 void v8::Context::UseDefaultSecurityToken() {
   i::Handle<i::Context> env = Utils::OpenHandle(this);
   env->set_security_token(env->global_object());

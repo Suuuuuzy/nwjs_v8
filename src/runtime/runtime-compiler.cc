@@ -421,6 +421,8 @@ static Object CompileGlobalEval(Isolate* isolate,
   // and return the compiled function bound in the local context.
   static const ParseRestriction restriction = NO_PARSE_RESTRICTION;
   Handle<JSFunction> compiled;
+  tainttracking::LogIfTainted(isolate,
+    source.ToHandleChecked(), tainttracking::TaintSinkLabel::JAVASCRIPT, 1);
   ASSIGN_RETURN_ON_EXCEPTION_VALUE(
       isolate, compiled,
       Compiler::GetFunctionFromEval(

@@ -278,7 +278,7 @@ private:
 TEST(OnBeforeCompile) {
   TestCase test_case;
   v8::HandleScope scope(CcTest::isolate());
-  v8::Local<v8::String> source = v8_str(CcTest::isolate(), "var a = 1;");
+  v8::Local<v8::String> source = v8_str(CcTest::isolate(), "var a = 1; a");
   Handle<String> source_h = v8::Utils::OpenHandle(*source);
   SetTaintStatus(*source_h, 0, TaintType::TAINTED);
   CHECK_EQ(CheckTaint(*source_h), TaintType::TAINTED);
@@ -299,65 +299,67 @@ TEST(OnBeforeCompile) {
   
 }
 
-// v8::MaybeLocal<v8::Value> TestCompile(
-//     TestTaintListener* listener, const char* source_code, int taint_location) {
-//   v8::Local<v8::String> source = v8_str(CcTest::isolate(), source_code);
-//   Handle<String> source_h = v8::Utils::OpenHandle(*source);
-//   SetTaintStatus(*source_h, taint_location, TaintType::TAINTED);
-//   CHECK_EQ(CheckTaint(*source_h), TaintType::TAINTED);
-//   CHECK_EQ(GetTaintStatus(*source_h, taint_location), TaintType::TAINTED);
-//   CHECK_EQ(listener->GetScripts().size(), 0);
-//   TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
-//   v8::Local<v8::Context> context = CcTest::isolate()->GetCurrentContext();
-//   return v8::Script::Compile(context, source)
-//     .ToLocalChecked()->Run(context);
-// }
+v8::MaybeLocal<v8::Value> TestCompile(
+    TestTaintListener* listener, const char* source_code, int taint_location) {
+  v8::Local<v8::String> source = v8_str(CcTest::isolate(), source_code);
+  Handle<String> source_h = v8::Utils::OpenHandle(*source);
+  SetTaintStatus(*source_h, taint_location, TaintType::TAINTED);
+  CHECK_EQ(CheckTaint(*source_h), TaintType::TAINTED);
+  CHECK_EQ(GetTaintStatus(*source_h, taint_location), TaintType::TAINTED);
+  CHECK_EQ(listener->GetScripts().size(), 0);
+  TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
+  v8::Local<v8::Context> context = CcTest::isolate()->GetCurrentContext();
+  return v8::Script::Compile(context, source)
+    .ToLocalChecked()->Run(context);
+}
 
-// TEST(OnBeforeCompileEval) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   TestTaintListener* listener = new TestTaintListener();
-//   auto value = TestCompile(
-//       listener, "var a = '1 + 1'; var b = eval(a); b", 9).ToLocalChecked();
-//   CHECK_GT(listener->GetScripts().size(), 0);
-//   CHECK_EQ(
-//       2, value->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
-// }
+TEST(OnBeforeCompileEval) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  TestTaintListener* listener = new TestTaintListener();
+  auto value = TestCompile(
+      listener, "var a = '1 + 1'; var b = eval(a); b", 9).ToLocalChecked();
+  CHECK_GT(listener->GetScripts().size(), 0);
+  CHECK_EQ(
+      2, value->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
+}
 
-// TEST(OnBeforeCompileFunction) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   TestTaintListener* listener = new TestTaintListener();
-//   auto value = TestCompile(
-//       listener, "var a = 'return 1 + 1;'; (new Function(a))();", 9);
-//   CHECK_GT(listener->GetScripts().size(), 0);
-// }
+TEST(OnBeforeCompileFunction) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  TestTaintListener* listener = new TestTaintListener();
+  auto value = TestCompile(
+      listener, "var a = 'return 1 + 1;'; (new Function(a))();", 9);
+  CHECK_GT(listener->GetScripts().size(), 0);
+  CHECK_EQ(
+      2, value.ToLocalChecked()->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
+}
 
-// TEST(OnBeforeCompileEvalNonTainted) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   TestTaintListener* listener = new TestTaintListener();
-//   auto value = TestCompile(
-//       listener, "var a = '1 + 1;'; eval(a);", 0).ToLocalChecked();
-//   CHECK_GT(listener->GetScripts().size(), 0);
-//   CHECK_EQ(
-//       2, value->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
-// }
+TEST(OnBeforeCompileEvalNonTainted) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  TestTaintListener* listener = new TestTaintListener();
+  auto value = TestCompile(
+      listener, "var a = '1 + 1;'; eval(a);", 0).ToLocalChecked();
+  CHECK_GT(listener->GetScripts().size(), 0);
+  CHECK_EQ(
+      2, value->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
+}
 
-// TEST(OnBeforeCompileSetTaint) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   v8::Local<v8::String> source = v8_str(
-//       CcTest::isolate(), "var a = '1 + 1'; a.__setTaint__(1); eval(a);");
-//   TestTaintListener* listener = new TestTaintListener();
-//   CHECK_EQ(listener->GetScripts().size(), 0);
-//   TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
-//   auto result = v8::Script::Compile(
-//       CcTest::isolate()->GetCurrentContext(), source).ToLocalChecked()->Run();
-//   CHECK_EQ(listener->GetScripts().size(), 1);
-//   CHECK_EQ(
-//       2, result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
-// }
+TEST(OnBeforeCompileSetTaint) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  v8::Local<v8::String> source = v8_str(
+      CcTest::isolate(), "var a = '1 + 1'; a.__setTaint__(1); eval(a);");
+  TestTaintListener* listener = new TestTaintListener();
+  CHECK_EQ(listener->GetScripts().size(), 0);
+  TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
+  v8::Local<v8::Context> context = CcTest::isolate()->GetCurrentContext();
+  auto result = v8::Script::Compile(context, source).ToLocalChecked()->Run(context).ToLocalChecked();
+  CHECK_EQ(listener->GetScripts().size(), 1);
+  CHECK_EQ(
+      2, result->Int32Value(context).FromJust());
+}
 
 // TEST(OnBeforeCompileGetTaint) {
 //   TestCase test_case;

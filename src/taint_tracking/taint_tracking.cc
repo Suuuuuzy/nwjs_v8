@@ -3,12 +3,12 @@
 // Taint tracking imports
 #include "src/taint_tracking.h"
 #include "src/taint_tracking-inl.h"
-// // #include "src/taint_tracking/ast_serialization.h"
-// // #include "src/taint_tracking/log_listener.h"
-// // #include "src/taint_tracking/object_versioner.h"
-// // #include "src/taint_tracking/third_party/picosha2.h"
-// #include "logrecord.capnp.h"
-
+#include "src/taint_tracking/ast_serialization.h"
+#include "src/taint_tracking/log_listener.h"
+#include "src/taint_tracking/object_versioner.h"
+#include "src/taint_tracking/third_party/picosha2.h"
+#include "logrecord.capnp.h"
+#include "src/execution/frames.h"
 
 // // Other V8 imports
 // #include "src/ast/ast-expression-rewriter.h"
@@ -67,11 +67,11 @@ const int kStackTraceInfoSize = 4000;
 // const char kJsIdProperty[] = "id";
 // const InstanceCounter kMaxCounterSnapshot = 1 << 16;
 
-// const v8::base::TimeDelta kMaxTimeBetweenFlushes =
-//     v8::base::TimeDelta::FromSeconds(10);
+const v8::base::TimeDelta kMaxTimeBetweenFlushes =
+    v8::base::TimeDelta::FromSeconds(10);
 
-// // Number of messages to queue before flushing the log stream.
-// const int kFlushMessageMax = 1000;
+// Number of messages to queue before flushing the log stream.
+const int kFlushMessageMax = 1000;
 const int kLogBufferSize = 64 * MB;
 
 int TaintTracker::Impl::isolate_counter_ = 0;
@@ -80,8 +80,8 @@ std::mutex TaintTracker::Impl::isolate_counter_mutex_;
 // std::unique_ptr<LogListener> global_log_listener;
 
 class IsTaintedVisitor;
-// void InitTaintInfo(const std::vector<std::tuple<TaintType, int>>&,
-//                    TaintLogRecord::TaintInformation::Builder*);
+void InitTaintInfo(const std::vector<std::tuple<TaintType, int>>&,
+                   TaintLogRecord::TaintInformation::Builder*);
 
 // void RegisterLogListener(std::unique_ptr<LogListener> listener) {
 //   global_log_listener = std::move(listener);
@@ -175,22 +175,22 @@ private:
   bool writeable_;
 };
 
-// MessageHolder::MessageHolder() : builder_(), depth_(0) {};
-// MessageHolder::~MessageHolder() {}
-// ::TaintLogRecord::Builder MessageHolder::GetRoot() {
-//   return builder_.getRoot<TaintLogRecord>();
-// }
-// ::TaintLogRecord::Builder MessageHolder::InitRoot() {
-//   return builder_.initRoot<TaintLogRecord>();
-// }
+MessageHolder::MessageHolder() : builder_(), depth_(0) {}
+MessageHolder::~MessageHolder() {}
+::TaintLogRecord::Builder MessageHolder::GetRoot() {
+  return builder_.getRoot<TaintLogRecord>();
+}
+::TaintLogRecord::Builder MessageHolder::InitRoot() {
+  return builder_.initRoot<TaintLogRecord>();
+}
 
-// void MessageHolder::DoSynchronousWrite(::kj::OutputStream& stream) {
-//   if (FLAG_taint_tracking_write_packed_logs) {
-//     capnp::writePackedMessage(stream, builder_);
-//   } else {
-//     capnp::writeMessage(stream, builder_);
-//   }
-// }
+void MessageHolder::DoSynchronousWrite(::kj::OutputStream& stream) {
+  if (FLAG_taint_tracking_write_packed_logs) {
+    capnp::writePackedMessage(stream, builder_);
+  } else {
+    capnp::writeMessage(stream, builder_);
+  }
+}
 
 // template <typename Char>
 // void MessageHolder::CopyBuffer(::Ast::JsString::Builder builder,
@@ -213,53 +213,53 @@ private:
 // template void MessageHolder::CopyBuffer<uint16_t>(
 //     ::Ast::JsString::Builder builder, const uint16_t* str, int length);
 
-// class StringCopier : public TaintVisitor {
-// public:
-//   void Visit(const uint8_t* visitee,
-//              TaintData* taint_info,
-//              int offset,
-//              int size) override {
-//     segments_.push_back(std::make_tuple(visitee + offset, true, size));
-//   }
-//   void Visit(const uint16_t* visitee,
-//              TaintData* taint_info,
-//              int offset,
-//              int size) override {
-//     segments_.push_back(
-//         std::make_tuple(reinterpret_cast<const uint8_t*>(visitee + offset),
-//                         false,
-//                         size * sizeof(uint16_t)));
-//   }
+class StringCopier : public TaintVisitor {
+public:
+  void Visit(const uint8_t* visitee,
+             TaintData* taint_info,
+             int offset,
+             int size) override {
+    segments_.push_back(std::make_tuple(visitee + offset, true, size));
+  }
+  void Visit(const uint16_t* visitee,
+             TaintData* taint_info,
+             int offset,
+             int size) override {
+    segments_.push_back(
+        std::make_tuple(reinterpret_cast<const uint8_t*>(visitee + offset),
+                        false,
+                        size * sizeof(uint16_t)));
+  }
 
-//   void Build(::Ast::JsString::Builder builder) {
-//     auto contents = builder.initSegments(segments_.size());
-//     for (int i = 0; i < segments_.size(); i++) {
-//       auto& segment = segments_[i];
-//       auto out_content = contents[i];
-//       out_content.setContent(::capnp::Data::Reader(
-//                                  std::get<0>(segment), std::get<2>(segment)));
-//       out_content.setIsOneByte(std::get<1>(segment));
-//     }
-//   }
+  void Build(::Ast::JsString::Builder builder) {
+    auto contents = builder.initSegments(static_cast<int>(segments_.size()));
+    for (int i = 0; i < static_cast<int>(segments_.size()); i++) {
+      auto& segment = segments_[i];
+      auto out_content = contents[i];
+      out_content.setContent(::capnp::Data::Reader(
+                                 std::get<0>(segment), std::get<2>(segment)));
+      out_content.setIsOneByte(std::get<1>(segment));
+    }
+  }
 
-// private:
-//   std::vector<std::tuple<const uint8_t*, bool, int>> segments_;
-// };
+private:
+  std::vector<std::tuple<const uint8_t*, bool, int>> segments_;
+};
 
-// void MessageHolder::CopyJsStringSlow(
-//     ::Ast::JsString::Builder builder,
-//     v8::internal::Handle<v8::internal::String> str) {
-//   if (FLAG_taint_tracking_enable_concolic_no_marshalling) {
-//     return;
-//   }
+void MessageHolder::CopyJsStringSlow(
+    ::Ast::JsString::Builder builder,
+    v8::internal::Handle<v8::internal::String> str) {
+  if (FLAG_taint_tracking_enable_concolic_no_marshalling) {
+    return;
+  }
 
-//   StringCopier copier;
-//   {
-//     DisallowHeapAllocation no_gc;
-//     copier.run(*str, 0, str.length());
-//   }
-//   copier.Build(builder);
-// }
+  StringCopier copier;
+  {
+    DisallowHeapAllocation no_gc;
+    copier.run(*str, 0, str->length());
+  }
+  copier.Build(builder);
+}
 
 // void MessageHolder::CopyJsStringSlow(
 //     ::Ast::JsString::Builder builder,
@@ -273,29 +273,31 @@ private:
 //   copier.Build(builder);
 // }
 
-// void MessageHolder::CopyJsObjectToStringSlow(
-//     ::Ast::JsString::Builder obj_builder,
-//     Handle<Object> obj) {
-//   if (FLAG_taint_tracking_enable_concolic_no_marshalling) {
-//     return;
-//   }
+void MessageHolder::CopyJsObjectToStringSlow(
+    ::Ast::JsString::Builder obj_builder,
+    Handle<Object> obj) {
+  if (FLAG_taint_tracking_enable_concolic_no_marshalling) {
+    return;
+  }
 
-//   if (obj->IsHeapObject()) {
-//     CopyJsStringSlow(
-//         obj_builder,
-//         Object::ToString(
-//             Handle<HeapObject>::cast(obj)->GetIsolate(), obj)
-//         .ToHandleChecked());
-//   } else {
-//     DCHECK(obj->IsSmi());
-//     auto out_content = obj_builder.initSegments(1)[0];
-//     std::string as_str = std::to_string(Smi::cast(*obj)->value());
-//     out_content.setContent(
-//         ::capnp::Data::Reader(
-//             reinterpret_cast<const uint8_t*>(as_str.c_str()), as_str.size()));
-//     out_content.setIsOneByte(true);
-//   }
-// }
+  if (obj->IsHeapObject()) {
+    CopyJsStringSlow(
+        obj_builder,
+        Handle<String>::cast(obj)
+        // Object::ToString(
+        //     Handle<HeapObject>::cast(obj)->GetIsolate(), obj)
+        // .ToHandleChecked()
+        );
+  } else {
+    DCHECK(obj->IsSmi());
+    auto out_content = obj_builder.initSegments(1)[0];
+    std::string as_str = std::to_string(Smi::cast(*obj).value());
+    out_content.setContent(
+        ::capnp::Data::Reader(
+            reinterpret_cast<const uint8_t*>(as_str.c_str()), as_str.size()));
+    out_content.setIsOneByte(true);
+  }
+}
 
 // int MessageHolder::GetDepth() {
 //   return depth_;
@@ -411,18 +413,18 @@ private:
 // Status MessageHolder::WriteConcreteObject(
 //     ::Ast::JsObjectValue::Builder builder,
 //     ObjectSnapshot snapshot) {
-//   if (FLAG_taint_tracking_enable_concolic_no_marshalling) {
-//     return Status::OK;
-//   }
+  // if (FLAG_taint_tracking_enable_concolic_no_marshalling) {
+    // return Status::OK;
+  // }
 
-//   auto obj = snapshot.GetObj();
-//   if (obj->IsHeapObject()) {
-//     return ObjectVersioner::FromIsolate(
-//         Handle<HeapObject>::cast(obj)->GetIsolate()).MaybeSerialize(
-//             snapshot, builder, *this);
-//   } else {
-//     return WriteConcreteSmi(builder, Smi::cast(*obj)->value());
-//   }
+  // auto obj = snapshot.GetObj();
+  // if (obj->IsHeapObject()) {
+  //   return ObjectVersioner::FromIsolate(
+  //       Handle<HeapObject>::cast(obj)->GetIsolate()).MaybeSerialize(
+  //           snapshot, builder, *this);
+  // } else {
+  //   return WriteConcreteSmi(builder, Smi::cast(*obj)->value());
+  // }
 // }
 
 
@@ -482,8 +484,8 @@ private:
 //       Handle<SharedFunctionInfo> shared = handle(
 //           as_function->shared(), isolate);
 //       CopyJsStringSlow(fn.initName(), shared->DebugName());
-//       fn.setStartPosition(shared->start_position());
-//       fn.setEndPosition(shared->end_position());
+//       fn.setStartPosition(shared->StartPosition());
+//       fn.setEndPosition(shared->EndPosition());
 //       Handle<Object> maybe_script (shared->script(), isolate);
 //       if (maybe_script->IsScript()) {
 //         Handle<Script> script = Handle<Script>::cast(maybe_script);
@@ -598,69 +600,69 @@ private:
 // }
 
 
-// // static
-// int64_t TaintTracker::Impl::LogToFile(
-//     Isolate* isolate,
-//     MessageHolder& builder,
-//     FlushConfig conf) {
-//   TaintTracker::Impl* impl = TaintTracker::FromIsolate(isolate)->Get();
-//   auto log_message = builder.GetRoot();
-//   if (global_log_listener) {
-//     global_log_listener->OnLog(log_message.asReader());
-//   }
-//   log_message.setIsolate(reinterpret_cast<uint64_t>(isolate));
-//   Context* context = isolate->context();
-//   if (context) {
-//     Context* native_context = context->native_context();
-//     if (native_context) {
-//       builder.WriteConcreteObject(
-//           log_message.initContextId(),
-//           ObjectSnapshot(
-//               handle(
-//                   native_context->taint_tracking_context_id(),
-//                   isolate)));
-//     }
-//   }
-//   return impl->LogToFileImpl(isolate, builder, conf);
-// }
+// static
+int64_t TaintTracker::Impl::LogToFile(
+    Isolate* isolate,
+    MessageHolder& builder,
+    FlushConfig conf) {
+  TaintTracker::Impl* impl = TaintTracker::FromIsolate(isolate)->Get();
+  auto log_message = builder.GetRoot();
+  // if (global_log_listener) {
+  //   global_log_listener->OnLog(log_message.asReader());
+  // }
+  log_message.setIsolate(reinterpret_cast<uint64_t>(isolate));
+  // Context context = isolate->context();
+  // if (context) {
+    // Context native_context = context.native_context();
+    // if (native_context) {
+      // builder.WriteConcreteObject(
+      //     log_message.initContextId(),
+      //     ObjectSnapshot(
+      //         handle(
+      //             native_context.taint_tracking_context_id(),
+      //             isolate)));
+    // }
+  // }
+  return impl->LogToFileImpl(isolate, builder, conf);
+}
 
-// int64_t TaintTracker::Impl::LogToFileImpl(
-//     Isolate* isolate,
-//     MessageHolder& builder,
-//     FlushConfig conf) {
-//   if (!IsLogging()) {
-//     return NO_MESSAGE;
-//   }
-//   auto log_message = builder.GetRoot();
-//   uint64_t msg_id = message_counter_++;
-//   log_message.setMessageId(msg_id);
+int64_t TaintTracker::Impl::LogToFileImpl(
+    Isolate* isolate,
+    MessageHolder& builder,
+    FlushConfig conf) {
+  if (!IsLogging()) {
+    return NO_MESSAGE;
+  }
+  auto log_message = builder.GetRoot();
+  uint64_t msg_id = message_counter_++;
+  log_message.setMessageId(msg_id);
 
-//   if (buffered_log_) {
-//     std::lock_guard<std::mutex> guard(log_mutex_);
-//     builder.DoSynchronousWrite(*buffered_log_);
-//   }
+  if (buffered_log_) {
+    std::lock_guard<std::mutex> guard(log_mutex_);
+    builder.DoSynchronousWrite(*buffered_log_);
+  }
 
-//   if (unsent_messages_ > kFlushMessageMax ||
-//       conf == FORCE_FLUSH ||
-//       last_message_flushed_.HasExpired(kMaxTimeBetweenFlushes)) {
-//     ScheduleFlushLog(isolate);
-//     last_message_flushed_.Restart();
-//   } else {
-//     unsent_messages_ += 1;
-//   }
+  if (unsent_messages_ > kFlushMessageMax ||
+      conf == FORCE_FLUSH ||
+      last_message_flushed_.HasExpired(kMaxTimeBetweenFlushes)) {
+    ScheduleFlushLog(isolate);
+    last_message_flushed_.Restart();
+  } else {
+    unsent_messages_ += 1;
+  }
 
-//   return msg_id;
-// }
+  return msg_id;
+}
 
 
-// void TaintTracker::Impl::ScheduleFlushLog(v8::internal::Isolate* isolate) {
-//   std::lock_guard<std::mutex> guard(log_mutex_);
-//   if (!log_flush_scheduled_) {
-//     V8::GetCurrentPlatform()->CallOnBackgroundThread(
-//         new LogTaintTask(isolate), v8::Platform::kShortRunningTask);
-//     log_flush_scheduled_ = true;
-//   }
-// }
+void TaintTracker::Impl::ScheduleFlushLog(v8::internal::Isolate* isolate) {
+  // std::lock_guard<std::mutex> guard(log_mutex_);
+  // if (!log_flush_scheduled_) {
+  //   V8::GetCurrentPlatform()->CallOnBackgroundThread(
+  //       new LogTaintTask(isolate), v8::Platform::kShortRunningTask);
+  //   log_flush_scheduled_ = true;
+  // }
+}
 
 void TaintTracker::Impl::DoFlushLog() {
   std::lock_guard<std::mutex> guard(log_mutex_);
@@ -738,74 +740,74 @@ TaintType TaintFlagToType(TaintFlag flag) {
 //   }
 // }
 
-// ::TaintLogRecord::TaintEncoding TaintTypeToRecordEncoding(TaintType type) {
-//   switch (type & TaintType::ENCODING_TYPE_MASK) {
-//     case TaintType::NO_ENCODING:
-//       return TaintLogRecord::TaintEncoding::NONE;
-//     case TaintType::URL_ENCODED:
-//       return TaintLogRecord::TaintEncoding::URL_ENCODED;
-//     case TaintType::URL_COMPONENT_ENCODED:
-//       return TaintLogRecord::TaintEncoding::URL_COMPONENT_ENCODED;
-//     case TaintType::ESCAPE_ENCODED:
-//       return TaintLogRecord::TaintEncoding::ESCAPE_ENCODED;
-//     case TaintType::MULTIPLE_ENCODINGS:
-//       return TaintLogRecord::TaintEncoding::MULTIPLE_ENCODINGS;
-//     case TaintType::URL_DECODED:
-//       return TaintLogRecord::TaintEncoding::URL_DECODED;
-//     case TaintType::URL_COMPONENT_DECODED:
-//       return TaintLogRecord::TaintEncoding::URL_COMPONENT_DECODED;
-//     case TaintType::ESCAPE_DECODED:
-//       return TaintLogRecord::TaintEncoding::ESCAPE_DECODED;
-//     default:
-//       return TaintLogRecord::TaintEncoding::UNKNOWN;
-//   }
-// }
+::TaintLogRecord::TaintEncoding TaintTypeToRecordEncoding(TaintType type) {
+  switch (type & TaintType::ENCODING_TYPE_MASK) {
+    case TaintType::NO_ENCODING:
+      return TaintLogRecord::TaintEncoding::NONE;
+    case TaintType::URL_ENCODED:
+      return TaintLogRecord::TaintEncoding::URL_ENCODED;
+    case TaintType::URL_COMPONENT_ENCODED:
+      return TaintLogRecord::TaintEncoding::URL_COMPONENT_ENCODED;
+    case TaintType::ESCAPE_ENCODED:
+      return TaintLogRecord::TaintEncoding::ESCAPE_ENCODED;
+    case TaintType::MULTIPLE_ENCODINGS:
+      return TaintLogRecord::TaintEncoding::MULTIPLE_ENCODINGS;
+    case TaintType::URL_DECODED:
+      return TaintLogRecord::TaintEncoding::URL_DECODED;
+    case TaintType::URL_COMPONENT_DECODED:
+      return TaintLogRecord::TaintEncoding::URL_COMPONENT_DECODED;
+    case TaintType::ESCAPE_DECODED:
+      return TaintLogRecord::TaintEncoding::ESCAPE_DECODED;
+    default:
+      return TaintLogRecord::TaintEncoding::UNKNOWN;
+  }
+}
 
-// ::TaintLogRecord::TaintType TaintTypeToRecordEnum(TaintType type) {
-//   switch (type & TaintType::TAINT_TYPE_MASK) {
-//     case TaintType::UNTAINTED:
-//       return TaintLogRecord::TaintType::UNTAINTED;
-//     case TaintType::TAINTED:
-//       return TaintLogRecord::TaintType::TAINTED;
-//     case TaintType::COOKIE:
-//       return TaintLogRecord::TaintType::COOKIE;
-//     case TaintType::MESSAGE:
-//       return TaintLogRecord::TaintType::MESSAGE;
-//     case TaintType::URL:
-//       return TaintLogRecord::TaintType::URL;
-//     case TaintType::URL_HASH:
-//       return TaintLogRecord::TaintType::URL_HASH;
-//     case TaintType::URL_PROTOCOL:
-//       return TaintLogRecord::TaintType::URL_PROTOCOL;
-//     case TaintType::URL_HOST:
-//       return TaintLogRecord::TaintType::URL_HOST;
-//     case TaintType::URL_HOSTNAME:
-//       return TaintLogRecord::TaintType::URL_HOSTNAME;
-//     case TaintType::URL_ORIGIN:
-//       return TaintLogRecord::TaintType::URL_ORIGIN;
-//     case TaintType::URL_PORT:
-//       return TaintLogRecord::TaintType::URL_PORT;
-//     case TaintType::URL_PATHNAME:
-//       return TaintLogRecord::TaintType::URL_PATHNAME;
-//     case TaintType::URL_SEARCH:
-//       return TaintLogRecord::TaintType::URL_SEARCH;
-//     case TaintType::DOM:
-//       return TaintLogRecord::TaintType::DOM;
-//     case TaintType::REFERRER:
-//       return TaintLogRecord::TaintType::REFERRER;
-//     case TaintType::WINDOWNAME:
-//       return TaintLogRecord::TaintType::WINDOWNAME;
-//     case TaintType::STORAGE:
-//       return TaintLogRecord::TaintType::STORAGE;
-//     case TaintType::NETWORK:
-//       return TaintLogRecord::TaintType::NETWORK;
-//     case TaintType::MULTIPLE_TAINTS:
-//       return TaintLogRecord::TaintType::MULTIPLE_TAINTS;
-//     case TaintType::MESSAGE_ORIGIN:
-//       return TaintLogRecord::TaintType::MESSAGE_ORIGIN;
-//   }
-//   return TaintLogRecord::TaintType::ERROR;
-// }
+::TaintLogRecord::TaintType TaintTypeToRecordEnum(TaintType type) {
+  switch (type & TaintType::TAINT_TYPE_MASK) {
+    case TaintType::UNTAINTED:
+      return TaintLogRecord::TaintType::UNTAINTED;
+    case TaintType::TAINTED:
+      return TaintLogRecord::TaintType::TAINTED;
+    case TaintType::COOKIE:
+      return TaintLogRecord::TaintType::COOKIE;
+    case TaintType::MESSAGE:
+      return TaintLogRecord::TaintType::MESSAGE;
+    case TaintType::URL:
+      return TaintLogRecord::TaintType::URL;
+    case TaintType::URL_HASH:
+      return TaintLogRecord::TaintType::URL_HASH;
+    case TaintType::URL_PROTOCOL:
+      return TaintLogRecord::TaintType::URL_PROTOCOL;
+    case TaintType::URL_HOST:
+      return TaintLogRecord::TaintType::URL_HOST;
+    case TaintType::URL_HOSTNAME:
+      return TaintLogRecord::TaintType::URL_HOSTNAME;
+    case TaintType::URL_ORIGIN:
+      return TaintLogRecord::TaintType::URL_ORIGIN;
+    case TaintType::URL_PORT:
+      return TaintLogRecord::TaintType::URL_PORT;
+    case TaintType::URL_PATHNAME:
+      return TaintLogRecord::TaintType::URL_PATHNAME;
+    case TaintType::URL_SEARCH:
+      return TaintLogRecord::TaintType::URL_SEARCH;
+    case TaintType::DOM:
+      return TaintLogRecord::TaintType::DOM;
+    case TaintType::REFERRER:
+      return TaintLogRecord::TaintType::REFERRER;
+    case TaintType::WINDOWNAME:
+      return TaintLogRecord::TaintType::WINDOWNAME;
+    case TaintType::STORAGE:
+      return TaintLogRecord::TaintType::STORAGE;
+    case TaintType::NETWORK:
+      return TaintLogRecord::TaintType::NETWORK;
+    case TaintType::MULTIPLE_TAINTS:
+      return TaintLogRecord::TaintType::MULTIPLE_TAINTS;
+    case TaintType::MESSAGE_ORIGIN:
+      return TaintLogRecord::TaintType::MESSAGE_ORIGIN;
+  }
+  return TaintLogRecord::TaintType::ERROR;
+}
 
 // TaintLogRecord::SymbolicOperation
 // SymbolicTypeToEnum(SymbolicType type) {
@@ -1251,18 +1253,18 @@ private:
 };
 
 
-// void InitTaintInfo(const std::vector<std::tuple<TaintType, int>>& range_data,
-//                    TaintLogRecord::TaintInformation::Builder* builder) {
-//   auto ranges = builder->initRanges(range_data.size());
-//   for (int i = 0; i < range_data.size(); i++) {
-//     ranges[i].setStart(std::get<1>(range_data[i]));
-//     ranges[i].setEnd(-1);       // TODO: unused
+void InitTaintInfo(const std::vector<std::tuple<TaintType, int>>& range_data,
+                   TaintLogRecord::TaintInformation::Builder* builder) {
+  auto ranges = builder->initRanges(static_cast<int>(range_data.size()));
+  for (int i = 0; i < static_cast<int>(range_data.size()); i++) {
+    ranges[i].setStart(std::get<1>(range_data[i]));
+    ranges[i].setEnd(-1);       // TODO: unused
 
-//     TaintType t_type = std::get<0>(range_data[i]);
-//     ranges[i].setType(TaintTypeToRecordEnum(t_type));
-//     ranges[i].setEncoding(TaintTypeToRecordEncoding(t_type));
-//   }
-// }
+    TaintType t_type = std::get<0>(range_data[i]);
+    ranges[i].setType(TaintTypeToRecordEnum(t_type));
+    ranges[i].setEncoding(TaintTypeToRecordEncoding(t_type));
+  }
+}
 
 
 class SingleWritingVisitor : public TaintVisitor {
@@ -1364,25 +1366,25 @@ void CopyIn(T dest, const TaintData* source, int offset, int len) {
 
 
 
-// void LogSetTaintString(Handle<String> str, TaintType type) {
-//   if (FLAG_taint_tracking_enable_symbolic) {
-//     MessageHolder message;
-//     auto log_message = message.InitRoot();
-//     auto set_taint = log_message.getMessage().initSetTaint();
-//     set_taint.setTargetId(str.taint_info());
-//     set_taint.setTaintType(TaintTypeToRecordEnum(type));
-//     TaintTracker::Impl::LogToFile(str.GetIsolate(), message);
-//   }
-// }
+void LogSetTaintString(Handle<String> str, TaintType type) {
+  // if (FLAG_taint_tracking_enable_symbolic) {
+  //   MessageHolder message;
+  //   auto log_message = message.InitRoot();
+  //   auto set_taint = log_message.getMessage().initSetTaint();
+  //   set_taint.setTargetId(str.taint_info());
+  //   set_taint.setTaintType(TaintTypeToRecordEnum(type));
+  //   TaintTracker::Impl::LogToFile(str.GetIsolate(), message);
+  // }
+}
 
-// void SetTaintString(Handle<String> str, TaintType type) {
-//   {
-//     DisallowHeapAllocation no_gc;
-//     CheckTaintError(type, *str);
-//     CopyIn(*str, type, 0, str.length());
-//   }
-//   LogSetTaintString(str, type);
-// }
+void SetTaintString(Handle<String> str, TaintType type) {
+  {
+    DisallowHeapAllocation no_gc;
+    CheckTaintError(type, *str);
+    CopyIn(*str, type, 0, str->length());
+  }
+  LogSetTaintString(str, type);
+}
 
 // void JSSetTaintBuffer(
 //     v8::internal::Handle<v8::internal::String> str,
@@ -1392,7 +1394,7 @@ void CopyIn(T dest, const TaintData* source, int offset, int len) {
 //     CopyIn(*str,
 //            reinterpret_cast<TaintData*>(data->backing_store()),
 //            0,
-//            str.length());
+//            str->length());
 //   }
 //   LogSetTaintString(str, TaintType::MULTIPLE_TAINTS);
 // }
@@ -1407,54 +1409,54 @@ void CopyIn(T dest, const TaintData* source, int offset, int len) {
 //   return visitor.GetRanges();
 // }
 
-// ::TaintLogRecord::SinkType FromSinkType(TaintSinkLabel label) {
-//   switch (label) {
-//     case TaintSinkLabel::URL_SINK:
-//       return ::TaintLogRecord::SinkType::URL;
-//     case TaintSinkLabel::EMBED_SRC_SINK:
-//       return TaintLogRecord::SinkType::EMBED_SRC_SINK;
-//     case TaintSinkLabel::IFRAME_SRC_SINK:
-//       return TaintLogRecord::SinkType::IFRAME_SRC_SINK;
-//     case TaintSinkLabel::ANCHOR_SRC_SINK:
-//       return TaintLogRecord::SinkType::ANCHOR_SRC_SINK;
-//     case TaintSinkLabel::IMG_SRC_SINK:
-//       return TaintLogRecord::SinkType::IMG_SRC_SINK;
-//     case TaintSinkLabel::SCRIPT_SRC_URL_SINK:
-//       return TaintLogRecord::SinkType::SCRIPT_SRC_URL_SINK;
-//     case TaintSinkLabel::JAVASCRIPT_EVENT_HANDLER_ATTRIBUTE:
-//       return TaintLogRecord::SinkType::JAVASCRIPT_EVENT_HANDLER_ATTRIBUTE;
-//     case TaintSinkLabel::JAVASCRIPT:
-//       return ::TaintLogRecord::SinkType::JAVASCRIPT;
-//     case TaintSinkLabel::HTML:
-//       return ::TaintLogRecord::SinkType::HTML;
-//     case TaintSinkLabel::MESSAGE_DATA:
-//       return ::TaintLogRecord::SinkType::MESSAGE_DATA;
-//     case TaintSinkLabel::COOKIE_SINK:
-//       return ::TaintLogRecord::SinkType::COOKIE;
-//     case TaintSinkLabel::STORAGE_SINK:
-//       return ::TaintLogRecord::SinkType::STORAGE;
-//     case TaintSinkLabel::ORIGIN:
-//       return ::TaintLogRecord::SinkType::ORIGIN;
-//     case TaintSinkLabel::DOM_URL:
-//       return ::TaintLogRecord::SinkType::DOM_URL;
-//     case TaintSinkLabel::ELEMENT:
-//       return ::TaintLogRecord::SinkType::ELEMENT;
-//     case TaintSinkLabel::JAVASCRIPT_URL:
-//       return ::TaintLogRecord::SinkType::JAVASCRIPT_URL;
-//     case TaintSinkLabel::CSS:
-//       return ::TaintLogRecord::SinkType::CSS;
-//     case TaintSinkLabel::CSS_STYLE_ATTRIBUTE:
-//       return ::TaintLogRecord::SinkType::CSS_STYLE_ATTRIBUTE;
-//     case TaintSinkLabel::JAVASCRIPT_SET_TIMEOUT:
-//       return ::TaintLogRecord::SinkType::JAVASCRIPT_SET_TIMEOUT;
-//     case TaintSinkLabel::JAVASCRIPT_SET_INTERVAL:
-//       return ::TaintLogRecord::SinkType::JAVASCRIPT_SET_INTERVAL;
-//     case TaintSinkLabel::LOCATION_ASSIGNMENT:
-//       return ::TaintLogRecord::SinkType::LOCATION_ASSIGNMENT;
-//     default:
-//       UNREACHABLE();
-//   }
-// }
+::TaintLogRecord::SinkType FromSinkType(TaintSinkLabel label) {
+  switch (label) {
+    case TaintSinkLabel::URL_SINK:
+      return ::TaintLogRecord::SinkType::URL;
+    case TaintSinkLabel::EMBED_SRC_SINK:
+      return TaintLogRecord::SinkType::EMBED_SRC_SINK;
+    case TaintSinkLabel::IFRAME_SRC_SINK:
+      return TaintLogRecord::SinkType::IFRAME_SRC_SINK;
+    case TaintSinkLabel::ANCHOR_SRC_SINK:
+      return TaintLogRecord::SinkType::ANCHOR_SRC_SINK;
+    case TaintSinkLabel::IMG_SRC_SINK:
+      return TaintLogRecord::SinkType::IMG_SRC_SINK;
+    case TaintSinkLabel::SCRIPT_SRC_URL_SINK:
+      return TaintLogRecord::SinkType::SCRIPT_SRC_URL_SINK;
+    case TaintSinkLabel::JAVASCRIPT_EVENT_HANDLER_ATTRIBUTE:
+      return TaintLogRecord::SinkType::JAVASCRIPT_EVENT_HANDLER_ATTRIBUTE;
+    case TaintSinkLabel::JAVASCRIPT:
+      return ::TaintLogRecord::SinkType::JAVASCRIPT;
+    case TaintSinkLabel::HTML:
+      return ::TaintLogRecord::SinkType::HTML;
+    case TaintSinkLabel::MESSAGE_DATA:
+      return ::TaintLogRecord::SinkType::MESSAGE_DATA;
+    case TaintSinkLabel::COOKIE_SINK:
+      return ::TaintLogRecord::SinkType::COOKIE;
+    case TaintSinkLabel::STORAGE_SINK:
+      return ::TaintLogRecord::SinkType::STORAGE;
+    case TaintSinkLabel::ORIGIN:
+      return ::TaintLogRecord::SinkType::ORIGIN;
+    case TaintSinkLabel::DOM_URL:
+      return ::TaintLogRecord::SinkType::DOM_URL;
+    case TaintSinkLabel::ELEMENT:
+      return ::TaintLogRecord::SinkType::ELEMENT;
+    case TaintSinkLabel::JAVASCRIPT_URL:
+      return ::TaintLogRecord::SinkType::JAVASCRIPT_URL;
+    case TaintSinkLabel::CSS:
+      return ::TaintLogRecord::SinkType::CSS;
+    case TaintSinkLabel::CSS_STYLE_ATTRIBUTE:
+      return ::TaintLogRecord::SinkType::CSS_STYLE_ATTRIBUTE;
+    case TaintSinkLabel::JAVASCRIPT_SET_TIMEOUT:
+      return ::TaintLogRecord::SinkType::JAVASCRIPT_SET_TIMEOUT;
+    case TaintSinkLabel::JAVASCRIPT_SET_INTERVAL:
+      return ::TaintLogRecord::SinkType::JAVASCRIPT_SET_INTERVAL;
+    case TaintSinkLabel::LOCATION_ASSIGNMENT:
+      return ::TaintLogRecord::SinkType::LOCATION_ASSIGNMENT;
+    default:
+      UNREACHABLE();
+  }
+}
 
 
 // class HeartBeatTask : public v8::Task {
@@ -1499,16 +1501,17 @@ void LogDispose(Isolate* isolate) {
   }
 }
 
-// class JsStringInitializer {
-// public:
-//   virtual void SetJsString(
-//       ::Ast::JsString::Builder builder,
-//       MessageHolder& holder) const = 0;
+class JsStringInitializer {
+public:
+  virtual void SetJsString(
+      ::Ast::JsString::Builder builder,
+      MessageHolder& holder) const = 0;
 
-//   virtual void InitMessageOriginCheck(
-//       TaintLogRecord::JsSinkTainted::Builder builder,
-//       MessageHolder& holder) const = 0;
-// };
+  virtual void InitMessageOriginCheck(
+      TaintLogRecord::JsSinkTainted::Builder builder,
+      MessageHolder& holder,
+      v8::internal::Isolate* isolate) const = 0;
+};
 
 // template <typename Char>
 // class JsStringFromBuffer : public JsStringInitializer {
@@ -1530,156 +1533,161 @@ void LogDispose(Isolate* isolate) {
 //   int length_;
 // };
 
-// class JsStringFromString : public JsStringInitializer {
-// public:
-//   JsStringFromString(Handle<String> str) : str_(str) {}
+class JsStringFromString : public JsStringInitializer {
+  public:
+    JsStringFromString(Handle<String> str) : str_(str) {}
 
-//   void SetJsString(::Ast::JsString::Builder builder,
-//                    MessageHolder& holder) const override {
-//     holder.CopyJsStringSlow(builder, str_);
-//   }
+    void SetJsString(::Ast::JsString::Builder builder,
+                    MessageHolder& holder) const override {
+      holder.CopyJsStringSlow(builder, str_);
+    }
 
-//   void InitMessageOriginCheck(
-//       TaintLogRecord::JsSinkTainted::Builder builder,
-//       MessageHolder& holder) const override {
-//     MaybeHandle<FixedArray> maybe_res =
-//       TaintTracker::FromIsolate(str_->GetIsolate())->Get()->
-//       GetCrossOriginMessageTable(str_);
+    void InitMessageOriginCheck(
+        TaintLogRecord::JsSinkTainted::Builder builder,
+        MessageHolder& holder,
+        v8::internal::Isolate* isolate) const override {
+      MaybeHandle<FixedArray> maybe_res =
+        TaintTracker::FromIsolate(isolate)->Get()->
+        GetCrossOriginMessageTable(str_, isolate);
 
-//     Handle<FixedArray> res;
-//     if (maybe_res.ToHandle(&res)) {
-//       DCHECK_EQ(res->length(), 2);
-//       auto origin_check = builder.initMessageOriginCheck();
-//       Object* origin_str = res->get(0);
-//       Object* compare_str = res->get(1);
-//       DCHECK(origin_str->IsString());
-//       DCHECK(compare_str->IsString());
-//       holder.CopyJsStringSlow(
-//           origin_check.initOriginString(),
-//           Handle<String>(String::cast(origin_str)));
-//       holder.CopyJsStringSlow(
-//           origin_check.initComparedString(),
-//           Handle<String>(String::cast(compare_str)));
-//     }
-//   }
+      Handle<FixedArray> res;
+      if (maybe_res.ToHandle(&res)) {
+        DCHECK_EQ(res->length(), 2);
+        auto origin_check = builder.initMessageOriginCheck();
+        Object origin_str = res->get(0);
+        Object compare_str = res->get(1);
+        DCHECK(origin_str.IsString());
+        DCHECK(compare_str.IsString());
+        holder.CopyJsStringSlow(
+            origin_check.initOriginString(),
+            Handle<String>(String::cast(origin_str), isolate));
+        holder.CopyJsStringSlow(
+            origin_check.initComparedString(),
+            Handle<String>(String::cast(compare_str), isolate));
+      }
+    }
 
-// private:
-//   Handle<String> str_;
-// };
+  private:
+    Handle<String> str_;
+};
 
-// int64_t LogIfTainted(IsTaintedVisitor& visitor,
-//                      const JsStringInitializer& initer,
-//                      v8::internal::Isolate* isolate,
-//                      v8::String::TaintSinkLabel label,
-//                      std::shared_ptr<SymbolicState> symbolic_data) {
+int64_t LogIfTainted(IsTaintedVisitor& visitor,
+                     const JsStringInitializer& initer,
+                     v8::internal::Isolate* isolate,
+                     v8::String::TaintSinkLabel label
+                    //  ,std::shared_ptr<SymbolicState> symbolic_data
+                     ) {
 
-//   if (visitor.GetFlag() == TaintType::UNTAINTED &&
-//       !FLAG_taint_tracking_sources_sinks_to_logs) {
-//     return NO_MESSAGE;
-//   }
+  if (visitor.GetFlag() == TaintType::UNTAINTED &&
+      !FLAG_taint_tracking_sources_sinks_to_logs) {
+    return NO_MESSAGE;
+  }
 
-//   MessageHolder message;
-//   auto log_message = message.InitRoot();
+  MessageHolder message;
+  auto log_message = message.InitRoot();
 
-//   auto sink_message = log_message.getMessage().initJsSinkTainted();
+  auto sink_message = log_message.getMessage().initJsSinkTainted();
 
-//   auto trace = sink_message.initStackTrace();
+  auto trace = sink_message.initStackTrace();
 
-//   std::vector<std::unique_ptr<char[]>> traceMessages;
-//   {
-//     DisallowHeapAllocation no_gc;
-//     HandleScope scope(isolate);
-//     StackFrameIterator counter (isolate);
-//     int count = 0;
-//     while (!counter.done()) {
-//       counter.Advance();
-//       count += 1;
-//     }
-//     traceMessages.reserve(count);
-//     auto frames = trace.initFrames(count);
+  std::vector<std::unique_ptr<char[]>> traceMessages;
+  {
+    DisallowHeapAllocation no_gc;
+    HandleScope scope(isolate);
+    StackFrameIterator counter (isolate);
+    int count = 0;
+    while (!counter.done()) {
+      counter.Advance();
+      count += 1;
+    }
+    traceMessages.reserve(count);
+    auto frames = trace.initFrames(count);
 
-//     StackFrameIterator it (isolate);
-//     for (int i = 0; !it.done(); it.Advance(), ++i) {
-//       HeapStringAllocator alloc;
-//       StringStream stream(
-//           &alloc, StringStream::ObjectPrintMode::kPrintObjectConcise);
-//       StackFrame* frame = it.frame();
-//       frame->Print(&stream, StackFrame::OVERVIEW, i);
-//       stream.Add("================details==============\n");
-//       frame->Print(&stream, StackFrame::DETAILS, i);
-//       stream.PrintMentionedObjectCache(isolate);
+    StackFrameIterator it (isolate);
+    for (int i = 0; !it.done(); it.Advance(), ++i) {
+      HeapStringAllocator alloc;
+      StringStream stream(
+          &alloc, StringStream::ObjectPrintMode::kPrintObjectConcise);
+      StackFrame* frame = it.frame();
+      frame->Print(&stream, StackFrame::OVERVIEW, i);
+      stream.Add("================details==============\n");
+      frame->Print(&stream, StackFrame::DETAILS, i);
+      stream.PrintMentionedObjectCache(isolate);
 
-//       std::unique_ptr<char[]> human_string = stream.ToCString();
-//       auto frame_location = frame->InfoForTaintLog();
-//       Handle<Script> script;
-//       Handle<SharedFunctionInfo> info;
-//       if (frame_location.script.ToHandle(&script) &&
-//           frame_location.shared_info.ToHandle(&info)) {
-//         auto frame_info_builder = frames[i].initFrameInfo();
-//         DCHECK(script->IsScript());
-//         DCHECK(info->IsSharedFunctionInfo());
-//         message.CopyJsObjectToStringSlow(
-//             frame_info_builder.initSourceUrl(),
-//             Handle<Object>(script->source_url(), isolate));
-//         message.CopyJsObjectToStringSlow(
-//             frame_info_builder.initScriptName(),
-//             Handle<Object>(script->name(), isolate));
-//         frame_info_builder.setLineNumber(frame_location.lineNumber);
-//         frame_info_builder.setPosition(frame_location.position);
-//         frame_info_builder.setSourceId(script->id());
-//         frame_info_builder.setAstIndex(frame_location.ast_taint_tracking_index);
+      std::unique_ptr<char[]> human_string = stream.ToCString();
+      auto frame_location = frame->InfoForTaintLog();
+      Handle<Script> script;
+      Handle<SharedFunctionInfo> info;
+      if (frame_location.script.ToHandle(&script) &&
+          frame_location.shared_info.ToHandle(&info)) {
+        auto frame_info_builder = frames[i].initFrameInfo();
+        DCHECK(script->IsScript());
+        DCHECK(info->IsSharedFunctionInfo());
+        message.CopyJsObjectToStringSlow(
+            frame_info_builder.initSourceUrl(),
+            Handle<Object>(script->source_url(), isolate));
+        message.CopyJsObjectToStringSlow(
+            frame_info_builder.initScriptName(),
+            Handle<Object>(script->name(), isolate));
+        frame_info_builder.setLineNumber(frame_location.lineNumber);
+        frame_info_builder.setPosition(frame_location.position);
+        frame_info_builder.setSourceId(script->id());
+        frame_info_builder.setAstIndex(frame_location.ast_taint_tracking_index);
 
-//         frame_info_builder.setFunctionStartPosition(info->start_position());
-//         frame_info_builder.setFunctionEndPosition(info->end_position());
-//       }
+        frame_info_builder.setFunctionStartPosition(info->StartPosition());
+        frame_info_builder.setFunctionEndPosition(info->EndPosition());
+      }
 
-//       frames[i].setFrameHumanReadable(human_string.get());
-//       traceMessages.push_back(std::move(human_string));
-//     }
-//   }
+      frames[i].setFrameHumanReadable(human_string.get());
+      traceMessages.push_back(std::move(human_string));
+    }
+  }
 
-//   auto source = sink_message.initTaintSource();
-//   InitTaintInfo(visitor.GetRanges(), &source);
-//   sink_message.setSinkType(FromSinkType(label));
-//   initer.SetJsString(sink_message.initTargetString(), message);
-//   initer.InitMessageOriginCheck(sink_message, message);
-//   if (symbolic_data) {
-//     auto init_sym = sink_message.initSymbolicValue();
-//     symbolic_data->WriteSelf(init_sym, message);
-//   }
-//   return static_cast<int64_t>(
-//       TaintTracker::Impl::LogToFile(
-//           isolate, message, FlushConfig::FORCE_FLUSH));
-// }
+  auto source = sink_message.initTaintSource();
+  InitTaintInfo(visitor.GetRanges(), &source);
+  sink_message.setSinkType(FromSinkType(label));
+  initer.SetJsString(sink_message.initTargetString(), message);
+  initer.InitMessageOriginCheck(sink_message, message, isolate);
+  // if (symbolic_data) {
+  //   auto init_sym = sink_message.initSymbolicValue();
+  //   symbolic_data->WriteSelf(init_sym, message);
+  // }
+  return static_cast<int64_t>(
+      TaintTracker::Impl::LogToFile(
+          isolate, message, FlushConfig::FORCE_FLUSH));
+}
 
 
 
-// inline bool EnableConcolic() {
-//   return FLAG_taint_tracking_enable_concolic &&
-//     !FLAG_taint_tracking_enable_concolic_hooks_only;
-// }
+inline bool EnableConcolic() {
+  return FLAG_taint_tracking_enable_concolic &&
+    !FLAG_taint_tracking_enable_concolic_hooks_only;
+}
 
-// int64_t LogIfTainted(Handle<String> str,
-//                      TaintSinkLabel label,
-//                      int symbolic_data) {
-//   IsTaintedVisitor visitor;
-//   {
-//     DisallowHeapAllocation no_gc;
-//     visitor.run(*str, 0, str.length());
-//   }
-//   JsStringFromString initer(str);
-//   Isolate* isolate = str.GetIsolate();
-//   std::shared_ptr<SymbolicState> symbolic_arg =
-//     EnableConcolic()
-//     ? TaintTracker::FromIsolate(isolate)->Get()->Exec().
-//         GetSymbolicArgumentState(symbolic_data)
-//     : std::shared_ptr<SymbolicState>();
-//   return LogIfTainted(visitor,
-//                       initer,
-//                       isolate,
-//                       label,
-//                       symbolic_arg);
-// }
+int64_t LogIfTainted(Isolate* isolate,
+                     Handle<String> str,
+                     TaintSinkLabel label,
+                     int symbolic_data) {
+  IsTaintedVisitor visitor;
+  {
+    DisallowHeapAllocation no_gc;
+    visitor.run(*str, 0, str->length());
+  }
+  JsStringFromString initer(str);
+  // Isolate* isolate = str.GetIsolate();
+  // std::shared_ptr<SymbolicState> symbolic_arg =
+  //   EnableConcolic()
+  //   ? TaintTracker::FromIsolate(isolate)->Get()->Exec().
+  //       GetSymbolicArgumentState(symbolic_data)
+  //   : std::shared_ptr<SymbolicState>();
+  // std::shared_ptr<SymbolicState> symbolic_arg = std::shared_ptr<SymbolicState>();
+  return LogIfTainted(visitor,
+                      initer,
+                      isolate,
+                      label
+                      // ,symbolic_arg
+                      );
+}
 
 
 // template <typename Char>
@@ -1779,11 +1787,11 @@ void LogDispose(Isolate* isolate) {
 // }
 
 
-// Handle<Object> JSCheckTaintMaybeLog(Handle<String> str,
+// Handle<Object> JSCheckTaintMaybeLog(Isolate* isolate,
+//                                     Handle<String> str,
 //                                     Handle<Object> sink,
 //                                     int symbolic_data) {
 //   int64_t ret = LogIfTainted(str, TaintSinkLabel::JAVASCRIPT, symbolic_data);
-//   Isolate* isolate = str.GetIsolate();
 //   return ret == -1 ?
 //     isolate->factory()->ToBoolean(false) :
 //     isolate->factory()->NewNumberFromInt64(ret);
@@ -1794,7 +1802,7 @@ void LogDispose(Isolate* isolate) {
 //                  v8::internal::Isolate* isolate) {
 //   Handle<JSArrayBuffer> answer = isolate->factory()->NewJSArrayBuffer();
 //   DisallowHeapAllocation no_gc;
-//   int len = str.length();
+//   int len = str->length();
 //   JSArrayBuffer::SetupAllocatingData(
 //       answer, isolate, len, false, SharedFlag::kNotShared);
 //   FlattenTaintData(
@@ -1874,7 +1882,7 @@ TaintTracker::Impl::Impl(v8::internal::Isolate* isolate)
     has_heartbeat_(false),
     unsent_messages_(0),
     log_mutex_()
-    // exec_(isolate)
+    // ,exec_(isolate)
     // versioner_(new ObjectVersioner(isolate)) 
     {
   // symbolic_elem_counter_ = enable_serializer ? 1 : kMaxCounterSnapshot;
@@ -2312,7 +2320,7 @@ void OnGenericOperation(SymbolicType type, T source) {
 // }
 
 // ConcolicExecutor& TaintTracker::Impl::Exec() {
-//   return exec_;
+  // return exec_;
 // }
 
 // ObjectVersioner& TaintTracker::Impl::Versioner() {
@@ -2761,20 +2769,21 @@ void OnGenericOperation(SymbolicType type, T source) {
 // }
 
 
-// v8::internal::MaybeHandle<FixedArray>
-// TaintTracker::Impl::GetCrossOriginMessageTable(
-//     v8::internal::Handle<v8::internal::String> ref) {
-//   Isolate* isolate = ref->GetIsolate();
-//   Object* val = cross_origin_message_table_->Lookup(
-//       isolate->factory()->NewNumberFromInt64(ref->taint_info()));
-//   if (val) {
-//     if (val->IsFixedArray()) {
-//       return Handle<FixedArray>(FixedArray::cast(val), isolate);
+v8::internal::MaybeHandle<FixedArray>
+TaintTracker::Impl::GetCrossOriginMessageTable(
+    v8::internal::Handle<v8::internal::String> ref,
+    v8::internal::Isolate* isolate) {
+  // Isolate* isolate = ref->GetIsolate();
+  // Object val = cross_origin_message_table_->Lookup(
+  //     isolate->factory()->NewNumberFromInt64(ref->taint_info()));
+  // if (val) {
+    // if (val.IsFixedArray()) {
+    //   return Handle<FixedArray>(FixedArray::cast(val), isolate);
 
-//     }
-//   }
-//   return MaybeHandle<FixedArray>();
-// }
+    // }
+  // }
+  return MaybeHandle<FixedArray>();
+}
 
 
 // void TaintTracker::Impl::PutCrossOriginMessageTable(

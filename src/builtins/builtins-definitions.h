@@ -1145,7 +1145,10 @@ namespace internal {
   CPP(V8BreakIteratorPrototypeFirst)                                   \
   CPP(V8BreakIteratorPrototypeNext)                                    \
   CPP(V8BreakIteratorPrototypeResolvedOptions)                         \
-  CPP(V8BreakIteratorSupportedLocalesOf)
+  CPP(V8BreakIteratorSupportedLocalesOf)                               \
+  CPP(StringPrototypeSetTaint)                                         \
+//   CPP(StringPrototypeGetTaint)                                         \
+//   CPP(StringPrototypeCheckTaint) 
 #else
 #define BUILTIN_LIST_INTL(CPP, TFJ, TFS)      \
   /* no-op fallback version */                \
@@ -1157,7 +1160,10 @@ namespace internal {
   /* (obsolete) Unibrow version */            \
   CPP(StringPrototypeToLowerCase)             \
   /* (obsolete) Unibrow version */            \
-  CPP(StringPrototypeToUpperCase)
+  CPP(StringPrototypeToUpperCase)             \
+  CPP(StringPrototypeSetTaint)                \
+//   CPP(StringPrototypeGetTaint)                \
+//   CPP(StringPrototypeCheckTaint) 
 #endif  // V8_INTL_SUPPORT
 
 #define BUILTIN_LIST(CPP, TFJ, TFC, TFS, TFH, BCH, ASM)  \

@@ -5,8 +5,8 @@
 #include "logrecord.capnp.h"
 
 #include "src/taint_tracking.h"
-// #include "src/taint_tracking/ast_serialization.h"
-// #include "src/taint_tracking/object_versioner.h"
+#include "src/taint_tracking/ast_serialization.h"
+#include "src/taint_tracking/object_versioner.h"
 
 #include "src/base/platform/elapsed-timer.h"
 
@@ -21,7 +21,7 @@ namespace tainttracking {
 
 
 // enum CheckType;
-// class ConcolicExecutor;
+class ConcolicExecutor;
 // class ObjectVersioner;
 
 enum FlushConfig {
@@ -215,7 +215,7 @@ public:
     MessageHolder& builder,
     FlushConfig conf = FlushConfig::LAZY_FLUSH);
 
-//   ConcolicExecutor& Exec();
+  ConcolicExecutor& Exec();
 //   ObjectVersioner& Versioner();
   void DoFlushLog();
 
@@ -228,7 +228,8 @@ public:
 
   v8::internal::MaybeHandle<v8::internal::FixedArray>
   GetCrossOriginMessageTable(
-      v8::internal::Handle<v8::internal::String> ref);
+      v8::internal::Handle<v8::internal::String> ref,
+      v8::internal::Isolate* isolate);
 
 private:
 
@@ -270,8 +271,8 @@ private:
   static std::mutex isolate_counter_mutex_;
   static int isolate_counter_;
 
-//   ConcolicExecutor exec_;
-//   std::unique_ptr<ObjectVersioner> versioner_;
+  // ConcolicExecutor exec_;
+  // std::unique_ptr<ObjectVersioner> versioner_;
   v8::internal::Handle<v8::internal::ObjectHashTable>
   cross_origin_message_table_;
 };

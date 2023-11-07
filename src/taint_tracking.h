@@ -50,68 +50,68 @@ enum Status {
   FAILURE = 0
 };
 
-// class NodeLabel {
-// public:
-//   typedef uint64_t Rand;
-//   typedef uint32_t Counter;
+class NodeLabel {
+public:
+  typedef uint64_t Rand;
+  typedef uint32_t Counter;
 
-//   class Labeler {
-//   public:
-//     NodeLabel New();
+  class Labeler {
+  public:
+    NodeLabel New();
 
-//     Labeler(v8::internal::Isolate*);
-//   private:
-//     Counter counter_;
-//     v8::base::RandomNumberGenerator* rng_;
-//   };
+    Labeler(v8::internal::Isolate*);
+  private:
+    Counter counter_;
+    v8::base::RandomNumberGenerator* rng_;
+  };
 
-//   struct Hash {
-//     std::size_t operator() (NodeLabel const& val) const;
+  struct Hash {
+    std::size_t operator() (NodeLabel const& val) const;
 
-//   private:
-//     std::hash<uint64_t> underlying_;
-//   };
+  private:
+    std::hash<uint64_t> underlying_;
+  };
 
-//   struct EqualTo {
-//     bool operator() (const NodeLabel& one, const NodeLabel& two) const;
-//   };
+  struct EqualTo {
+    bool operator() (const NodeLabel& one, const NodeLabel& two) const;
+  };
 
-//   bool Equals(const NodeLabel&) const;
-//   void CopyFrom(const NodeLabel& other);
+  bool Equals(const NodeLabel&) const;
+  void CopyFrom(const NodeLabel& other);
 
-//   NodeLabel();
-//   NodeLabel(Rand, Counter);
-//   NodeLabel(const NodeLabel& other);
+  NodeLabel();
+  NodeLabel(Rand, Counter);
+  NodeLabel(const NodeLabel& other);
 
-//   Rand GetRand() const;
-//   Counter GetCounter() const;
-//   bool IsValid() const;
+  Rand GetRand() const;
+  Counter GetCounter() const;
+  bool IsValid() const;
 
-// private:
+private:
 
-//   Rand rand_;
-//   Counter counter_;
-// };
+  Rand rand_;
+  Counter counter_;
+};
 
-// class V8NodeLabelSerializer {
-// public:
-//   V8NodeLabelSerializer(v8::internal::Isolate*);
-//   Status Serialize(v8::internal::Handle<v8::internal::Object>*,
-//                    const NodeLabel&);
-//   Status Serialize(v8::internal::Object**,
-//                    const NodeLabel&);
-//   Status Deserialize(v8::internal::Handle<v8::internal::Object>, NodeLabel*);
-//   Status Deserialize(v8::internal::Object*, NodeLabel*);
+class V8NodeLabelSerializer {
+public:
+  V8NodeLabelSerializer(v8::internal::Isolate*);
+  Status Serialize(v8::internal::Handle<v8::internal::Object>*,
+                   const NodeLabel&);
+  Status Serialize(v8::internal::Object**,
+                   const NodeLabel&);
+  Status Deserialize(v8::internal::Handle<v8::internal::Object>, NodeLabel*);
+  Status Deserialize(v8::internal::Object*, NodeLabel*);
 
-// private:
-//   v8::internal::Handle<v8::internal::Object> Make(const NodeLabel& label);
+private:
+  v8::internal::Handle<v8::internal::Object> Make(const NodeLabel& label);
 
-//   static const int COUNT_INDEX = 0;
-//   static const int RAND_INDEX = COUNT_INDEX + 1;
-//   static const int SIZE = RAND_INDEX + 1;
+  static const int COUNT_INDEX = 0;
+  static const int RAND_INDEX = COUNT_INDEX + 1;
+  static const int SIZE = RAND_INDEX + 1;
 
-//   v8::internal::Isolate* isolate_;
-// };
+  v8::internal::Isolate* isolate_;
+};
 
 
 // enum ValueState {
@@ -253,10 +253,11 @@ template <class T> void FlattenTaintData(
 template <class T, class S>
 void FlattenTaint(S source, T dest, int from_offset, int from_len);
 
-// int64_t LogIfTainted(
-//     v8::internal::Handle<v8::internal::String> str,
-//     v8::String::TaintSinkLabel label,
-//     int symbolic_data);
+int64_t LogIfTainted(
+    v8::internal::Isolate* isolate,
+    v8::internal::Handle<v8::internal::String> str,
+    v8::String::TaintSinkLabel label,
+    int symbolic_data);
 
 // template <typename Char>
 // int64_t LogIfBufferTainted(TaintData* buffer,
@@ -318,8 +319,8 @@ template <class T> void OnGenericOperation(
 
 // void SetTaintInfo(v8::internal::Handle<v8::internal::Object> str, int64_t info);
 
-// void SetTaintString(v8::internal::Handle<v8::internal::String> str,
-//                     TaintType type);
+void SetTaintString(v8::internal::Handle<v8::internal::String> str,
+                    TaintType type);
 // void LogInitializeNavigate(v8::internal::Handle<v8::internal::String> url);
 void LogDispose(v8::internal::Isolate* isolate);
 
@@ -335,6 +336,7 @@ void LogDispose(v8::internal::Isolate* isolate);
 //                 v8::internal::MaybeHandle<v8::internal::String> extra_ref);
 
 // v8::internal::Handle<v8::internal::Object> JSCheckTaintMaybeLog(
+//     v8::internal::Isolate* isolate,
 //     v8::internal::Handle<v8::internal::String> str,
 //     v8::internal::Handle<v8::internal::Object> tag,
 //     int symbolic_data);

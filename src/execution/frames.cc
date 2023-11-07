@@ -498,6 +498,12 @@ void SafeStackFrameIterator::Advance() {
 
 // -------------------------------------------------------------------------
 
+
+StackFrame::TaintStackFrameInfo StackFrame::InfoForTaintLog() {
+  return TaintStackFrameInfo();
+}
+
+
 namespace {
 Code GetContainingCode(Isolate* isolate, Address pc) {
   return isolate->inner_pointer_to_code_cache()->GetCacheEntry(pc)->code;
@@ -2063,10 +2069,56 @@ void PrintFunctionSource(StringStream* accumulator, SharedFunctionInfo shared,
 
 }  // namespace
 
+StackFrame::TaintStackFrameInfo JavaScriptFrame::InfoForTaintLog() {
+  DisallowHeapAllocation no_gc;
+  JSFunction function = this->function();
+  SharedFunctionInfo shared = function.shared();
+  // ScopeInfo scope_info = shared.scope_info();
+  Object script_obj = shared.script();
+  // Code code = function.code();
+
+  TaintStackFrameInfo answer;
+  auto isolate = shared.GetIsolate();
+  answer.shared_info = Handle<SharedFunctionInfo>(shared, isolate);
+  if (script_obj.IsScript()) {
+  //   Script script = Script::cast(script_obj);
+  //   answer.script = Handle<Script>(script, isolate);
+
+  //   Address pc = this->pc();
+  //   if (code.kind() == Code::FUNCTION &&
+  //       pc >= code.instruction_start() && pc < code.instruction_end()) {
+  //     int offset = static_cast<int>(pc - code.instruction_start());
+  //     answer.position = AbstractCode::cast(code).
+  //       SourcePositionWithTaintTrackingAstIndex(
+  //           offset, &answer.ast_taint_tracking_index);
+  //     answer.lineNumber = script.GetLineNumber(answer.position) + 1;
+  //   } else if (is_interpreted()) {
+  //     const InterpretedFrame* iframe =
+  //       reinterpret_cast<const InterpretedFrame*>(this);
+  //     BytecodeArray* bytecodes = iframe->GetBytecodeArray();
+  //     int offset = iframe->GetBytecodeOffset();
+  //     answer.position = AbstractCode::cast(bytecodes)->
+  //       SourcePositionWithTaintTrackingAstIndex(
+  //           offset, &answer.ast_taint_tracking_index);
+  //     answer.lineNumber = script.GetLineNumber(answer.position) + 1;
+  //   } else {
+  //     answer.position = shared.start_position();
+  //     answer.lineNumber = script.GetLineNumber(answer.position) + 1;
+  //     answer.ast_taint_tracking_index = TaintStackFrameInfo::NO_SOURCE_INFO;
+  //   }
+
+    return answer;
+  } else 
+  {
+    return answer;
+  }
+}
+
 void JavaScriptFrame::Print(StringStream* accumulator, PrintMode mode,
                             int index) const {
   Handle<SharedFunctionInfo> shared = handle(function().shared(), isolate());
-  SharedFunctionInfo::EnsureSourcePositionsAvailable(isolate(), shared);
+  // jianjia commmenting this for now, in case futher problems happen, check this
+  // SharedFunctionInfo::EnsureSourcePositionsAvailable(isolate(), shared);
 
   DisallowGarbageCollection no_gc;
   Object receiver = this->receiver();
