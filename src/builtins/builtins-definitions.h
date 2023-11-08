@@ -555,6 +555,11 @@ namespace internal {
   /* ES6 #sec-isnan-number */                                                  \
   TFJ(GlobalIsNaN, 1, kReceiver, kNumber)                                      \
                                                                                \
+  /* TaintData */                                                              \
+  /* CPP(GlobalPrintToTaintLog)       */                                             \
+  /* CPP(GlobalTaintConstants)     */                                                \
+  CPP(GlobalSetTaint)                                                          \
+                                                                               \
   /* JSON */                                                                   \
   CPP(JsonParse)                                                               \
   CPP(JsonStringify)                                                           \

@@ -313,9 +313,9 @@ template <class T> void OnGenericOperation(
 
 // // Functions available from JS runtime
 
-// // This is also available to callers who embed v8
-// void SetTaint(v8::internal::Handle<v8::internal::Object> str,
-//               TaintType type);
+// This is also available to callers who embed v8
+void SetTaint(v8::internal::Handle<v8::internal::Object> str,
+              TaintType type);
 
 // void SetTaintInfo(v8::internal::Handle<v8::internal::Object> str, int64_t info);
 
@@ -325,9 +325,9 @@ void SetTaintString(v8::internal::Handle<v8::internal::String> str,
 void LogDispose(v8::internal::Isolate* isolate);
 
 
-// void JSSetTaintBuffer(
-//     v8::internal::Handle<v8::internal::String> str,
-//     v8::internal::Handle<v8::internal::JSArrayBuffer> data);
+void JSSetTaintBuffer(
+    v8::internal::Handle<v8::internal::String> str,
+    v8::internal::Handle<v8::internal::JSArrayBuffer> data);
 
 V8_WARN_UNUSED_RESULT v8::internal::Handle<v8::internal::JSArrayBuffer>
 JSGetTaintStatus(v8::internal::Handle<v8::internal::String> str,

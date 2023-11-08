@@ -2081,7 +2081,7 @@ StackFrame::TaintStackFrameInfo JavaScriptFrame::InfoForTaintLog() {
   auto isolate = shared.GetIsolate();
   answer.shared_info = Handle<SharedFunctionInfo>(shared, isolate);
   if (script_obj.IsScript()) {
-  // here we need to update, but leave it for now.
+  // jianjia: here we need to update, but leave it for now.
   //   Script script = Script::cast(script_obj);
   //   answer.script = Handle<Script>(script, isolate);
 

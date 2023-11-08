@@ -4757,8 +4757,8 @@ bool Genesis::InstallABunchOfRandomThings() {
   //                       Builtins::kGlobalPrintToTaintLog, 2, false);
   // SimpleInstallFunction(isolate(), global_object, "__taintConstants__",
   //                       Builtins::kGlobalTaintConstants, 0, false);
-  // SimpleInstallFunction(isolate(), global_object, "__setTaint__",
-  //                       Builtins::kGlobalSetTaint, 2, false);
+  SimpleInstallFunction(isolate(), global_object, "__setTaint__",
+                        Builtins::kGlobalSetTaint, 2, false);
 
   // Install Global.isFinite
   InstallFunctionWithBuiltinId(isolate(), global_object, "isFinite",

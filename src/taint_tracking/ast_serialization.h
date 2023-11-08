@@ -28,25 +28,25 @@ namespace tainttracking {
 
 
 
-// class ObjectOwnPropertiesVisitor {
-// public:
-//   Status Visit(v8::internal::Handle<v8::internal::JSReceiver> receiver);
+class ObjectOwnPropertiesVisitor {
+public:
+  Status Visit(v8::internal::Handle<v8::internal::JSReceiver> receiver);
 
-//   // Returns true to visit value recursively
-//   virtual bool VisitKeyValue(
-//       v8::internal::Handle<v8::internal::String> key,
-//       v8::internal::Handle<v8::internal::Object> value) = 0;
+  // Returns true to visit value recursively
+  virtual bool VisitKeyValue(
+      v8::internal::Handle<v8::internal::String> key,
+      v8::internal::Handle<v8::internal::Object> value) = 0;
 
-// protected:
-//   ObjectOwnPropertiesVisitor() {}
+protected:
+  ObjectOwnPropertiesVisitor() {}
 
-// private:
-//   Status ProcessReceiver(
-//       v8::internal::Handle<v8::internal::JSReceiver> receiver);
+private:
+  Status ProcessReceiver(
+      v8::internal::Handle<v8::internal::JSReceiver> receiver);
 
-//   v8::internal::Handle<v8::internal::ArrayList> value_stack_;
-//   v8::internal::Isolate* isolate_;
-// };
+  v8::internal::Handle<v8::internal::ArrayList> value_stack_;
+  v8::internal::Isolate* isolate_;
+};
 
 
 

@@ -1,22 +1,22 @@
-// // #include "src/ast/ast-expression-rewriter.h"
-// #include "src/parsing/parser.h"
+// #include "src/ast/ast-expression-rewriter.h"
+#include "src/parsing/parser.h"
 
-// #include "src/taint_tracking.h"
-// #include "src/taint_tracking-inl.h"
-// #include "src/strings/string-stream.h"
-
-
-// #include "ast_serialization.h"
-
-// #include "ast.capnp.h"
-// #include "logrecord.capnp.h"
-
-// #include <tuple>
+#include "src/taint_tracking.h"
+#include "src/taint_tracking-inl.h"
+#include "src/strings/string-stream.h"
 
 
-// using namespace v8::internal;
+#include "ast_serialization.h"
 
-// namespace tainttracking {
+#include "ast.capnp.h"
+#include "logrecord.capnp.h"
+
+#include <tuple>
+
+
+using namespace v8::internal;
+
+namespace tainttracking {
 
 // const int INITIAL_OBJECT_PROPERTY_MAP_SIZE = 16;
 // const int SOURCE_HASH_PREFIX_MAX = 20;
@@ -138,95 +138,94 @@
 // }
 
 
-// Status ObjectOwnPropertiesVisitor::Visit(Handle<JSReceiver> receiver) {
-//   isolate_ = receiver->GetIsolate();
-//   value_stack_ = Handle<ArrayList>::cast(
-//       isolate_->factory()->NewFixedArray(0));
-//   if (!ProcessReceiver(receiver)) {
-//     return Status::FAILURE;
-//   }
-//   Object undefined_value = isolate_->factory()->undefined_value();
-//   while (value_stack_->Length()) {
-//     int len_minus_one = value_stack_->Length() - 1;
-//     Handle<Object> curr = handle(value_stack_->Get(len_minus_one), isolate_);
-//     value_stack_->Set(len_minus_one, undefined_value);
-//     value_stack_->SetLength(len_minus_one);
-//     DCHECK(curr->IsJSReceiver());
-//     if (!ProcessReceiver(Handle<JSReceiver>::cast(curr))) {
-//       return Status::FAILURE;
-//     }
-//   }
-//   return Status::OK;
-// }
+Status ObjectOwnPropertiesVisitor::Visit(Handle<JSReceiver> receiver) {
+  isolate_ = receiver->GetIsolate();
+  value_stack_ = Handle<ArrayList>::cast(
+      isolate_->factory()->NewFixedArray(0));
+  if (!ProcessReceiver(receiver)) {
+    return Status::FAILURE;
+  }
+  Handle<Object> undefined_value = isolate_->factory()->undefined_value();
+  while (value_stack_->Length()) {
+    int len_minus_one = value_stack_->Length() - 1;
+    Handle<Object> curr = handle(value_stack_->Get(len_minus_one), isolate_);
+    value_stack_->Set(len_minus_one, *undefined_value);
+    value_stack_->SetLength(len_minus_one);
+    DCHECK(curr->IsJSReceiver());
+    if (!ProcessReceiver(Handle<JSReceiver>::cast(curr))) {
+      return Status::FAILURE;
+    }
+  }
+  return Status::OK;
+}
 
-// MaybeHandle<Object> FromLookupIterator(LookupIterator* it) {
-//   for (; it->IsFound(); it->Next()) {
-//     switch (it->state()) {
-//       case LookupIterator::NOT_FOUND:
-//       case LookupIterator::TRANSITION:
-//         UNREACHABLE();
-//         break;
+MaybeHandle<Object> FromLookupIterator(LookupIterator* it) {
+  for (; it->IsFound(); it->Next()) {
+    switch (it->state()) {
+      case LookupIterator::NOT_FOUND:
+      case LookupIterator::TRANSITION:
+        UNREACHABLE();
+        break;
 
-//       case LookupIterator::INTEGER_INDEXED_EXOTIC:
-//       case LookupIterator::JSPROXY:
-//       case LookupIterator::INTERCEPTOR:
-//       case LookupIterator::ACCESSOR:
-//         // TODO: should somehow make this available to caller. e.g. for
-//         // serialization, important to keep track of these, for copies maybe
-//         // not. These can run arbitrary javascript, so we should not call
-//         // them.
-//         break;
+      case LookupIterator::INTEGER_INDEXED_EXOTIC:
+      case LookupIterator::JSPROXY:
+      case LookupIterator::INTERCEPTOR:
+      case LookupIterator::ACCESSOR:
+        // TODO: should somehow make this available to caller. e.g. for
+        // serialization, important to keep track of these, for copies maybe
+        // not. These can run arbitrary javascript, so we should not call
+        // them.
+        break;
 
-//       case LookupIterator::ACCESS_CHECK:
-//         if (!it->HasAccess()) {
-//           return MaybeHandle<Object>();
-//         }
-//         break;
+      case LookupIterator::ACCESS_CHECK:
+        if (!it->HasAccess()) {
+          return MaybeHandle<Object>();
+        }
+        break;
 
-//       case LookupIterator::DATA: {
-//         return it->GetDataValue();
-//       }
-//         break;
-//     }
-//   }
-//   return MaybeHandle<Object>();
-// }
+      case LookupIterator::DATA: {
+        return it->GetDataValue();
+      }
+        break;
+    }
+  }
+  return MaybeHandle<Object>();
+}
 
-// Status ObjectOwnPropertiesVisitor::ProcessReceiver(
-//     Handle<JSReceiver> receiver) {
-//   // TODO: check if this might call an interceptor or a proxy object and if so,
-//   // stop doing that.
-//   MaybeHandle<FixedArray> maybe_entries =
-//     JSReceiver::OwnPropertyKeys(receiver);
-//   Handle<FixedArray> entries;
-//   if (!maybe_entries.ToHandle(&entries)) {
-//     return Status::FAILURE;
-//   }
+Status ObjectOwnPropertiesVisitor::ProcessReceiver(
+    Handle<JSReceiver> receiver) {
+  // TODO: check if this might call an interceptor or a proxy object and if so,
+  // stop doing that.
+  MaybeHandle<FixedArray> maybe_entries =
+    JSReceiver::OwnPropertyKeys(receiver);
+  Handle<FixedArray> entries;
+  if (!maybe_entries.ToHandle(&entries)) {
+    return Status::FAILURE;
+  }
 
-//   for (int i = 0; i < entries->length(); i++) {
-//     if (!entries->get(i).IsString()) {
-//       // TODO: JavaScript Symbols (e.g., Symbol.species) are a reason why this
-//       // might fail. It would be good to check if this is the case, and then be
-//       // able to handle that case.
-//       continue;
-//     }
-//     Handle<String> key (String::cast(entries->get(i)), isolate_);
+  for (int i = 0; i < entries->length(); i++) {
+    if (!entries->get(i).IsString()) {
+      // TODO: JavaScript Symbols (e.g., Symbol.species) are a reason why this
+      // might fail. It would be good to check if this is the case, and then be
+      // able to handle that case.
+      continue;
+    }
+    Handle<String> key (String::cast(entries->get(i)), isolate_);
 
-//     LookupIterator it =
-//       LookupIterator::PropertyOrElement(isolate_, receiver, key);
-//     MaybeHandle<Object> maybe_property = FromLookupIterator(&it);
-//     Handle<Object> property;
-//     if (maybe_property.ToHandle(&property)) {
-//       if (VisitKeyValue(key, property) && property->IsJSReceiver()) {
-//         value_stack_ = ArrayList::Add(value_stack_, property);
-//       }
-//     } else {
-//       VisitKeyValue(
-//           key, handle(isolate_->heap()->undefined_value(), isolate_));
-//     }
-//   }
-//   return Status::OK;
-// }
+    LookupIterator it(isolate_, receiver, key);
+    MaybeHandle<Object> maybe_property = FromLookupIterator(&it);
+    Handle<Object> property;
+    if (maybe_property.ToHandle(&property)) {
+      if (VisitKeyValue(key, property) && property->IsJSReceiver()) {
+        value_stack_ = ArrayList::Add(isolate_, value_stack_, property);
+      }
+    } else {
+      VisitKeyValue(
+          key, isolate_->factory()->undefined_value());
+    }
+  }
+  return Status::OK;
+}
 
 
 
@@ -4053,4 +4052,4 @@
 //   return true;
 // }
 
-// }
+}

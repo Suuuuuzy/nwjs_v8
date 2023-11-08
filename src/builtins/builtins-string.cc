@@ -496,20 +496,20 @@ BUILTIN(StringPrototypeSetTaint) {
         string, static_cast<tainttracking::TaintType>(taint_value));
     return *(isolate->factory()->undefined_value());
   } 
-  // else if (taint_arg->IsJSArrayBuffer()) {
-  //   JSArrayBuffer taint_data = JSArrayBuffer::cast(*taint_arg);
-  //   int len = static_cast<int>(taint_data.byte_length());
-  //   if (!len) {
-  //     THROW_NEW_ERROR_RETURN_FAILURE(
-  //       isolate, NewTypeError(MessageTemplate::kInvalidArgument, taint_arg));
-  //   }
-  //   if (len != string->length()) {
-  //     THROW_NEW_ERROR_RETURN_FAILURE(
-  //       isolate, NewTypeError(MessageTemplate::kInvalidArgument, taint_arg));
-  //   }
-  //   tainttracking::JSSetTaintBuffer(string, handle(taint_data, isolate));
-  //   return *(isolate->factory()->undefined_value());
-  // }
+  else if (taint_arg->IsJSArrayBuffer()) {
+    JSArrayBuffer taint_data = JSArrayBuffer::cast(*taint_arg);
+    int len = static_cast<int>(taint_data.byte_length());
+    if (!len) {
+      THROW_NEW_ERROR_RETURN_FAILURE(
+        isolate, NewTypeError(MessageTemplate::kInvalidArgument, taint_arg));
+    }
+    if (len != string->length()) {
+      THROW_NEW_ERROR_RETURN_FAILURE(
+        isolate, NewTypeError(MessageTemplate::kInvalidArgument, taint_arg));
+    }
+    tainttracking::JSSetTaintBuffer(string, handle(taint_data, isolate));
+    return *(isolate->factory()->undefined_value());
+  }
   THROW_NEW_ERROR_RETURN_FAILURE(
       isolate, NewTypeError(MessageTemplate::kInvalidArgument, taint_arg));
 }

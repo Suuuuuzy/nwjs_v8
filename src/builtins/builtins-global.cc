@@ -112,5 +112,17 @@ BUILTIN(GlobalEval) {
       Execution::Call(isolate, function, target_global_proxy, 0, nullptr));
 }
 
+
+BUILTIN(GlobalSetTaint) {
+  HandleScope scope(isolate);
+  uint32_t taint_value;
+  if (args.atOrUndefined(isolate, 2)->ToUint32(&taint_value)) {
+    tainttracking::SetTaint(
+        args.atOrUndefined(isolate, 1),
+        static_cast<tainttracking::TaintType>(taint_value));
+  }
+  return *(isolate->factory()->undefined_value());
+}
+
 }  // namespace internal
 }  // namespace v8

@@ -1386,18 +1386,18 @@ void SetTaintString(Handle<String> str, TaintType type) {
   LogSetTaintString(str, type);
 }
 
-// void JSSetTaintBuffer(
-//     v8::internal::Handle<v8::internal::String> str,
-//     v8::internal::Handle<v8::internal::JSArrayBuffer> data) {
-//   {
-//     DisallowHeapAllocation no_gc;
-//     CopyIn(*str,
-//            reinterpret_cast<TaintData*>(data->backing_store()),
-//            0,
-//            str->length());
-//   }
-//   LogSetTaintString(str, TaintType::MULTIPLE_TAINTS);
-// }
+void JSSetTaintBuffer(
+    v8::internal::Handle<v8::internal::String> str,
+    v8::internal::Handle<v8::internal::JSArrayBuffer> data) {
+  {
+    DisallowHeapAllocation no_gc;
+    CopyIn(*str,
+           reinterpret_cast<TaintData*>(data->backing_store()),
+           0,
+           str->length());
+  }
+  LogSetTaintString(str, TaintType::MULTIPLE_TAINTS);
+}
 
 // std::vector<std::tuple<TaintType, int>> InitTaintRanges(
 //     Handle<String> target) {
@@ -1725,38 +1725,38 @@ int64_t LogIfTainted(Isolate* isolate,
 
 
 
-// class SetTaintOnObjectKv : public ObjectOwnPropertiesVisitor {
-// public:
-//   SetTaintOnObjectKv(TaintType type) : type_(type) {};
+class SetTaintOnObjectKv : public ObjectOwnPropertiesVisitor {
+public:
+  SetTaintOnObjectKv(TaintType type) : type_(type) {}
 
-//   bool VisitKeyValue(Handle<String> key, Handle<Object> value) override {
-//     DisallowHeapAllocation no_gc;
-//     CopyIn(*key, type_, 0, key->length());
-//     if (value->IsString()) {
-//       Handle<String> value_as_string = Handle<String>::cast(value);
-//       CopyIn(*value_as_string, type_, 0, value_as_string->length());
-//     }
-//     return true;
-//   }
+  bool VisitKeyValue(Handle<String> key, Handle<Object> value) override {
+    DisallowHeapAllocation no_gc;
+    CopyIn(*key, type_, 0, key->length());
+    if (value->IsString()) {
+      Handle<String> value_as_string = Handle<String>::cast(value);
+      CopyIn(*value_as_string, type_, 0, value_as_string->length());
+    }
+    return true;
+  }
 
-// private:
-//   TaintType type_;
-// };
+private:
+  TaintType type_;
+};
 
 
-// void SetTaintOnObjectRecursive(Handle<JSReceiver> obj, TaintType type) {
-//   SetTaintOnObjectKv v(type);
-//   v.Visit(obj);
-// }
+void SetTaintOnObjectRecursive(Handle<JSReceiver> obj, TaintType type) {
+  SetTaintOnObjectKv v(type);
+  v.Visit(obj);
+}
 
-// void SetTaint(v8::internal::Handle<v8::internal::Object> obj,
-//               TaintType type) {
-//   if (obj->IsString()) {
-//     SetTaintString(Handle<String>::cast(obj), type);
-//   } else if (obj->IsJSReceiver()) {
-//     SetTaintOnObjectRecursive(Handle<JSReceiver>::cast(obj), type);
-//   }
-// }
+void SetTaint(v8::internal::Handle<v8::internal::Object> obj,
+              TaintType type) {
+  if (obj->IsString()) {
+    SetTaintString(Handle<String>::cast(obj), type);
+  } else if (obj->IsJSReceiver()) {
+    SetTaintOnObjectRecursive(Handle<JSReceiver>::cast(obj), type);
+  }
+}
 
 // class SetTaintInfoOnObjectKv : public ObjectOwnPropertiesVisitor {
 // public:
