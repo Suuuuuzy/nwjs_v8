@@ -1147,7 +1147,7 @@ namespace internal {
   CPP(V8BreakIteratorPrototypeResolvedOptions)                         \
   CPP(V8BreakIteratorSupportedLocalesOf)                               \
   CPP(StringPrototypeSetTaint)                                         \
-//   CPP(StringPrototypeGetTaint)                                         \
+  CPP(StringPrototypeGetTaint)                                         \
 //   CPP(StringPrototypeCheckTaint) 
 #else
 #define BUILTIN_LIST_INTL(CPP, TFJ, TFS)      \
@@ -1162,7 +1162,7 @@ namespace internal {
   /* (obsolete) Unibrow version */            \
   CPP(StringPrototypeToUpperCase)             \
   CPP(StringPrototypeSetTaint)                \
-//   CPP(StringPrototypeGetTaint)                \
+  CPP(StringPrototypeGetTaint)                \
 //   CPP(StringPrototypeCheckTaint) 
 #endif  // V8_INTL_SUPPORT
 

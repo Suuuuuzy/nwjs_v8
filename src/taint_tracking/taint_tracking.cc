@@ -1797,18 +1797,20 @@ int64_t LogIfTainted(Isolate* isolate,
 //     isolate->factory()->NewNumberFromInt64(ret);
 // }
 
-// V8_WARN_UNUSED_RESULT v8::internal::Handle<v8::internal::JSArrayBuffer>
-// JSGetTaintStatus(v8::internal::Handle<v8::internal::String> str,
-//                  v8::internal::Isolate* isolate) {
-//   Handle<JSArrayBuffer> answer = isolate->factory()->NewJSArrayBuffer();
-//   DisallowHeapAllocation no_gc;
-//   int len = str->length();
-//   JSArrayBuffer::SetupAllocatingData(
-//       answer, isolate, len, false, SharedFlag::kNotShared);
-//   FlattenTaintData(
-//       *str, reinterpret_cast<TaintData*>(answer->backing_store()), 0, len);
-//   return answer;
-// }
+V8_WARN_UNUSED_RESULT v8::internal::Handle<v8::internal::JSArrayBuffer>
+JSGetTaintStatus(v8::internal::Handle<v8::internal::String> str,
+                 v8::internal::Isolate* isolate) {
+  int len = str->length();
+  auto backing_store = BackingStore::Allocate(
+      isolate, len, SharedFlag::kNotShared, InitializedFlag::kUninitialized);
+  Handle<JSArrayBuffer> answer = isolate->factory()->NewJSArrayBuffer(std::move(backing_store));
+  // DisallowHeapAllocation no_gc;
+  // JSArrayBuffer::SetupAllocatingData(
+  //     answer, isolate, len, false, SharedFlag::kNotShared);
+  FlattenTaintData(
+      *str, reinterpret_cast<TaintData*>(answer->GetBackingStore()->buffer_start()), 0, len);
+  return answer;
+}
 
 // void JSTaintLog(v8::internal::Handle<v8::internal::String> str,
 //                 v8::internal::MaybeHandle<v8::internal::String> extra_ref) {

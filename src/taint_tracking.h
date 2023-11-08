@@ -329,9 +329,9 @@ void LogDispose(v8::internal::Isolate* isolate);
 //     v8::internal::Handle<v8::internal::String> str,
 //     v8::internal::Handle<v8::internal::JSArrayBuffer> data);
 
-// V8_WARN_UNUSED_RESULT v8::internal::Handle<v8::internal::JSArrayBuffer>
-// JSGetTaintStatus(v8::internal::Handle<v8::internal::String> str,
-//                  v8::internal::Isolate* isolate);
+V8_WARN_UNUSED_RESULT v8::internal::Handle<v8::internal::JSArrayBuffer>
+JSGetTaintStatus(v8::internal::Handle<v8::internal::String> str,
+                 v8::internal::Isolate* isolate);
 // void JSTaintLog(v8::internal::Handle<v8::internal::String> str,
 //                 v8::internal::MaybeHandle<v8::internal::String> extra_ref);
 

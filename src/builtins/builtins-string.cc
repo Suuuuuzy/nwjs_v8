@@ -514,11 +514,11 @@ BUILTIN(StringPrototypeSetTaint) {
       isolate, NewTypeError(MessageTemplate::kInvalidArgument, taint_arg));
 }
 
-// BUILTIN(StringPrototypeGetTaint) {
-//   HandleScope scope(isolate);
-//   TO_THIS_STRING(string, "String.prototype.__getTaint__");
-//   return *tainttracking::JSGetTaintStatus(string, isolate);
-// }
+BUILTIN(StringPrototypeGetTaint) {
+  HandleScope scope(isolate);
+  TO_THIS_STRING(string, "String.prototype.__getTaint__");
+  return *tainttracking::JSGetTaintStatus(string, isolate);
+}
 
 // BUILTIN(StringPrototypeCheckTaint) {
 //   HandleScope scope(isolate);

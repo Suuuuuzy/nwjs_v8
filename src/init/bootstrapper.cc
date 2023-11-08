@@ -2153,8 +2153,8 @@ void Genesis::InitializeGlobal(Handle<JSGlobalObject> global_object,
                           Builtins::kStringPrototypeValueOf, 0, true);
     SimpleInstallFunction(isolate_, prototype, "__setTaint__",
                           Builtins::kStringPrototypeSetTaint, 1, true);
-    // SimpleInstallFunction(isolate_, prototype, "__getTaint__",
-    //                       Builtins::kStringPrototypeGetTaint, 0, true);
+    SimpleInstallFunction(isolate_, prototype, "__getTaint__",
+                          Builtins::kStringPrototypeGetTaint, 0, true);
     // SimpleInstallFunction(isolate_, prototype, "__checkTaint__",
     //                       Builtins::kStringPrototypeCheckTaint, 1, true);
 
