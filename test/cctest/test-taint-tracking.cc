@@ -549,25 +549,25 @@ TEST(TaintIndexSimpleJianjia) {
 }
 
 
-// TEST(OnBeforeCompileGetSetTransitiveTaintByteArray) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   v8::Local<v8::String> source = v8_str(
-//       CcTest::isolate(),
-//       "var a = '1 + 1'; "
-//       "a.__setTaint__(1);"
-//       "b = 'var d = ' + a + '; d;';"
-//       "eval(b); ");
-//   TestTaintListener* listener = new TestTaintListener();
-//   CHECK_EQ(listener->GetScripts().size(), 0);
-//   TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
-//   v8::Local<v8::Context> context = CcTest::isolate()->GetCurrentContext();
-//   auto result = v8::Script::Compile(
-//     context, source).ToLocalChecked()->Run(context).ToLocalChecked();
-//   CHECK_EQ(listener->GetScripts().size(), 1);
-//   CHECK_EQ(
-//       2, result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
-// }
+TEST(OnBeforeCompileGetSetTransitiveTaintByteArray) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  v8::Local<v8::String> source = v8_str(
+      CcTest::isolate(),
+      "var a = '1 + 1'; "
+      "a.__setTaint__(1);"
+      "b = 'var d = ' + a + '; d;';"
+      "eval(b); ");
+  TestTaintListener* listener = new TestTaintListener();
+  CHECK_EQ(listener->GetScripts().size(), 0);
+  TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
+  v8::Local<v8::Context> context = CcTest::isolate()->GetCurrentContext();
+  auto result = v8::Script::Compile(
+    context, source).ToLocalChecked()->Run(context).ToLocalChecked();
+  CHECK_EQ(listener->GetScripts().size(), 1);
+  CHECK_EQ(
+      2, result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
+}
 
 // TEST(OnBeforeCompileGetSetSliceTaintByteArray) {
 //   TestCase test_case;

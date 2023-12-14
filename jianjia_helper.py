@@ -3,7 +3,7 @@ import sys
 import os
 
 cmd = "tools/run-tests.py --outdir out/x64.debug/ cctest/test-taint-tracking/"
-clearCmd = "rm -rf /home/suzy/temp/taint_log_file && mkdir /home/suzy/temp/taint_log_file"
+clearCmd = "rm /home/suzy/temp/new_taint_log_file/*"
 
 def extractCases():
     filename = "test/cctest/test-taint-tracking.cc"

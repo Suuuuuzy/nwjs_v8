@@ -339,7 +339,7 @@ HARMONY_STAGED(FLAG_STAGED_FEATURES)
 HARMONY_SHIPPING(FLAG_SHIPPING_FEATURES)
 #undef FLAG_SHIPPING_FEATURES
 
-DEFINE_STRING(taint_log_file, "/home/suzy/temp/taint_log_file/log1",
+DEFINE_STRING(taint_log_file, "/home/suzy/temp/new_taint_log_file/log1",
               "Output taint log information to this file. ")
 DEFINE_STRING(taint_tracking_job_id, "NO_JOB_ID",
               "Job identifier. Opaque identifier for identifying output. ")
