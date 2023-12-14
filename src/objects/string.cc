@@ -59,7 +59,8 @@ Handle<String> String::SlowFlatten(Isolate* isolate, Handle<ConsString> cons,
     WriteToFlat(*cons, flat->GetChars(no_gc), 0, length);
     result = flat;
     // jianjia flatten
-    tainttracking::OnNewSubStringCopy(*cons, *result, 0, length);
+    byte* taintSink = flat->GetTaintChars(no_gc);
+    tainttracking::OnNewSubStringCopy(*cons, taintSink, 0, length);
   } else {
     Handle<SeqTwoByteString> flat =
         isolate->factory()

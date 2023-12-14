@@ -8,7 +8,7 @@
 #include "src/taint_tracking/object_versioner.h"
 #include "src/taint_tracking/third_party/picosha2.h"
 #include "logrecord.capnp.h"
-#include "src/execution/frames.h"
+
 
 // // Other V8 imports
 // #include "src/ast/ast-expression-rewriter.h"
@@ -24,6 +24,8 @@
 #include "src/strings/string-stream.h"
 #include "src/utils/utils.h"
 #include "src/init/v8.h"
+#include "src/execution/frames.h"
+#include "src/heap/heap-write-barrier-inl.h"
 
 
 #include <array>
@@ -103,7 +105,7 @@ inline void CheckTaintError(TaintType type, String object) {
     StringStream stream(
         &alloc, StringStream::ObjectPrintMode::kPrintObjectConcise);
     isolate->PrintStack(&stream);
-    
+
     // isolate->PrintStack(stdout);
 
     std::cerr << "Taint tracking memory error: "
@@ -871,15 +873,13 @@ TaintType TaintFlagToType(TaintFlag flag) {
 // }
 
 template <class T>
-TaintData* StringTaintData(T str);
+TaintData* StringTaintData(T str, const DisallowGarbageCollection& no_gc);
 template <> TaintData* StringTaintData<SeqOneByteString>(
-    SeqOneByteString str) {
-  DisallowGarbageCollection no_gc;
+    SeqOneByteString str, const DisallowGarbageCollection& no_gc) {
   return str.GetTaintChars(no_gc);
 }
 template <> TaintData* StringTaintData<SeqTwoByteString>(
-    SeqTwoByteString str) {
-  DisallowGarbageCollection no_gc;
+    SeqTwoByteString str, const DisallowGarbageCollection& no_gc) {
   return str.GetTaintChars(no_gc);
 }
 // template <> TaintData* StringTaintData<ExternalOneByteString>(
@@ -891,24 +891,24 @@ template <> TaintData* StringTaintData<SeqTwoByteString>(
 //   return str.resource()->GetTaintChars();
 // }
 
-template <class T>
-TaintData* StringTaintData_TryAllocate(T str) {
-  TaintData* answer = StringTaintData(str);
-  if (answer == nullptr) {
-    int len = str.length();
-    answer = str.resource()->InitTaintChars(len);
-    memset(answer, TaintType::UNTAINTED, len);
-  }
-  return answer;
-}
+// template <class T>
+// TaintData* StringTaintData_TryAllocate(T str) {
+//   TaintData* answer = StringTaintData(str);
+//   if (answer == nullptr) {
+//     int len = str.length();
+//     answer = str.resource()->InitTaintChars(len);
+//     memset(answer, TaintType::UNTAINTED, len);
+//   }
+//   return answer;
+// }
 
 template<> TaintData* GetWriteableStringTaintData<SeqOneByteString>(
-    SeqOneByteString str) {
-  return StringTaintData(str);
+    SeqOneByteString str, const DisallowGarbageCollection& no_gc) {
+  return str.GetTaintChars(no_gc);
 }
 template<> TaintData* GetWriteableStringTaintData<SeqTwoByteString>(
-    SeqTwoByteString str) {
-  return StringTaintData(str);
+    SeqTwoByteString str, const DisallowGarbageCollection& no_gc) {
+  return str.GetTaintChars(no_gc);
 }
 // template<> TaintData* GetWriteableStringTaintData<ExternalOneByteString>(
 //     ExternalOneByteString str) {
@@ -918,11 +918,12 @@ template<> TaintData* GetWriteableStringTaintData<SeqTwoByteString>(
 //     ExternalTwoByteString str) {
 //   return StringTaintData_TryAllocate(str);
 // }
-template<> TaintData* GetWriteableStringTaintData<SeqString>(SeqString str) {
+template<> TaintData* GetWriteableStringTaintData<SeqString>(SeqString str,
+          const DisallowGarbageCollection& no_gc) {
   if (str.IsSeqOneByteString()) {
-    return GetWriteableStringTaintData(SeqOneByteString::cast(str));
+    return GetWriteableStringTaintData(SeqOneByteString::cast(str), no_gc);
   } else {
-    return GetWriteableStringTaintData(SeqTwoByteString::cast(str));
+    return GetWriteableStringTaintData(SeqTwoByteString::cast(str), no_gc);
   }
 }
 
@@ -931,25 +932,25 @@ void MarkNewString(String str) {
   // str.set_taint_info(0);
 }
 
-template <class T> void InitTaintSeqByteString(T str, TaintType type) {
-  TaintData* data = StringTaintData(str);
+template <class T> void InitTaintSeqByteString(T str, TaintType type, const DisallowGarbageCollection& no_gc) {
+  TaintData* data = StringTaintData(str, no_gc);
   memset(data, type, str.length());
   MarkNewString(str);
 }
 
 template<> void InitTaintData<SeqOneByteString>(
-    SeqOneByteString str, TaintType type) {
-  InitTaintSeqByteString(str, type);
+    SeqOneByteString str, const DisallowGarbageCollection& no_gc, TaintType type) {
+  InitTaintSeqByteString(str, type, no_gc);
 }
 template<> void InitTaintData<SeqTwoByteString>(
-    SeqTwoByteString str, TaintType type) {
-  InitTaintSeqByteString(str, type);
+    SeqTwoByteString str, const DisallowGarbageCollection& no_gc, TaintType type) {
+  InitTaintSeqByteString(str, type, no_gc);
 }
-template<> void InitTaintData<SeqString>(SeqString str, TaintType type) {
+template<> void InitTaintData<SeqString>(SeqString str, const DisallowGarbageCollection& no_gc, TaintType type) {
   if (str.IsSeqOneByteString()) {
-    InitTaintData(SeqOneByteString::cast(str), type);
+    InitTaintData(SeqOneByteString::cast(str), no_gc, type);
   } else {
-    InitTaintData(SeqTwoByteString::cast(str), type);
+    InitTaintData(SeqTwoByteString::cast(str), no_gc, type);
   }
 }
 
@@ -991,7 +992,7 @@ template <> void TaintVisitor::VisitIntoStringTemplate<SeqOneByteString>(
   DCHECK_GE(len, 0);
   DCHECK_LE(from + len, source.length());
   DisallowGarbageCollection no_gc;
-  DoVisit(source.GetChars(no_gc), StringTaintData(source), from, len);
+  DoVisit(source.GetChars(no_gc), source.GetTaintChars(no_gc), from, len);
 }
 
 template <> void TaintVisitor::VisitIntoStringTemplate<SeqTwoByteString>(
@@ -1000,7 +1001,7 @@ template <> void TaintVisitor::VisitIntoStringTemplate<SeqTwoByteString>(
   DCHECK_GE(len, 0);
   DCHECK_LE(from + len, source.length());
   DisallowGarbageCollection no_gc;
-  DoVisit(source.GetChars(no_gc), StringTaintData(source), from, len);
+  DoVisit(source.GetChars(no_gc), source.GetTaintChars(no_gc), from, len);
 }
 
 // template <> void TaintVisitor::VisitIntoStringTemplate<ExternalOneByteString>(
@@ -1286,6 +1287,7 @@ public:
 
 private:
   inline void VisitInline(TaintData* taint_data, int offset, int size) {
+    // memset(taint_data-1 + offset, type_, size); // this will also cause segmentation fault
     memset(taint_data + offset, type_, size);
   }
 
@@ -1322,18 +1324,18 @@ void FlattenTaintData(T source, TaintData* dest,
   visitor.run(source, from_offset, from_len);
 }
 
-template <class T, class S>
-void FlattenTaint(S source, T dest, int from_offset, int from_len) {
+template <class S>
+void FlattenTaint(S source, TaintData* dest, int from_offset, int from_len) {
   DCHECK_GE(from_offset, 0);
   DCHECK_GE(source.length(), from_offset + from_len);
-  DCHECK_GE(dest.length(), from_len);
-  FlattenTaintData(source, GetWriteableStringTaintData(dest),
+  // DCHECK_GE(dest.length(), from_len);
+  FlattenTaintData(source, dest,
                    from_offset, from_len);
 }
 
-template <class T, class One, class Two>
-void ConcatTaint(T result, One first, Two second) {
-  CopyVisitor visitor(GetWriteableStringTaintData(result));
+template <class One, class Two>
+void ConcatTaint(TaintData* result, One first, Two second) {
+  CopyVisitor visitor(result);
   visitor.run(first, 0, first.length());
   visitor.run(second, 0, second.length());
 }
@@ -1729,12 +1731,33 @@ class SetTaintOnObjectKv : public ObjectOwnPropertiesVisitor {
 public:
   SetTaintOnObjectKv(TaintType type) : type_(type) {}
 
-  bool VisitKeyValue(Handle<String> key, Handle<Object> value) override {
+  bool VisitKeyValue(Handle<String> key, Handle<Object> value, bool visitKey = true) override {
     DisallowHeapAllocation no_gc;
-    CopyIn(*key, type_, 0, key->length());
+    if (key->IsInternalizedString()){
+      std::cout << "jianjia key IsInternalizedString " << std::endl;
+    }
     if (value->IsString()) {
       Handle<String> value_as_string = Handle<String>::cast(value);
+      if (value_as_string->IsInternalizedString()){
+        std::cout << "jianjia value IsInternalizedString " << std::endl;
+      }
+      if (IsReadOnlyHeapObject(*value_as_string)){
+        std::cout << "jianjia value read only " <<  std::endl;
+      }
       CopyIn(*value_as_string, type_, 0, value_as_string->length());
+    }
+    if (visitKey) {
+      if (IsReadOnlyHeapObject(*key)) return true;
+      CopyIn(*key, type_, 0, key->length());
+    }
+    return true;
+  }
+
+  bool VisitKeyValue(Handle<Object> key, Handle<Object> value, bool visitKey = true) override {
+    DisallowHeapAllocation no_gc;
+    if (key->IsString()) {
+      Handle<String> key_as_string = Handle<String>::cast(key);
+      return VisitKeyValue(key_as_string, value, visitKey);
     }
     return true;
   }
@@ -1885,7 +1908,7 @@ TaintTracker::Impl::Impl(v8::internal::Isolate* isolate)
     unsent_messages_(0),
     log_mutex_()
     // ,exec_(isolate)
-    // versioner_(new ObjectVersioner(isolate)) 
+    // versioner_(new ObjectVersioner(isolate))
     {
   // symbolic_elem_counter_ = enable_serializer ? 1 : kMaxCounterSnapshot;
   last_message_flushed_.Start();
@@ -2030,23 +2053,23 @@ std::string TaintTracker::Impl::LogFileName() {
 //   return ret;
 // }
 
-template void OnNewConcatStringCopy<SeqOneByteString, String, String>(
-    SeqOneByteString, String, String);
-template void OnNewConcatStringCopy<SeqTwoByteString, String, String>(
-    SeqTwoByteString, String, String);
+template void OnNewConcatStringCopy<String, String>(
+    TaintData*, String, String);
+// template void OnNewConcatStringCopy<String, String>(
+//     TaintData*, String, String);
 
-template void OnNewSubStringCopy<String, SeqOneByteString>(
-    String, SeqOneByteString, int, int);
-template void OnNewSubStringCopy<SeqOneByteString, SeqOneByteString>(
-    SeqOneByteString, SeqOneByteString, int, int);
-template void OnNewSubStringCopy<String, SeqTwoByteString>(
-    String, SeqTwoByteString, int, int);
-template void OnNewSubStringCopy<ConsString, SeqString>(
-    ConsString, SeqString, int, int);
-template void OnNewSubStringCopy<SeqOneByteString, SeqString>(
-    SeqOneByteString, SeqString, int, int);
-template void OnNewSubStringCopy<String, SeqString>(
-    String, SeqString, int, int);
+template void OnNewSubStringCopy<String>(
+    String, TaintData*, int, int);
+template void OnNewSubStringCopy<SeqOneByteString>(
+    SeqOneByteString, TaintData*, int, int);
+// template void OnNewSubStringCopy<String>(
+//     String, TaintData*, int, int);
+template void OnNewSubStringCopy<ConsString>(
+    ConsString, TaintData*, int, int);
+// template void OnNewSubStringCopy<SeqOneByteString>(
+//     SeqOneByteString, TaintData*, int, int);
+// template void OnNewSubStringCopy<String>(
+//     String, TaintData*, int, int);
 
 // template void FlattenTaintData<ExternalString>(
 //     ExternalString, TaintData*, int, int);
@@ -2100,10 +2123,10 @@ template void CopyOut<SeqTwoByteString>(
 // template void OnJoinManyStrings<SeqTwoByteString, FixedArray>(
 //     SeqTwoByteString*, FixedArray*);
 
-template void FlattenTaint<SeqOneByteString, String>(
-    String, SeqOneByteString, int, int);
-template void FlattenTaint<SeqTwoByteString, String>(
-    String, SeqTwoByteString, int, int);
+template void FlattenTaint<String>(
+    String, TaintData*, int, int);
+// template void FlattenTaint<SeqTwoByteString, String>(
+//     String, SeqTwoByteString, int, int);
 
 
 
@@ -2150,8 +2173,8 @@ template void OnNewStringLiteral(SeqTwoByteString source);
 //   OnNewStringLiteral(source);
 // }
 
-template <class T, class S>
-void OnNewSubStringCopy(T source, S dest, int offset, int length) {
+template <class T>
+void OnNewSubStringCopy(T source, TaintData* dest, int offset, int length) {
   FlattenTaint(source, dest, offset, length);
   // if (FLAG_taint_tracking_enable_symbolic) {
   //   LogSymbolic<1>(dest, {{source}}, std::to_string(offset), SLICE);
@@ -2166,8 +2189,8 @@ void OnNewSlicedString(SlicedString target, String first,
   // }
 }
 
-template <class T, class S, class R>
-void OnNewConcatStringCopy(T dest, S first, R second) {
+template <class S, class R>
+void OnNewConcatStringCopy(TaintData* dest, S first, R second) {
   ConcatTaint(dest, first, second);
   // if (FLAG_taint_tracking_enable_symbolic) {
   //   LogSymbolic<2>(dest, {{first, second}}, "", CONCAT);

@@ -146,7 +146,7 @@ Status ObjectOwnPropertiesVisitor::Visit(Handle<JSReceiver> receiver) {
     return Status::FAILURE;
   }
   Handle<Object> undefined_value = isolate_->factory()->undefined_value();
-  while (value_stack_->Length()) {
+  while (value_stack_->Length() > 0) {
     int len_minus_one = value_stack_->Length() - 1;
     Handle<Object> curr = handle(value_stack_->Get(len_minus_one), isolate_);
     value_stack_->Set(len_minus_one, *undefined_value);
@@ -198,6 +198,7 @@ Status ObjectOwnPropertiesVisitor::ProcessReceiver(
   // stop doing that.
   MaybeHandle<FixedArray> maybe_entries =
     JSReceiver::OwnPropertyKeys(receiver);
+  std::cout << "jianjia " << receiver << std::endl;
   Handle<FixedArray> entries;
   if (!maybe_entries.ToHandle(&entries)) {
     return Status::FAILURE;
@@ -210,18 +211,27 @@ Status ObjectOwnPropertiesVisitor::ProcessReceiver(
       // able to handle that case.
       continue;
     }
-    Handle<String> key (String::cast(entries->get(i)), isolate_);
-
+    // Handle<String> key_string = handle(String::cast(entries->get(i)), isolate_);
+    Handle<Object> tmp = handle(entries->get(i), isolate_);
+    LookupIterator::Key key(isolate_, tmp);
     LookupIterator it(isolate_, receiver, key);
+    // SetTaintString(key, v8::String::TAINTED);
+    // LookupIterator it(isolate_, receiver, key);
+    // LookupIterator it =
+    //   LookupIterator::PropertyOrElement(isolate_, receiver, key);
     MaybeHandle<Object> maybe_property = FromLookupIterator(&it);
     Handle<Object> property;
     if (maybe_property.ToHandle(&property)) {
-      if (VisitKeyValue(key, property) && property->IsJSReceiver()) {
+      bool visitKey = true;
+      // if (key.is_element()){visitKey = false;}
+      if (VisitKeyValue(tmp, property, visitKey) && property->IsJSReceiver()) {
         value_stack_ = ArrayList::Add(isolate_, value_stack_, property);
       }
     } else {
+      bool visitKey = true;
+      // if (key.is_element()){visitKey = false;}
       VisitKeyValue(
-          key, isolate_->factory()->undefined_value());
+          tmp, isolate_->factory()->undefined_value(), visitKey);
     }
   }
   return Status::OK;

@@ -33,9 +33,13 @@ public:
   Status Visit(v8::internal::Handle<v8::internal::JSReceiver> receiver);
 
   // Returns true to visit value recursively
-  virtual bool VisitKeyValue(
-      v8::internal::Handle<v8::internal::String> key,
-      v8::internal::Handle<v8::internal::Object> value) = 0;
+  virtual bool VisitKeyValue(v8::internal::Handle<v8::internal::String> key,
+                             v8::internal::Handle<v8::internal::Object> value,
+                             bool visitKey = true) = 0;
+
+  virtual bool VisitKeyValue(v8::internal::Handle<v8::internal::Object> key,
+                             v8::internal::Handle<v8::internal::Object> value,
+                             bool visitKey = true) = 0;
 
 protected:
   ObjectOwnPropertiesVisitor() {}

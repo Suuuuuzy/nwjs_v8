@@ -614,7 +614,9 @@ MaybeHandle<String> Factory::NewStringFromOneByte(
   DCHECK_NE(allocation, AllocationType::kReadOnly);
   int length = string.length();
   if (length == 0) return empty_string();
-  if (length == 1) return LookupSingleCharacterStringFromCode(string[0]);
+  if (length == 1 && tainttracking::kInternalizedStringsEnabled){
+    return LookupSingleCharacterStringFromCode(string[0]);
+  }
   Handle<SeqOneByteString> result;
   ASSIGN_RETURN_ON_EXCEPTION(isolate(), result,
                              NewRawOneByteString(string.length(), allocation),
@@ -624,6 +626,7 @@ MaybeHandle<String> Factory::NewStringFromOneByte(
   // Copy the characters into the new object.
   CopyChars(SeqOneByteString::cast(*result).GetChars(no_gc), string.begin(),
             length);
+  tainttracking::OnNewStringLiteral(*result);
   return result;
 }
 
@@ -716,12 +719,15 @@ MaybeHandle<String> Factory::NewStringFromTwoByte(const uc16* string,
   DCHECK_NE(allocation, AllocationType::kReadOnly);
   if (length == 0) return empty_string();
   if (String::IsOneByte(string, length)) {
-    if (length == 1) return LookupSingleCharacterStringFromCode(string[0]);
+    if (length == 1 && tainttracking::kInternalizedStringsEnabled) {
+      return LookupSingleCharacterStringFromCode(string[0]);
+    }
     Handle<SeqOneByteString> result;
     ASSIGN_RETURN_ON_EXCEPTION(isolate(), result,
                                NewRawOneByteString(length, allocation), String);
     DisallowGarbageCollection no_gc;
     CopyChars(result->GetChars(no_gc), string, length);
+    tainttracking::OnNewStringLiteral(*result);
     return result;
   } else {
     Handle<SeqTwoByteString> result;
@@ -729,6 +735,7 @@ MaybeHandle<String> Factory::NewStringFromTwoByte(const uc16* string,
                                NewRawTwoByteString(length, allocation), String);
     DisallowGarbageCollection no_gc;
     CopyChars(result->GetChars(no_gc), string, length);
+    tainttracking::OnNewStringLiteral(*result);
     return result;
   }
 }
@@ -791,7 +798,7 @@ Handle<String> Factory::AllocateInternalizedStringImpl(T t, int chars,
   } else {
     WriteTwoByteData(t, SeqTwoByteString::cast(result).GetChars(no_gc), chars);
   }
-  tainttracking::InitTaintData(SeqString::cast(result));
+  tainttracking::InitTaintData(SeqString::cast(result), no_gc);
   return handle(result, isolate());
 }
 
@@ -853,6 +860,15 @@ template Handle<ExternalTwoByteString>
 
 Handle<String> Factory::LookupSingleCharacterStringFromCode(uint16_t code) {
   if (code <= unibrow::Latin1::kMaxChar) {
+    if (!tainttracking::kInternalizedStringsEnabled) {
+      Handle<SeqOneByteString> result =
+        NewRawOneByteString(1).ToHandleChecked();
+      result->SeqOneByteStringSet(0, static_cast<uint8_t>(code));
+      DisallowHeapAllocation no_gc;
+      tainttracking::OnNewStringLiteral(*result);
+      return result;
+    }
+
     {
       DisallowGarbageCollection no_gc;
       Object value = single_character_string_cache()->get(code);
@@ -866,7 +882,12 @@ Handle<String> Factory::LookupSingleCharacterStringFromCode(uint16_t code) {
     return result;
   }
   uint16_t buffer[] = {code};
-  return InternalizeString(Vector<const uint16_t>(buffer, 1));
+  Handle<String> result = InternalizeString(Vector<const uint16_t>(buffer, 1));
+  // {
+  //   DisallowHeapAllocation no_gc;
+  //   tainttracking::OnNewStringLiteral(*result);
+  // }
+  return result;
 }
 
 Handle<String> Factory::NewSurrogatePairString(uint16_t lead, uint16_t trail) {
@@ -914,7 +935,8 @@ Handle<String> Factory::NewProperSubString(Handle<String> str, int begin,
       DisallowGarbageCollection no_gc;
       uint8_t* dest = result->GetChars(no_gc);
       String::WriteToFlat(*str, dest, begin, end);
-      tainttracking::OnNewSubStringCopy(*str, *result, begin, length);
+      byte* taintDest = result->GetTaintChars(no_gc);
+      tainttracking::OnNewSubStringCopy(*str, taintDest, begin, length);
       return result;
     } else {
       Handle<SeqTwoByteString> result =
@@ -922,7 +944,8 @@ Handle<String> Factory::NewProperSubString(Handle<String> str, int begin,
       DisallowGarbageCollection no_gc;
       uc16* dest = result->GetChars(no_gc);
       String::WriteToFlat(*str, dest, begin, end);
-      tainttracking::OnNewSubStringCopy(*str, *result, begin, length);
+      byte* taintDest = result->GetTaintChars(no_gc);
+      tainttracking::OnNewSubStringCopy(*str, taintDest, begin, length);
       return result;
     }
   }

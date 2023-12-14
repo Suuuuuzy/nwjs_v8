@@ -121,7 +121,7 @@ class IncrementalStringBuilder {
   V8_INLINE String::Encoding CurrentEncoding() { return encoding_; }
 
   template <typename SrcChar, typename DestChar>
-  V8_INLINE void Append(SrcChar c, 
+  V8_INLINE void Append(SrcChar c,
     tainttracking::TaintType type = tainttracking::TaintType::UNTAINTED);
 
   V8_INLINE void AppendCharacter(uint8_t c) {
@@ -203,21 +203,21 @@ class IncrementalStringBuilder {
         start_ = reinterpret_cast<DestChar*>(
             Handle<SeqOneByteString>::cast(string)->GetChars(no_gc) + offset);
         start_taint_ = tainttracking::GetWriteableStringTaintData(
-            *Handle<SeqOneByteString>::cast(string));
+            *Handle<SeqOneByteString>::cast(string), no_gc) + offset;
       } else {
         start_ = reinterpret_cast<DestChar*>(
             Handle<SeqTwoByteString>::cast(string)->GetChars(no_gc) + offset);
         start_taint_ = tainttracking::GetWriteableStringTaintData(
-            *Handle<SeqTwoByteString>::cast(string));
+            *Handle<SeqTwoByteString>::cast(string), no_gc) + offset;
       }
       cursor_ = start_;
     }
 
     V8_INLINE void Append(DestChar c,
     tainttracking::TaintType type =
-                       tainttracking::TaintType::UNTAINTED) { 
+                       tainttracking::TaintType::UNTAINTED) {
         *(start_taint_++) = static_cast<tainttracking::TaintData>(type);
-        *(cursor_++) = c; 
+        *(cursor_++) = c;
     }
     V8_INLINE void AppendCString(const char* s,
                tainttracking::TaintType type =

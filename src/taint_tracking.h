@@ -234,12 +234,12 @@ const bool kInternalizedStringsEnabled = !kTaintTrackingEnabled;
 
 // Functions for manipulating taint data
 template <class T>
-void InitTaintData(T str, TaintType type = TaintType::UNTAINTED);
+void InitTaintData(T str, const v8::internal::DisallowGarbageCollection& no_gc, TaintType type = TaintType::UNTAINTED);
 
 template <> void InitTaintData<v8::internal::SeqOneByteString>(
-    v8::internal::SeqOneByteString str, TaintType type);
+    v8::internal::SeqOneByteString str, const v8::internal::DisallowGarbageCollection& no_gc, TaintType type);
 template <> void InitTaintData<v8::internal::SeqTwoByteString>(
-    v8::internal::SeqTwoByteString str, TaintType type);
+    v8::internal::SeqTwoByteString str, const v8::internal::DisallowGarbageCollection& no_gc, TaintType type);
 
 template <class T>
 void CopyOut(T source, TaintData* dest, int offset, int len);
@@ -250,8 +250,8 @@ void CopyIn(T dest, const TaintData* source, int offset, int len);
 
 template <class T> void FlattenTaintData(
     T source, TaintData* dest, int from_offset, int from_len);
-template <class T, class S>
-void FlattenTaint(S source, T dest, int from_offset, int from_len);
+template <class S>
+void FlattenTaint(S source, TaintData* dest, int from_offset, int from_len);
 
 int64_t LogIfTainted(
     v8::internal::Isolate* isolate,
@@ -274,17 +274,17 @@ template <class T>
 TaintType GetTaintStatusRange(T source, int idx_start, int length);
 template <class T> TaintType GetTaintStatus(T object, int idx);
 template <class T> void SetTaintStatus(T object, int idx, TaintType type);
-template <class T> TaintData* GetWriteableStringTaintData(T str);
+template <class T> TaintData* GetWriteableStringTaintData(T str, const v8::internal::DisallowGarbageCollection& no_gc);
 
 
 // // Event listeners for New strings and operations
 template <class T> void OnNewStringLiteral(T source);
 // void OnNewDeserializedString(v8::internal::String* source);
 // template <class T> void OnNewExternalString(T* str);
-template <class T, class S> void OnNewSubStringCopy(
-    T source, S dest, int offset, int length);
-template <class T, class S, class R> void OnNewConcatStringCopy(
-    T dest, S first, R second);
+template <class S> void OnNewSubStringCopy(
+    S source, TaintData* dest, int offset, int length);
+template <class S, class R> void OnNewConcatStringCopy(
+    TaintData* dest, S first, R second);
 void OnNewConsString(v8::internal::ConsString target,
                      v8::internal::String first,
                      v8::internal::String second);

@@ -1239,7 +1239,7 @@ action("v8_capnp_generate") {
   ]
 
   args = [
-    "/home/suzy/Documents/capnproto-install-clang/bin/capnp",
+    "$v8_capnp_include_dir/bin/capnp",
     "compile",
     "--src-prefix=" + rebase_path(
         "src/taint_tracking/protos/", root_build_dir),

@@ -468,11 +468,33 @@ template <typename Impl>
 Handle<String> FactoryBase<Impl>::MakeOrFindTwoCharacterString(uint16_t c1,
                                                                uint16_t c2) {
   if ((c1 | c2) <= unibrow::Latin1::kMaxChar) {
-    uint8_t buffer[] = {static_cast<uint8_t>(c1), static_cast<uint8_t>(c2)};
-    return InternalizeString(Vector<const uint8_t>(buffer, 2));
+    if (tainttracking::kInternalizedStringsEnabled){
+      uint8_t buffer[] = {static_cast<uint8_t>(c1), static_cast<uint8_t>(c2)};
+      return InternalizeString(Vector<const uint8_t>(buffer, 2));
+    } else {
+      Handle<SeqOneByteString> str = NewRawOneByteString(2).ToHandleChecked();
+      DisallowGarbageCollection no_gc;
+      uint8_t* dest = str->GetChars(no_gc);
+      dest[0] = static_cast<uint8_t>(c1);
+      dest[1] = static_cast<uint8_t>(c2);
+      // DisallowHeapAllocation no_gc;
+      // tainttracking::OnNewStringLiteral(*str);
+      return str;
+    }
   }
-  uint16_t buffer[] = {c1, c2};
-  return InternalizeString(Vector<const uint16_t>(buffer, 2));
+  if (tainttracking::kInternalizedStringsEnabled){
+    uint16_t buffer[] = {c1, c2};
+    return InternalizeString(Vector<const uint16_t>(buffer, 2));
+  } else {
+    Handle<SeqTwoByteString> str = NewRawTwoByteString(2).ToHandleChecked();
+    DisallowGarbageCollection no_gc;
+    uc16* dest = str->GetChars(no_gc);
+    dest[0] = c1;
+    dest[1] = c2;
+    // DisallowHeapAllocation no_gc;
+    // tainttracking::OnNewStringLiteral(*str);
+    return str;
+  }
 }
 
 template <typename Impl>
@@ -527,7 +549,7 @@ Handle<SeqOneByteString> FactoryBase<Impl>::NewOneByteInternalizedStringHelper(
   DisallowGarbageCollection no_gc;
   MemCopy(result->GetChars(no_gc, SharedStringAccessGuardIfNeeded::NotNeeded()),
           str.begin(), str.length());
-  tainttracking::InitTaintData(*result);
+  tainttracking::InitTaintData(*result, no_gc);
   return result;
 }
 
@@ -551,7 +573,7 @@ Handle<SeqTwoByteString> FactoryBase<Impl>::NewTwoByteInternalizedStringHelper(
   DisallowGarbageCollection no_gc;
   MemCopy(result->GetChars(no_gc, SharedStringAccessGuardIfNeeded::NotNeeded()),
           str.begin(), str.length() * kUC16Size);
-  tainttracking::InitTaintData(*result);
+  tainttracking::InitTaintData(*result, no_gc);
   return result;
 }
 
@@ -582,7 +604,7 @@ MaybeHandle<SeqOneByteString> FactoryBase<Impl>::NewRawOneByteString(
   string.set_length(length);
   string.set_raw_hash_field(String::kEmptyHashField);
   DCHECK_EQ(size, string.Size());
-  tainttracking::InitTaintData(string);
+  tainttracking::InitTaintData(string, no_gc);
   return handle(string, isolate());
 }
 
@@ -602,7 +624,7 @@ MaybeHandle<SeqTwoByteString> FactoryBase<Impl>::NewRawTwoByteString(
   string.set_length(length);
   string.set_raw_hash_field(String::kEmptyHashField);
   DCHECK_EQ(size, string.Size());
-  tainttracking::InitTaintData(string);
+  tainttracking::InitTaintData(string, no_gc);
   return handle(string, isolate());
 }
 
@@ -622,7 +644,7 @@ MaybeHandle<String> FactoryBase<Impl>::NewConsString(
 
   int length = left_length + right_length;
 
-  // suzy: here we need to disable internalize the two charater string 
+  // suzy: here we need to disable internalize the two charater string
   // because this method does not carry taint info
   if (length == 2 && tainttracking::kInternalizedStringsEnabled) {
     uint16_t c1 = left->Get(0, isolate());
@@ -666,7 +688,8 @@ MaybeHandle<String> FactoryBase<Impl>::NewConsString(
             right->template GetChars<uint8_t>(no_gc, access_guard);
         CopyChars(dest + left_length, src, right_length);
       }
-      tainttracking::OnNewConcatStringCopy(*result, *left, *right);
+      byte* taintSink = result->GetTaintChars(no_gc, access_guard);
+      tainttracking::OnNewConcatStringCopy(taintSink, *left, *right);
       return result;
     }
 
@@ -679,7 +702,8 @@ MaybeHandle<String> FactoryBase<Impl>::NewConsString(
     String::WriteToFlat(*left, sink, 0, left->length(), access_guard);
     String::WriteToFlat(*right, sink + left->length(), 0, right->length(),
                         access_guard);
-    tainttracking::OnNewConcatStringCopy(*result, *left, *right);
+    byte* taintSink = result->GetTaintChars(no_gc, access_guard);
+    tainttracking::OnNewConcatStringCopy(taintSink, *left, *right);
     return result;
   }
 

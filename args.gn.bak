@@ -7,4 +7,4 @@ v8_enable_backtrace = true
 v8_enable_fast_mksnapshot = true
 v8_enable_slow_dchecks = true
 v8_optimized_debug = false
-v8_capnp_include_dir="/home/suzy/Documents/capnproto-install-clang"
+v8_capnp_include_dir="/media/dataj/Documents/capnproto-install-clang"
