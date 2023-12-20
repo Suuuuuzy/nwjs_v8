@@ -1649,6 +1649,10 @@ TNode<String> StringBuiltinsAssembler::SubString(TNode<String> string,
   TVARIABLE(String, var_result);
   ToDirectStringAssembler to_direct(state(), string);
   Label end(this), runtime(this);
+  // TODO: ideally, would code taint-tracking in assembly too.
+  // Taint tracking requires by-passing the sub-string assembly code.
+  // Goto(&runtime);
+  GotoIf(IntPtrEqual(IntPtrConstant(0), IntPtrConstant(0)), &runtime);
 
   const TNode<IntPtrT> substr_length = IntPtrSub(to, from);
   const TNode<IntPtrT> string_length = LoadStringLengthAsWord(string);

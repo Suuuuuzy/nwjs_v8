@@ -569,23 +569,26 @@ TEST(OnBeforeCompileGetSetTransitiveTaintByteArray) {
       2, result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
 }
 
-// TEST(OnBeforeCompileGetSetSliceTaintByteArray) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   v8::Local<v8::String> source = v8_str(
-//       CcTest::isolate(),
-//       "var a = '1 + 11'; "
-//       "a.__setTaint__(1);"
-//       "eval(a.substring(0, 5)); ");
-//   TestTaintListener* listener = new TestTaintListener();
-//   CHECK_EQ(listener->GetScripts().size(), 0);
-//   TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
-//   auto result = v8::Script::Compile(
-//       CcTest::isolate()->GetCurrentContext(), source).ToLocalChecked()->Run();
-//   CHECK_EQ(
-//       2, result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
-//   CHECK_EQ(listener->GetScripts().size(), 1);
-// }
+TEST(OnBeforeCompileGetSetSliceTaintByteArray) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  v8::Local<v8::String> source = v8_str(CcTest::isolate(),
+      "var a = '1 + 11'; "
+      "a.__setTaint__(1);"
+      "var b = a.substring(0, 5);"
+      "b.__setTaint__(1);"
+      "eval(b);"
+      "eval(a.substring(0, 5)); ");
+  TestTaintListener* listener = new TestTaintListener();
+  CHECK_EQ(listener->GetScripts().size(), 0);
+  TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
+  v8::Local<v8::Context> context = CcTest::isolate()->GetCurrentContext();
+  auto result = v8::Script::Compile(
+    context, source).ToLocalChecked()->Run(context).ToLocalChecked();
+  CHECK_EQ(
+      2, result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
+  CHECK_EQ(listener->GetScripts().size(), 2);
+}
 
 // TEST(OnBeforeCompileGetSetSliceSingleTaintByteArray) {
 //   TestCase test_case;

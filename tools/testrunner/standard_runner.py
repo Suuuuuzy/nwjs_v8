@@ -38,6 +38,7 @@ MORE_VARIANTS = [
 ]
 
 VARIANT_ALIASES = {
+  'jitless_jianjia': ['jitless'],
   # The default for developer workstations.
   'dev': VARIANTS,
   # Additional variants, run on all bots.
