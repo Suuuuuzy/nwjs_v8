@@ -590,86 +590,89 @@ TEST(OnBeforeCompileGetSetSliceTaintByteArray) {
   CHECK_EQ(listener->GetScripts().size(), 2);
 }
 
-// TEST(OnBeforeCompileGetSetSliceSingleTaintByteArray) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   v8::Local<v8::String> source = v8_str(
-//       CcTest::isolate(),
-//       "var a = '1 + 11'; "
-//       "a.__setTaint__(1);"
-//       "eval(a.substring(0, 1)); ");
-//   TestTaintListener* listener = new TestTaintListener();
-//   CHECK_EQ(listener->GetScripts().size(), 0);
-//   TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
-//   auto result = v8::Script::Compile(
-//       CcTest::isolate()->GetCurrentContext(), source).ToLocalChecked()->Run();
-//   CHECK_EQ(
-//       1, result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
-//   CHECK_EQ(listener->GetScripts().size(), 1);
-// }
+TEST(OnBeforeCompileGetSetSliceSingleTaintByteArray) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  v8::Local<v8::String> source = v8_str(
+      CcTest::isolate(),
+      "var a = '1 + 11'; "
+      "a.__setTaint__(1);"
+      "eval(a.substring(0, 1)); ");
+  TestTaintListener* listener = new TestTaintListener();
+  CHECK_EQ(listener->GetScripts().size(), 0);
+  TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
+  v8::Local<v8::Context> context = CcTest::isolate()->GetCurrentContext();
+  auto result = v8::Script::Compile(
+    context, source).ToLocalChecked()->Run(context).ToLocalChecked();
+  CHECK_EQ(
+      1, result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
+  CHECK_EQ(listener->GetScripts().size(), 1);
+}
 
-// TEST(OnBeforeCompileGetSetConsSingleTaintByteArray) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   v8::Local<v8::String> source = v8_str(
-//       CcTest::isolate(),
-//       "var a = '1'; "
-//       "a.__setTaint__(1);"
-//       "eval(a + '2'); ");
-//   TestTaintListener* listener = new TestTaintListener();
-//   CHECK_EQ(listener->GetScripts().size(), 0);
-//   TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
-//   auto result = v8::Script::Compile(
-//       CcTest::isolate()->GetCurrentContext(), source).ToLocalChecked()->Run();
-//   CHECK_EQ(
-//       12,
-//       result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
-//   CHECK_EQ(listener->GetScripts().size(), 1);
-// }
+TEST(OnBeforeCompileGetSetConsSingleTaintByteArray) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  v8::Local<v8::String> source = v8_str(
+      CcTest::isolate(),
+      "var a = '2'; "
+      "a.__setTaint__(1);"
+      "eval(a + '2'); ");
+  TestTaintListener* listener = new TestTaintListener();
+  CHECK_EQ(listener->GetScripts().size(), 0);
+  TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
+  v8::Local<v8::Context> context = CcTest::isolate()->GetCurrentContext();
+  auto result = v8::Script::Compile(
+    context, source).ToLocalChecked()->Run(context).ToLocalChecked();
+  CHECK_EQ(
+      22,
+      result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
+  CHECK_EQ(listener->GetScripts().size(), 1);
+}
 
-// class TaintOneByteResource :
-//   public v8::String::ExternalOneByteStringResource,
-//   public v8::String::TaintTrackingStringBufferImpl {
-// public:
-//   TaintOneByteResource(const char* data, size_t length)
-//     : data_(data), length_(length) {}
-//   ~TaintOneByteResource() { i::DeleteArray(data_); }
-//   virtual const char* data() const { return data_; }
-//   virtual size_t length() const { return length_; }
+class TaintOneByteResource :
+  public v8::String::ExternalOneByteStringResource,
+  public v8::String::TaintTrackingStringBufferImpl {
+public:
+  TaintOneByteResource(const char* data, size_t length)
+    : data_(data), length_(length) {}
+  ~TaintOneByteResource() { i::DeleteArray(data_); }
+  virtual const char* data() const { return data_; }
+  virtual size_t length() const { return length_; }
 
-// private:
-//   const char* data_;
-//   size_t length_;
-// };
+private:
+  const char* data_;
+  size_t length_;
+};
 
-// TEST(SubStringExternalStringShort) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   LocalContext context;
-//   char* one_byte_res = new char[2];
-//   *one_byte_res = '2';
-//   *(one_byte_res + 1) = '2';
-//   TaintOneByteResource* one_byte_resource = new TaintOneByteResource(
-//       one_byte_res, sizeof(one_byte_res));
-//   v8::Local<v8::String> one_byte_external_string =
-//     v8::String::NewExternalOneByte(CcTest::isolate(), one_byte_resource)
-//     .ToLocalChecked();
-//   v8::Local<v8::Object> global = context->Global();
-//   global->Set(context.local(), v8_str("ext_one_byte"), one_byte_external_string)
-//     .FromJust();
-//   v8::Local<v8::String> source = v8_str(
-//       CcTest::isolate(),
-//       "ext_one_byte.__setTaint__(1);"
-//       "eval(ext_one_byte.substring(0, 1)); ");
-//   TestTaintListener* listener = new TestTaintListener();
-//   CHECK_EQ(listener->GetScripts().size(), 0);
-//   TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
-//   auto result = v8::Script::Compile(
-//       CcTest::isolate()->GetCurrentContext(), source).ToLocalChecked()->Run();
-//   CHECK_EQ(
-//       2, result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
-//   CHECK_EQ(listener->GetScripts().size(), 1);
-// }
+TEST(SubStringExternalStringShort) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  LocalContext context;
+  char* one_byte_res = new char[2];
+  *one_byte_res = '2';
+  *(one_byte_res + 1) = '2';
+  TaintOneByteResource* one_byte_resource = new TaintOneByteResource(
+      one_byte_res, sizeof(one_byte_res));
+  v8::Local<v8::String> one_byte_external_string =
+    v8::String::NewExternalOneByte(CcTest::isolate(), one_byte_resource)
+    .ToLocalChecked();
+  v8::Local<v8::Object> global = context->Global();
+  global->Set(context.local(), v8_str("ext_one_byte"), one_byte_external_string)
+    .FromJust();
+  v8::Local<v8::String> source = v8_str(
+      CcTest::isolate(),
+      "ext_one_byte.__setTaint__(1);"
+      "eval(ext_one_byte.substring(0, 1)); ");
+  TestTaintListener* listener = new TestTaintListener();
+  CHECK_EQ(listener->GetScripts().size(), 0);
+  TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
+  v8::Local<v8::Context> run_context = CcTest::isolate()->GetCurrentContext();
+  auto result = v8::Script::Compile(
+    run_context, source).ToLocalChecked()->Run(run_context).ToLocalChecked();
+  CHECK_EQ(
+      2, result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
+  CHECK_EQ(listener->GetScripts().size(), 1);
+}
 
 // TEST(TaintFlagToString) {
 //   CHECK_EQ(TaintTypeToString(TaintType::UNTAINTED), "Untainted");

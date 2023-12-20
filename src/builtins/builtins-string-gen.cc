@@ -347,6 +347,8 @@ TNode<String> StringBuiltinsAssembler::StringAdd(
       done(this, &result), done_native(this, &result);
   Counters* counters = isolate()->counters();
 
+  GotoIf(IntPtrEqual(IntPtrConstant(0), IntPtrConstant(0)), &runtime);
+
   TNode<Uint32T> left_length = LoadStringLengthAsWord32(left);
   GotoIfNot(Word32Equal(left_length, Uint32Constant(0)), &check_right);
   result = right;
