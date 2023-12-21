@@ -14,8 +14,8 @@ namespace v8 {
 namespace internal {
 
 template <typename Char, typename Base>
-class SimpleStringResource : 
-      public Base, public v8::String::TaintTrackingStringBufferImpl{
+class SimpleStringResource :
+      public Base{
  public:
   // Takes ownership of |data|.
   SimpleStringResource(Char* data, size_t length)

@@ -861,6 +861,7 @@ class ExternalOneByteString : public ExternalString {
 
   // The underlying resource.
   DECL_GETTER(resource, const Resource*)
+  DECL_GETTER_NOT_CONST(pub_resource, Resource*)
 
   // It is assumed that the previous resource is null. If it is not null, then
   // it is the responsability of the caller the handle the previous resource.
@@ -907,6 +908,7 @@ class ExternalTwoByteString : public ExternalString {
 
   // The underlying string resource.
   DECL_GETTER(resource, const Resource*)
+  DECL_GETTER_NOT_CONST(pub_resource, Resource*)
 
   // It is assumed that the previous resource is null. If it is not null, then
   // it is the responsability of the caller the handle the previous resource.

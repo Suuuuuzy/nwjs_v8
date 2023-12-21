@@ -3454,11 +3454,11 @@ class V8_EXPORT String : public Name {
 
       TaintTrackingStringBufferImpl() : taint_data_(nullptr) {}
 
-      virtual TaintData* GetTaintChars() const {
+       TaintData* GetTaintChars() const override {
         return taint_data_.get();
       }
 
-      virtual TaintData* InitTaintChars(size_t length) {
+      TaintData* InitTaintChars(size_t length) override {
         TaintData* answer = taint_data_.get();
         if (!taint_data_) {
           answer = new TaintData[length];
@@ -3534,7 +3534,8 @@ class V8_EXPORT String : public Name {
    * buffer.  Note that the string data must be immutable.
    */
   class V8_EXPORT ExternalStringResource
-      : public ExternalStringResourceBase {
+      : public ExternalStringResourceBase,
+        public TaintTrackingStringBufferImpl {
    public:
     /**
      * Override the destructor to manage the life cycle of the underlying
@@ -3589,7 +3590,8 @@ class V8_EXPORT String : public Name {
    */
 
   class V8_EXPORT ExternalOneByteStringResource
-      : public ExternalStringResourceBase {
+      : public ExternalStringResourceBase,
+        public TaintTrackingStringBufferImpl {
    public:
     /**
      * Override the destructor to manage the life cycle of the underlying
@@ -8490,7 +8492,7 @@ class V8_EXPORT MeasureMemoryDelegate {
 class V8_EXPORT Isolate {
  public:
   ArrayBuffer::Allocator* array_buffer_allocator();
-  
+
   /**
    * Initial configuration parameters for a new Isolate.
    */

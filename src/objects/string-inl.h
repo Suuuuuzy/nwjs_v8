@@ -943,6 +943,11 @@ DEF_GETTER(ExternalOneByteString, resource,
   return mutable_resource();
 }
 
+DEF_GETTER_NOT_CONST(ExternalOneByteString, pub_resource,
+            ExternalOneByteString::Resource*) {
+  return mutable_resource();
+}
+
 DEF_GETTER(ExternalOneByteString, mutable_resource,
            ExternalOneByteString::Resource*) {
   return reinterpret_cast<Resource*>(resource_as_address(cage_base));
@@ -1005,6 +1010,11 @@ uint8_t ExternalOneByteString::Get(int index) const {
 
 DEF_GETTER(ExternalTwoByteString, resource,
            const ExternalTwoByteString::Resource*) {
+  return mutable_resource();
+}
+
+DEF_GETTER_NOT_CONST(ExternalTwoByteString, pub_resource,
+            ExternalTwoByteString::Resource*) {
   return mutable_resource();
 }
 

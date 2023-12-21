@@ -630,8 +630,7 @@ TEST(OnBeforeCompileGetSetConsSingleTaintByteArray) {
 }
 
 class TaintOneByteResource :
-  public v8::String::ExternalOneByteStringResource,
-  public v8::String::TaintTrackingStringBufferImpl {
+  public v8::String::ExternalOneByteStringResource {
 public:
   TaintOneByteResource(const char* data, size_t length)
     : data_(data), length_(length) {}
@@ -674,19 +673,19 @@ TEST(SubStringExternalStringShort) {
   CHECK_EQ(listener->GetScripts().size(), 1);
 }
 
-// TEST(TaintFlagToString) {
-//   CHECK_EQ(TaintTypeToString(TaintType::UNTAINTED), "Untainted");
-//   CHECK_EQ(TaintTypeToString(TaintType::URL), "Url");
-//   CHECK_EQ(
-//       TaintFlagToString(AddFlag(AddFlag(0, TaintType::URL), TaintType::DOM)),
-//       "Url&Dom");
-//   CHECK_EQ(
-//       TaintFlagToString(AddFlag(0, TaintType::WINDOWNAME)),
-//       "WindowName");
-//   CHECK_EQ(
-//       TaintFlagToString(AddFlag(AddFlag(0, TaintType::URL), TaintType::COOKIE)),
-//       "Cookie&Url");
-// }
+TEST(TaintFlagToString) {
+  CHECK_EQ(TaintTypeToString(TaintType::UNTAINTED), "Untainted");
+  CHECK_EQ(TaintTypeToString(TaintType::URL), "Url");
+  CHECK_EQ(
+      TaintFlagToString(AddFlag(AddFlag(0, TaintType::URL), TaintType::DOM)),
+      "Url&Dom");
+  CHECK_EQ(
+      TaintFlagToString(AddFlag(0, TaintType::WINDOWNAME)),
+      "WindowName");
+  CHECK_EQ(
+      TaintFlagToString(AddFlag(AddFlag(0, TaintType::URL), TaintType::COOKIE)),
+      "Cookie&Url");
+}
 
 // TEST(TaintUrlEscapeRaw) {
 //   TestCase test_case;

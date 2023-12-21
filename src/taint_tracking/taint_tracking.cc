@@ -873,34 +873,34 @@ TaintType TaintFlagToType(TaintFlag flag) {
 // }
 
 template <class T>
-TaintData* StringTaintData(T str, const DisallowGarbageCollection& no_gc);
-template <> TaintData* StringTaintData<SeqOneByteString>(
-    SeqOneByteString str, const DisallowGarbageCollection& no_gc) {
-  return str.GetTaintChars(no_gc);
-}
-template <> TaintData* StringTaintData<SeqTwoByteString>(
-    SeqTwoByteString str, const DisallowGarbageCollection& no_gc) {
-  return str.GetTaintChars(no_gc);
-}
-// template <> TaintData* StringTaintData<ExternalOneByteString>(
-//     ExternalOneByteString str) {
-//   return str.resource()->GetTaintChars();
+TaintData* StringTaintData(T str);
+// template <> TaintData* StringTaintData<SeqOneByteString>(
+//     SeqOneByteString str, const DisallowGarbageCollection& no_gc) {
+//   return str.GetTaintChars(no_gc);
 // }
-// template <> TaintData* StringTaintData<ExternalTwoByteString>(
-//     ExternalTwoByteString str) {
-//   return str.resource()->GetTaintChars();
+// template <> TaintData* StringTaintData<SeqTwoByteString>(
+//     SeqTwoByteString str, const DisallowGarbageCollection& no_gc) {
+//   return str.GetTaintChars(no_gc);
 // }
+template <> TaintData* StringTaintData<ExternalOneByteString>(
+    ExternalOneByteString str) {
+  return str.resource()->GetTaintChars();
+}
+template <> TaintData* StringTaintData<ExternalTwoByteString>(
+    ExternalTwoByteString str) {
+  return str.resource()->GetTaintChars();
+}
 
-// template <class T>
-// TaintData* StringTaintData_TryAllocate(T str) {
-//   TaintData* answer = StringTaintData(str);
-//   if (answer == nullptr) {
-//     int len = str.length();
-//     answer = str.resource()->InitTaintChars(len);
-//     memset(answer, TaintType::UNTAINTED, len);
-//   }
-//   return answer;
-// }
+template <class T>
+TaintData* StringTaintData_TryAllocate(T str) {
+  TaintData* answer = str.resource()->GetTaintChars();
+  if (answer == nullptr) {
+    int len = str.length();
+    answer = str.pub_resource()->InitTaintChars(len);
+    memset(answer, TaintType::UNTAINTED, len);
+  }
+  return answer;
+}
 
 template<> TaintData* GetWriteableStringTaintData<SeqOneByteString>(
     SeqOneByteString str, const DisallowGarbageCollection& no_gc) {
@@ -910,14 +910,14 @@ template<> TaintData* GetWriteableStringTaintData<SeqTwoByteString>(
     SeqTwoByteString str, const DisallowGarbageCollection& no_gc) {
   return str.GetTaintChars(no_gc);
 }
-// template<> TaintData* GetWriteableStringTaintData<ExternalOneByteString>(
-//     ExternalOneByteString str) {
-//   return StringTaintData_TryAllocate(str);
-// }
-// template<> TaintData* GetWriteableStringTaintData<ExternalTwoByteString>(
-//     ExternalTwoByteString str) {
-//   return StringTaintData_TryAllocate(str);
-// }
+template<> TaintData* GetWriteableStringTaintData<ExternalOneByteString>(
+    ExternalOneByteString str, const DisallowGarbageCollection& no_gc) {
+  return StringTaintData_TryAllocate(str);
+}
+template<> TaintData* GetWriteableStringTaintData<ExternalTwoByteString>(
+    ExternalTwoByteString str, const DisallowGarbageCollection& no_gc) {
+  return StringTaintData_TryAllocate(str);
+}
 template<> TaintData* GetWriteableStringTaintData<SeqString>(SeqString str,
           const DisallowGarbageCollection& no_gc) {
   if (str.IsSeqOneByteString()) {
@@ -933,7 +933,8 @@ void MarkNewString(String str) {
 }
 
 template <class T> void InitTaintSeqByteString(T str, TaintType type, const DisallowGarbageCollection& no_gc) {
-  TaintData* data = StringTaintData(str, no_gc);
+  // TaintData* data = StringTaintData(str, no_gc);
+   TaintData* data = str.GetTaintChars(no_gc);
   memset(data, type, str.length());
   MarkNewString(str);
 }
@@ -1004,45 +1005,45 @@ template <> void TaintVisitor::VisitIntoStringTemplate<SeqTwoByteString>(
   DoVisit(source.GetChars(no_gc), source.GetTaintChars(no_gc), from, len);
 }
 
-// template <> void TaintVisitor::VisitIntoStringTemplate<ExternalOneByteString>(
-//     ExternalOneByteString source, int from, int len) {
-  // DCHECK_GE(from, 0);
-  // DCHECK_GE(len, 0);
-  // DCHECK_LE(from + len, source.length());
-  // TaintData* data;
-  // if (writeable_) {
-  //   data = StringTaintData_TryAllocate(source);
-  // } else {
-  //   data = StringTaintData(source);
-  // }
-  // DoVisit(source.GetChars(), data, from, len);
-// }
+template <> void TaintVisitor::VisitIntoStringTemplate<ExternalOneByteString>(
+    ExternalOneByteString source, int from, int len) {
+  DCHECK_GE(from, 0);
+  DCHECK_GE(len, 0);
+  DCHECK_LE(from + len, source.length());
+  TaintData* data;
+  if (writeable_) {
+    data = StringTaintData_TryAllocate(source);
+  } else {
+    data = StringTaintData(source);
+  }
+  DoVisit(source.GetChars(), data, from, len);
+}
 
-// template <> void TaintVisitor::VisitIntoStringTemplate<ExternalTwoByteString>(
-//     ExternalTwoByteString source, int from, int len) {
-  // DCHECK_GE(from, 0);
-  // DCHECK_GE(len, 0);
-  // DCHECK_LE(from + len, source.length());
-  // TaintData* data;
-  // if (writeable_) {
-  //   data = StringTaintData_TryAllocate(source);
-  // } else {
-  //   data = StringTaintData(source);
-  // }
-  // DoVisit(source.GetChars(), data, from, len);
-// }
+template <> void TaintVisitor::VisitIntoStringTemplate<ExternalTwoByteString>(
+    ExternalTwoByteString source, int from, int len) {
+  DCHECK_GE(from, 0);
+  DCHECK_GE(len, 0);
+  DCHECK_LE(from + len, source.length());
+  TaintData* data;
+  if (writeable_) {
+    data = StringTaintData_TryAllocate(source);
+  } else {
+    data = StringTaintData(source);
+  }
+  DoVisit(source.GetChars(), data, from, len);
+}
 
-// template <> void TaintVisitor::VisitIntoStringTemplate<ExternalString>(
-//     ExternalString source, int from, int len) {
-  // if (source.IsExternalOneByteString()) {
-  //   return VisitIntoStringTemplate(
-  //       ExternalOneByteString::cast(source), from, len);
-  // } else {
-  //   DCHECK(source.IsExternalTwoByteString());
-  //   return VisitIntoStringTemplate(
-  //       ExternalTwoByteString::cast(source), from, len);
-  // }
-// }
+template <> void TaintVisitor::VisitIntoStringTemplate<ExternalString>(
+    ExternalString source, int from, int len) {
+  if (source.IsExternalOneByteString()) {
+    return VisitIntoStringTemplate(
+        ExternalOneByteString::cast(source), from, len);
+  } else {
+    DCHECK(source.IsExternalTwoByteString());
+    return VisitIntoStringTemplate(
+        ExternalTwoByteString::cast(source), from, len);
+  }
+}
 
 template <> void TaintVisitor::VisitIntoStringTemplate<SeqString>(
     SeqString source, int from, int len) {
@@ -1065,12 +1066,12 @@ template <> void TaintVisitor::VisitIntoStringTemplate<String>(
   } else if (shape.IsSliced()) {
     VisitIntoStringTemplate(
         SlicedString::cast(source), from_offset, from_len);
-  // } else if (shape.IsExternalOneByte()) {
-  //   VisitIntoStringTemplate(
-  //       ExternalOneByteString::cast(source), from_offset, from_len);
-  // } else if (shape.IsExternalTwoByte()) {
-  //   VisitIntoStringTemplate(
-  //       ExternalTwoByteString::cast(source), from_offset, from_len);
+  } else if (shape.IsExternalOneByte()) {
+    VisitIntoStringTemplate(
+        ExternalOneByteString::cast(source), from_offset, from_len);
+  } else if (shape.IsExternalTwoByte()) {
+    VisitIntoStringTemplate(
+        ExternalTwoByteString::cast(source), from_offset, from_len);
   } else if (shape.IsSequentialOneByte()) {
     VisitIntoStringTemplate(
         SeqOneByteString::cast(source), from_offset, from_len);
