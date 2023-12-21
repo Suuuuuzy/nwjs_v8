@@ -182,10 +182,10 @@ const TaintFlag kTaintFlagUntainted = 0;
 typedef int64_t InstanceCounter;
 const InstanceCounter kUndefinedInstanceCounter = -1;
 
-// std::string TaintTypeToString(TaintType type);
-// std::string TaintFlagToString(TaintFlag flag);
-// TaintFlag AddFlag(TaintFlag current, TaintType new_value,
-//                   v8::internal::String* object = nullptr);
+std::string TaintTypeToString(TaintType type);
+std::string TaintFlagToString(TaintFlag flag);
+TaintFlag AddFlag(TaintFlag current, TaintType new_value,
+                  v8::internal::String* object = nullptr);
 
 struct TaintInstanceInfo {
   char const* name;

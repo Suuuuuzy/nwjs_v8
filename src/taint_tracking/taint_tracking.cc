@@ -692,15 +692,17 @@ inline TaintFlag MaskForType(TaintType type) {
     static_cast<TaintFlag>(1 << static_cast<uint8_t>(type - 1));
 }
 
-TaintFlag AddFlag(
-    TaintFlag current, TaintType new_value, String object) {
-  CheckTaintError(new_value, object);
+TaintFlag AddFlag(TaintFlag current, TaintType new_value, String* object) {
+  if (object != nullptr) {
+    String tmp = *object;
+    CheckTaintError(new_value, tmp);
+  }
   return current | MaskForType(new_value);
 }
 
-// bool TestFlag(TaintFlag flag, TaintType type) {
-//   return (MaskForType(type) & flag) != 0;
-// }
+bool TestFlag(TaintFlag flag, TaintType type) {
+  return (MaskForType(type) & flag) != 0;
+}
 
 TaintType TaintFlagToType(TaintFlag flag) {
   if (flag == kTaintFlagUntainted) {
@@ -711,36 +713,36 @@ TaintType TaintFlagToType(TaintFlag flag) {
     TaintType::MULTIPLE_TAINTS;
 }
 
-// std::string TaintTypeToString(TaintType type) {
-//   switch (type){
-//     case TaintType::UNTAINTED:
-//       return "Untainted";
-//     case TaintType::TAINTED:
-//       return "Tainted";
-//     case TaintType::COOKIE:
-//       return "Cookie";
-//     case TaintType::MESSAGE:
-//       return "Message";
-//     case TaintType::URL:
-//       return "Url";
-//     case TaintType::DOM:
-//       return "Dom";
-//     case TaintType::REFERRER:
-//       return "Referrer";
-//     case TaintType::WINDOWNAME:
-//       return "WindowName";
-//     case TaintType::STORAGE:
-//       return "Storage";
-//     case TaintType::NETWORK:
-//       return "Network";
-//     case TaintType::MULTIPLE_TAINTS:
-//       return "MultipleTaints";
-//     case TaintType::MAX_TAINT_TYPE:
-//     default:
-//       return "UnknownTaintError:" + std::to_string(
-//           static_cast<uint8_t>(type));
-//   }
-// }
+std::string TaintTypeToString(TaintType type) {
+  switch (type){
+    case TaintType::UNTAINTED:
+      return "Untainted";
+    case TaintType::TAINTED:
+      return "Tainted";
+    case TaintType::COOKIE:
+      return "Cookie";
+    case TaintType::MESSAGE:
+      return "Message";
+    case TaintType::URL:
+      return "Url";
+    case TaintType::DOM:
+      return "Dom";
+    case TaintType::REFERRER:
+      return "Referrer";
+    case TaintType::WINDOWNAME:
+      return "WindowName";
+    case TaintType::STORAGE:
+      return "Storage";
+    case TaintType::NETWORK:
+      return "Network";
+    case TaintType::MULTIPLE_TAINTS:
+      return "MultipleTaints";
+    case TaintType::MAX_TAINT_TYPE:
+    default:
+      return "UnknownTaintError:" + std::to_string(
+          static_cast<uint8_t>(type));
+  }
+}
 
 ::TaintLogRecord::TaintEncoding TaintTypeToRecordEncoding(TaintType type) {
   switch (type & TaintType::ENCODING_TYPE_MASK) {
@@ -849,28 +851,28 @@ TaintType TaintFlagToType(TaintFlag flag) {
 //   }
 // }
 
-// std::string TaintFlagToString(TaintFlag flag) {
-//   std::ostringstream output;
-//   bool started = false;
-//   int found = 0;
-//   for (int i = TaintType::TAINTED;
-//        i < static_cast<uint8_t>(TaintType::MAX_TAINT_TYPE); i++) {
-//     TaintType type = static_cast<TaintType>(i);
-//     if (TestFlag(flag, type)) {
-//       if (started) {
-//         output << "&";
-//       } else {
-//         started = true;
-//       }
-//       output << TaintTypeToString(type);
-//       found += 1;
-//     }
-//   }
-//   if (found == 0) {
-//     return TaintTypeToString(TaintType::UNTAINTED);
-//   }
-//   return output.str();
-// }
+std::string TaintFlagToString(TaintFlag flag) {
+  std::ostringstream output;
+  bool started = false;
+  int found = 0;
+  for (int i = TaintType::TAINTED;
+       i < static_cast<uint8_t>(TaintType::MAX_TAINT_TYPE); i++) {
+    TaintType type = static_cast<TaintType>(i);
+    if (TestFlag(flag, type)) {
+      if (started) {
+        output << "&";
+      } else {
+        started = true;
+      }
+      output << TaintTypeToString(type);
+      found += 1;
+    }
+  }
+  if (found == 0) {
+    return TaintTypeToString(TaintType::UNTAINTED);
+  }
+  return output.str();
+}
 
 template <class T>
 TaintData* StringTaintData(T str);
@@ -1206,7 +1208,8 @@ private:
             std::make_tuple(type, already_written_));
       }
       prev_type_ = type;
-      flag_ = AddFlag(flag_, type, GetVisitee());
+      String tmp = GetVisitee();
+      flag_ = AddFlag(flag_, type, &tmp);
       already_written_++;
     }
   }
