@@ -194,7 +194,7 @@ MaybeHandle<String> Uri::Decode(Isolate* isolate, Handle<String> uri,
   std::vector<uc16> two_byte_buffer;
   std::vector<tainttracking::TaintData> taint_data;
 
-  if (!IntoOneAndTwoByte(uri, is_uri, 
+  if (!IntoOneAndTwoByte(uri, is_uri,
         &one_byte_buffer, &two_byte_buffer, &taint_data)) {
     THROW_NEW_ERROR(isolate, NewURIError(), String);
   }
@@ -363,7 +363,7 @@ MaybeHandle<String> Uri::Encode(Isolate* isolate, Handle<String> uri,
     }
   }
 
-  MaybeHandle<String> result = 
+  MaybeHandle<String> result =
     isolate->factory()->NewStringFromOneByte(VectorOf(buffer));
   if (!result.is_null()) {
     Handle<String> res_str = result.ToHandleChecked();
@@ -443,8 +443,13 @@ MaybeHandle<String> UnescapeSlow(Isolate* isolate, Handle<String> string,
       int step;
       dest->SeqOneByteStringSet(dest_position,
                                 UnescapeChar(vector, i, length, &step));
+      tainttracking::SetTaintStatus(
+          *dest,
+          dest_position,
+          tainttracking::GetTaintStatusRange(*string, i, step));
       i += step;
     }
+    tainttracking::OnGenericOperation(tainttracking::URI_UNESCAPE, *dest);
     second_part = dest;
   } else {
     Handle<SeqTwoByteString> dest = isolate->factory()
@@ -456,8 +461,13 @@ MaybeHandle<String> UnescapeSlow(Isolate* isolate, Handle<String> string,
       int step;
       dest->SeqTwoByteStringSet(dest_position,
                                 UnescapeChar(vector, i, length, &step));
+      tainttracking::SetTaintStatus(
+          *dest,
+          dest_position,
+          tainttracking::GetTaintStatusRange(*string, i, step));
       i += step;
     }
+    tainttracking::OnGenericOperation(tainttracking::URI_UNESCAPE, *dest);
     second_part = dest;
   }
   return isolate->factory()->NewConsString(first_part, second_part);
@@ -544,17 +554,24 @@ static MaybeHandle<String> EscapePrivate(Isolate* isolate,
         dest->SeqOneByteStringSet(dest_position + 4,
                                   HexCharOfValue((c >> 4) & 0xF));
         dest->SeqOneByteStringSet(dest_position + 5, HexCharOfValue(c & 0xF));
+        tainttracking::CopyIn(
+            *dest, tainttracking::GetTaintStatus(*string, i), dest_position, 6);
         dest_position += 6;
       } else if (IsNotEscaped(c)) {
         dest->SeqOneByteStringSet(dest_position, c);
+        tainttracking::SetTaintStatus(
+            *dest, dest_position, tainttracking::GetTaintStatus(*string, i));
         dest_position++;
       } else {
         dest->SeqOneByteStringSet(dest_position, '%');
         dest->SeqOneByteStringSet(dest_position + 1, HexCharOfValue(c >> 4));
         dest->SeqOneByteStringSet(dest_position + 2, HexCharOfValue(c & 0xF));
+        tainttracking::CopyIn(
+            *dest, tainttracking::GetTaintStatus(*string, i), dest_position, 3);
         dest_position += 3;
       }
     }
+    tainttracking::OnGenericOperation(tainttracking::URI_ESCAPE, *dest);
   }
 
   return dest;

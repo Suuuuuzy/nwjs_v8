@@ -687,67 +687,72 @@ TEST(TaintFlagToString) {
       "Cookie&Url");
 }
 
-// TEST(TaintUrlEscapeRaw) {
-//   TestCase test_case;
-//   Factory* factory = CcTest::i_isolate()->factory();
-//   v8::HandleScope scope(CcTest::isolate());
-//   Handle<String> test = factory->NewStringFromStaticChars("0 0 0 a");
-//   SetTaintStatus(*test, 0, TaintType::TAINTED);
-//   SetTaintStatus(*test, 1, TaintType::TAINTED);
-//   SetTaintStatus(*test, 5, TaintType::TAINTED);
+TEST(TaintUrlEscapeRaw) {
+  TestCase test_case;
+  Factory* factory = CcTest::i_isolate()->factory();
+  v8::HandleScope scope(CcTest::isolate());
+  Handle<String> test = factory->NewStringFromStaticChars("0 0 0 a");
+  SetTaintStatus(*test, 0, TaintType::TAINTED);
+  SetTaintStatus(*test, 1, TaintType::TAINTED);
+  SetTaintStatus(*test, 5, TaintType::TAINTED);
 
-//   Handle<String> encoded = Uri::Escape(
-//       CcTest::i_isolate(), test).ToHandleChecked();
-//   CHECK_EQ(13, encoded->length());
-//   CHECK_EQ(GetTaintStatus(*encoded, 0),
-//            TaintType::TAINTED | TaintType::ESCAPE_ENCODED);
-//   CHECK_EQ(GetTaintStatus(*encoded, 1),
-//            TaintType::TAINTED | TaintType::ESCAPE_ENCODED);
-//   CHECK_EQ(GetTaintStatus(*encoded, 2),
-//            TaintType::TAINTED | TaintType::ESCAPE_ENCODED);
-//   CHECK_EQ(GetTaintStatus(*encoded, 3),
-//            TaintType::TAINTED | TaintType::ESCAPE_ENCODED);
-//   CHECK_EQ(GetTaintStatus(*encoded, 4),
-//            TaintType::UNTAINTED | TaintType::ESCAPE_ENCODED);
-//   CHECK_EQ(GetTaintStatus(*encoded, 11),
-//            TaintType::TAINTED | TaintType::ESCAPE_ENCODED);
-//   CHECK_EQ(GetTaintStatus(*encoded, 12),
-//            TaintType::UNTAINTED | TaintType::ESCAPE_ENCODED);
-// }
+  Handle<String> encoded = Uri::Escape(
+      CcTest::i_isolate(), test).ToHandleChecked();
+  CHECK_EQ(13, encoded->length());
+  CHECK_EQ(GetTaintStatus(*encoded, 0),
+           TaintType::TAINTED | TaintType::ESCAPE_ENCODED);
+  CHECK_EQ(GetTaintStatus(*encoded, 1),
+           TaintType::TAINTED | TaintType::ESCAPE_ENCODED);
+  CHECK_EQ(GetTaintStatus(*encoded, 2),
+           TaintType::TAINTED | TaintType::ESCAPE_ENCODED);
+  CHECK_EQ(GetTaintStatus(*encoded, 3),
+           TaintType::TAINTED | TaintType::ESCAPE_ENCODED);
+  CHECK_EQ(GetTaintStatus(*encoded, 4),
+           TaintType::UNTAINTED | TaintType::ESCAPE_ENCODED);
+  CHECK_EQ(GetTaintStatus(*encoded, 11),
+           TaintType::TAINTED | TaintType::ESCAPE_ENCODED);
+  CHECK_EQ(GetTaintStatus(*encoded, 12),
+           TaintType::UNTAINTED | TaintType::ESCAPE_ENCODED);
+}
 
-// TEST(TaintUrlEscape) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   v8::Local<v8::String> source = v8_str(
-//       CcTest::isolate(),
-//       "var a = '1 + 1'; "
-//       "a.__setTaint__(1); "
-//       "eval('\"' + escape(a) + '\"'); ");
-//   TestTaintListener* listener = new TestTaintListener();
-//   CHECK_EQ(listener->GetScripts().size(), 0);
-//   TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
-//   auto result = v8::Script::Compile(
-//       CcTest::isolate()->GetCurrentContext(), source).ToLocalChecked()->Run();
-//   CHECK_EQ(listener->GetScripts().size(), 1);
-// }
+TEST(TaintUrlEscape) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  v8::Local<v8::String> source = v8_str(
+      CcTest::isolate(),
+      "var a = '1 + 1'; "
+      "a.__setTaint__(1); "
+      "eval('\"' + escape(a) + '\"'); ");
+  TestTaintListener* listener = new TestTaintListener();
+  CHECK_EQ(listener->GetScripts().size(), 0);
+  TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
+  v8::Local<v8::Context> run_context = CcTest::isolate()->GetCurrentContext();
+  auto result = v8::Script::Compile(
+    run_context, source).ToLocalChecked()->Run(run_context).ToLocalChecked();
+  CHECK_EQ(listener->GetScripts().size(), 1);
+  (void)result;
+  // CHECK_EQ(
+      // 2, result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
+}
 
-// TEST(TaintUrlUnescape) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   v8::Local<v8::String> source = v8_str(
-//       CcTest::isolate(),
-//       "var a = '1%20%2B%201'; " // var a = '1 + 1'
-//       "a.__setTaint__(1); "
-//       "eval(unescape(a)); ");
-//   TestTaintListener* listener = new TestTaintListener();
-//   CHECK_EQ(listener->GetScripts().size(), 0);
-//   TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
-//   auto result = v8::Script::Compile(
-//       CcTest::isolate()->GetCurrentContext(), source).ToLocalChecked()->Run();
-//   CHECK_EQ(listener->GetScripts().size(), 1);
-//   CHECK_EQ(
-//       2, result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
-// }
+TEST(TaintUrlUnescape) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  v8::Local<v8::String> source = v8_str(
+      CcTest::isolate(),
+      "var a = '1%20%2B%201'; " // var a = '1 + 1'
+      "a.__setTaint__(1); "
+      "eval(unescape(a)); ");
+  TestTaintListener* listener = new TestTaintListener();
+  CHECK_EQ(listener->GetScripts().size(), 0);
+  TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
+  v8::Local<v8::Context> run_context = CcTest::isolate()->GetCurrentContext();
+  auto result = v8::Script::Compile(
+    run_context, source).ToLocalChecked()->Run(run_context).ToLocalChecked();
+  CHECK_EQ(listener->GetScripts().size(), 1);
+  CHECK_EQ(
+      2, result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
+}
 
 // TEST(TaintUrlEncode) {
 //   TestCase test_case;
