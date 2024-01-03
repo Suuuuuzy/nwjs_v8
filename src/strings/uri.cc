@@ -238,6 +238,11 @@ MaybeHandle<String> Uri::Decode(Isolate* isolate, Handle<String> uri,
   if (!two_byte_buffer.empty()) {
     CopyChars(chars, two_byte_buffer.data(), two_byte_buffer.size());
   }
+  tainttracking::CopyIn(*result, taint_data.data(), 0, result_length);
+  tainttracking::OnGenericOperation(
+      is_uri
+      ? tainttracking::SymbolicType::URI_DECODE
+      : tainttracking::SymbolicType::URI_COMPONENT_DECODE, *result);
 
   return result;
 }
@@ -308,6 +313,7 @@ int EncodePair(uc16 cc1, uc16 cc2, std::vector<uint8_t>* buffer) {
   for (int k = 0; k < number_of_bytes; k++) {
     AddEncodedOctetToBuffer(s[k], buffer);
   }
+  // if you check AddEncodedOctetToBuffer, you will see they push back 3 times
   return number_of_bytes * 3;
 }
 
