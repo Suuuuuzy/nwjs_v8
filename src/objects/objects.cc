@@ -4613,7 +4613,7 @@ namespace {
 
 template <typename sinkchar>
 void WriteFixedArrayToFlat(FixedArray fixed_array, int length, String separator,
-                           sinkchar* sink, int sink_length) {
+                           sinkchar* sink, int sink_length, byte* taintDest) {
   DisallowGarbageCollection no_gc;
   CHECK_GT(length, 0);
   CHECK_LE(length, fixed_array.length());
@@ -4659,11 +4659,13 @@ void WriteFixedArrayToFlat(FixedArray fixed_array, int length, String separator,
         memset(sink, separator_one_char, num_separators);
         DCHECK_EQ(separator_length, 1);
         sink += num_separators;
+        taintDest += num_separators;
       } else {
         for (uint32_t j = 0; j < num_separators; j++) {
           DCHECK_LE(sink + separator_length, sink_end);
           String::WriteToFlat(separator, sink, 0, separator_length);
           sink += separator_length;
+          taintDest += separator_length;
         }
       }
     }
@@ -4677,7 +4679,11 @@ void WriteFixedArrayToFlat(FixedArray fixed_array, int length, String separator,
 
       DCHECK(string_length == 0 || sink < sink_end);
       String::WriteToFlat(string, sink, 0, string_length);
+      tainttracking::OnNewSubStringCopy(string, taintDest, 0, string_length);
       sink += string_length;
+      taintDest += string_length;
+
+      std::cout  << "jianjia see sep 2 "<< string << std::endl;
 
       // Next string element, needs at least one separator preceding it.
       num_separators = 1;
@@ -4706,15 +4712,20 @@ Address JSArray::ArrayJoinConcatToSequentialString(Isolate* isolate,
          StringShape(dest).IsSequentialTwoByte());
 
   if (StringShape(dest).IsSequentialOneByte()) {
+    tainttracking::InitTaintData( SeqOneByteString::cast(dest), no_gc);
     WriteFixedArrayToFlat(fixed_array, static_cast<int>(length), separator,
                           SeqOneByteString::cast(dest).GetChars(no_gc),
-                          dest.length());
+                          dest.length(),
+                          SeqOneByteString::cast(dest).GetTaintChars(no_gc));
   } else {
     DCHECK(StringShape(dest).IsSequentialTwoByte());
+    tainttracking::InitTaintData(SeqTwoByteString::cast(dest), no_gc);
     WriteFixedArrayToFlat(fixed_array, static_cast<int>(length), separator,
                           SeqTwoByteString::cast(dest).GetChars(no_gc),
-                          dest.length());
+                          dest.length(),
+                          SeqTwoByteString::cast(dest).GetTaintChars(no_gc));
   }
+  std::cout  << "jianjia see sep "<< separator << dest << std::endl;
   return dest.ptr();
 }
 
