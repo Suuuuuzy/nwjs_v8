@@ -4659,12 +4659,14 @@ void WriteFixedArrayToFlat(FixedArray fixed_array, int length, String separator,
         memset(sink, separator_one_char, num_separators);
         DCHECK_EQ(separator_length, 1);
         sink += num_separators;
+        tainttracking::OnNewSubStringCopy(separator, taintDest, 0, 1);
         taintDest += num_separators;
       } else {
         for (uint32_t j = 0; j < num_separators; j++) {
           DCHECK_LE(sink + separator_length, sink_end);
           String::WriteToFlat(separator, sink, 0, separator_length);
           sink += separator_length;
+          tainttracking::OnNewSubStringCopy(separator, taintDest, 0, separator_length);
           taintDest += separator_length;
         }
       }
