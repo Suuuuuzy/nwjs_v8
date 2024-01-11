@@ -957,6 +957,13 @@ template<> void InitTaintData<SeqString>(SeqString str, const DisallowGarbageCol
   }
 }
 
+void InitTaintDataWithDestLen(
+    TaintData* dest, int len, TaintType type) {
+  // InitTaintSeqByteString(str, type, no_gc);
+  memset(dest, type, len);
+}
+
+
 template <> void TaintVisitor::VisitIntoStringTemplate<ConsString>(
     ConsString source, int from_offset, int from_len) {
   String first = source.first();
@@ -2118,14 +2125,14 @@ template void CopyOut<SeqTwoByteString>(
 //     String* subject, SeqTwoByteString* result, JSRegExp* pattern,
 //     String* replacement);
 
-// template void OnJoinManyStrings<SeqOneByteString, JSArray>(
-//     SeqOneByteString*, JSArray*);
-// template void OnJoinManyStrings<SeqTwoByteString, JSArray>(
-//     SeqTwoByteString*, JSArray*);
-// template void OnJoinManyStrings<SeqOneByteString, FixedArray>(
-//     SeqOneByteString*, FixedArray*);
-// template void OnJoinManyStrings<SeqTwoByteString, FixedArray>(
-//     SeqTwoByteString*, FixedArray*);
+template void OnJoinManyStrings<SeqOneByteString, JSArray>(
+    SeqOneByteString, JSArray);
+template void OnJoinManyStrings<SeqTwoByteString, JSArray>(
+    SeqTwoByteString, JSArray);
+template void OnJoinManyStrings<SeqOneByteString, FixedArray>(
+    SeqOneByteString, FixedArray);
+template void OnJoinManyStrings<SeqTwoByteString, FixedArray>(
+    SeqTwoByteString, FixedArray);
 
 template void FlattenTaint<String>(
     String, TaintData*, int, int);
@@ -2235,12 +2242,12 @@ void OnNewConsString(ConsString target, String first, String second) {
 // }
 
 
-// template <class T, class Array>
-// void OnJoinManyStrings(T* target, Array* array) {
-//   if (FLAG_taint_tracking_enable_symbolic) {
-//     LogSymbolic<0>(target, {{}}, "TODO: print array value", JOIN);
-//   }
-// }
+template <class T, class Array>
+void OnJoinManyStrings(T target, Array array) {
+  if (FLAG_taint_tracking_enable_symbolic) {
+    // LogSymbolic<0>(target, {{}}, "TODO: print array value", JOIN);
+  }
+}
 
 // template <class T>
 // void OnConvertCase(String* source, T* answer) {

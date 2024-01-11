@@ -241,6 +241,9 @@ template <> void InitTaintData<v8::internal::SeqOneByteString>(
 template <> void InitTaintData<v8::internal::SeqTwoByteString>(
     v8::internal::SeqTwoByteString str, const v8::internal::DisallowGarbageCollection& no_gc, TaintType type);
 
+void InitTaintDataWithDestLen(TaintData* dest, int len, TaintType type = TaintType::UNTAINTED);
+
+
 template <class T>
 void CopyOut(T source, TaintData* dest, int offset, int len);
 template <class T>
@@ -298,8 +301,7 @@ void OnNewSlicedString(v8::internal::SlicedString target,
 //     T* result,
 //     v8::internal::JSRegExp* pattern,
 //     v8::internal::String* replacement);
-// template <class T, class Array> void OnJoinManyStrings(
-//     T* target, Array* array);
+template <class T, class Array> void OnJoinManyStrings(T target, Array array);
 // template <class T> void OnConvertCase(
 //     v8::internal::String* source, T* answer);
 template <class T> void OnGenericOperation(

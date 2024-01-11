@@ -254,8 +254,9 @@ RUNTIME_FUNCTION(Runtime_StringBuilderConcat) {
         isolate, answer, isolate->factory()->NewRawOneByteString(length));
     DisallowGarbageCollection no_gc;
     StringBuilderConcatHelper(*special, answer->GetChars(no_gc),
-                              FixedArray::cast(array->elements()),
-                              array_length);
+                              FixedArray::cast(array->elements()), array_length,
+                              answer->GetTaintChars(no_gc));
+    tainttracking::OnJoinManyStrings(*answer, *array);
     return *answer;
   } else {
     Handle<SeqTwoByteString> answer;
@@ -263,8 +264,9 @@ RUNTIME_FUNCTION(Runtime_StringBuilderConcat) {
         isolate, answer, isolate->factory()->NewRawTwoByteString(length));
     DisallowGarbageCollection no_gc;
     StringBuilderConcatHelper(*special, answer->GetChars(no_gc),
-                              FixedArray::cast(array->elements()),
-                              array_length);
+                              FixedArray::cast(array->elements()), array_length,
+                              answer->GetTaintChars(no_gc));
+    tainttracking::OnJoinManyStrings(*answer, *array);
     return *answer;
   }
 }

@@ -3454,7 +3454,7 @@ class V8_EXPORT String : public Name {
 
       TaintTrackingStringBufferImpl() : taint_data_(nullptr) {}
 
-       TaintData* GetTaintChars() const override {
+      TaintData* GetTaintChars() const override {
         return taint_data_.get();
       }
 

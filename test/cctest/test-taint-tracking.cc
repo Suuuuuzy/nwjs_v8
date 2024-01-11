@@ -928,41 +928,78 @@ TEST(TaintJoinSep) {
       6, result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
 }
 
-// TEST(TaintRegexp) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   v8::Local<v8::String> source = v8_str(
-//       CcTest::isolate(),
-//       "var a = /as/g;"
-//       "var b = 'asdf';"
-//       "b.__setTaint__(1);"
-//       "b.replace(a, '$&');"
-//       "eval('\"' + b + '\"');");
-//   TestTaintListener* listener = new TestTaintListener();
-//   CHECK_EQ(listener->GetScripts().size(), 0);
-//   TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
-//   auto result = v8::Script::Compile(
-//       CcTest::isolate()->GetCurrentContext(), source).ToLocalChecked()->Run();
-//   CHECK_EQ(listener->GetScripts().size(), 1);
-// }
+// $&  The matched substring. So this case is to not replace anything.
+TEST(TaintRegexp) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  v8::Local<v8::String> source = v8_str(
+      CcTest::isolate(),
+      "var a = /as/g;"
+      "var b = 'asdf';"
+      "b.__setTaint__(1);"
+      "b.replace(a, '$&');"
+      "eval('\"' + b.replace(a, '$&') + '\"');"
+      "var c = b.replace(a, '$&').__getTaint__(); "
+      "new Uint8Array(c)[0]; "
+      );
+  TestTaintListener* listener = new TestTaintListener();
+  CHECK_EQ(listener->GetScripts().size(), 0);
+  TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
+  v8::Local<v8::Context> run_context = CcTest::isolate()->GetCurrentContext();
+  auto result = v8::Script::Compile(
+    run_context, source).ToLocalChecked()->Run(run_context).ToLocalChecked();
+  // (void)result;
+  CHECK_EQ(
+      1, result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
+  CHECK_EQ(listener->GetScripts().size(), 1);
+}
 
-// TEST(TaintRegexpSimple) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   v8::Local<v8::String> source = v8_str(
-//       CcTest::isolate(),
-//       "var a = /as/g;"
-//       "var b = 'asdf';"
-//       "b.__setTaint__(1);"
-//       "b.replace(a, 'jfj');"
-//       "eval('\"' + b + '\"');");
-//   TestTaintListener* listener = new TestTaintListener();
-//   CHECK_EQ(listener->GetScripts().size(), 0);
-//   TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
-//   auto result = v8::Script::Compile(
-//       CcTest::isolate()->GetCurrentContext(), source).ToLocalChecked()->Run();
-//   CHECK_EQ(listener->GetScripts().size(), 1);
-// }
+TEST(TaintRegexpSimple) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  v8::Local<v8::String> source =
+      v8_str(CcTest::isolate(),
+             "var a = /asdf/g;"
+             // "var b = 'asdf';"
+             "var b = 'asdffdfsda';"
+             "b.__setTaint__(1);"
+             "b.replace(a, 'jfj');"
+             "eval('\"' + b.replace(a, 'jfj') + '\"');"
+             "var c = b.replace(a, 'jfj').__getTaint__(); "
+             "new Uint8Array(c)[3]; "
+            );
+  TestTaintListener* listener = new TestTaintListener();
+  CHECK_EQ(listener->GetScripts().size(), 0);
+  TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
+  v8::Local<v8::Context> run_context = CcTest::isolate()->GetCurrentContext();
+  auto result = v8::Script::Compile(
+    run_context, source).ToLocalChecked()->Run(run_context).ToLocalChecked();
+  CHECK_EQ(
+      1, result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
+  CHECK_EQ(listener->GetScripts().size(), 1);
+  // (void)result;
+}
+
+TEST(TaintRegexpSimpleNo) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  v8::Local<v8::String> source =
+      v8_str(CcTest::isolate(),
+             "var a = /asdf/g;"
+             "var b = 'asdf';"
+             "b.__setTaint__(1);"
+             "b.replace(a, 'jfj');"
+             "eval('\"' + b.replace(a, 'jfj') + '\"');"
+             );
+  TestTaintListener* listener = new TestTaintListener();
+  CHECK_EQ(listener->GetScripts().size(), 0);
+  TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
+  v8::Local<v8::Context> run_context = CcTest::isolate()->GetCurrentContext();
+  auto result = v8::Script::Compile(
+    run_context, source).ToLocalChecked()->Run(run_context).ToLocalChecked();
+  CHECK_EQ(listener->GetScripts().size(), 0);
+  (void)result;
+}
 
 // TEST(TaintJSONStringify) {
 //   TestCase test_case;
