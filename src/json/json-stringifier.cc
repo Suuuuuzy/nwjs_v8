@@ -91,7 +91,7 @@ class JsonStringifier {
 
   template <typename SrcChar, typename DestChar>
   V8_INLINE static void SerializeStringUnchecked_(
-      Vector<const SrcChar> src,
+      String  src,
       IncrementalStringBuilder::NoExtend<DestChar>* dest);
 
   template <typename SrcChar, typename DestChar>
@@ -875,42 +875,45 @@ JsonStringifier::Result JsonStringifier::SerializeJSProxy(
 
 template <typename SrcChar, typename DestChar>
 void JsonStringifier::SerializeStringUnchecked_(
-    Vector<const SrcChar> src,
+    String src,
     IncrementalStringBuilder::NoExtend<DestChar>* dest) {
   // Assert that uc16 character is not truncated down to 8 bit.
   // The <uc16, char> version of this method must not be called.
   DCHECK(sizeof(DestChar) >= sizeof(SrcChar));
+  DisallowGarbageCollection no_gc;
+  Vector<const SrcChar> vector = src.GetCharVector<SrcChar>(no_gc);
   for (int i = 0; i < src.length(); i++) {
-    SrcChar c = src[i];
+    SrcChar c = vector[i];
+    tainttracking::TaintType type = tainttracking::GetTaintStatus(src, i);
     if (DoNotEscape(c)) {
-      dest->Append(c);
+      dest->Append(c, type);
     } else if (c >= 0xD800 && c <= 0xDFFF) {
       // The current character is a surrogate.
       if (c <= 0xDBFF) {
         // The current character is a leading surrogate.
         if (i + 1 < src.length()) {
           // There is a next character.
-          SrcChar next = src[i + 1];
+          SrcChar next = vector[i + 1];
           if (next >= 0xDC00 && next <= 0xDFFF) {
             // The next character is a trailing surrogate, meaning this is a
             // surrogate pair.
-            dest->Append(c);
-            dest->Append(next);
+            dest->Append(c, type);
+            dest->Append(next, type);
             i++;
           } else {
             // The next character is not a trailing surrogate. Thus, the
             // current character is a lone leading surrogate.
-            dest->AppendCString("\\u");
+            dest->AppendCString("\\u", type);
             char* const hex = DoubleToRadixCString(c, 16);
-            dest->AppendCString(hex);
+            dest->AppendCString(hex, type);
             DeleteArray(hex);
           }
         } else {
           // There is no next character. Thus, the current character is a lone
           // leading surrogate.
-          dest->AppendCString("\\u");
+          dest->AppendCString("\\u", type);
           char* const hex = DoubleToRadixCString(c, 16);
-          dest->AppendCString(hex);
+          dest->AppendCString(hex, type);
           DeleteArray(hex);
         }
       } else {
@@ -918,13 +921,13 @@ void JsonStringifier::SerializeStringUnchecked_(
         // preceded by a leading surrogate, we would've ended up in the other
         // branch earlier on, and the current character would've been handled
         // as part of the surrogate pair already.)
-        dest->AppendCString("\\u");
+        dest->AppendCString("\\u", type);
         char* const hex = DoubleToRadixCString(c, 16);
-        dest->AppendCString(hex);
+        dest->AppendCString(hex, type);
         DeleteArray(hex);
       }
     } else {
-      dest->AppendCString(&JsonEscapeTable[c * kJsonEscapeTableEntrySize]);
+      dest->AppendCString(&JsonEscapeTable[c * kJsonEscapeTableEntrySize], type);
     }
   }
 }
@@ -937,16 +940,17 @@ void JsonStringifier::SerializeString_(Handle<String> string) {
   // part, or we might need to allocate.
   if (int worst_case_length = builder_.EscapedLengthIfCurrentPartFits(length)) {
     DisallowGarbageCollection no_gc;
-    Vector<const SrcChar> vector = string->GetCharVector<SrcChar>(no_gc);
+    // Vector<const SrcChar> vector = string->GetCharVector<SrcChar>(no_gc);
     IncrementalStringBuilder::NoExtendBuilder<DestChar> no_extend(
         &builder_, worst_case_length, no_gc);
-    SerializeStringUnchecked_(vector, &no_extend);
+    SerializeStringUnchecked_<SrcChar, DestChar>(*string, &no_extend);
   } else {
     FlatStringReader reader(isolate_, string);
     for (int i = 0; i < reader.length(); i++) {
       SrcChar c = reader.Get<SrcChar>(i);
+      tainttracking::TaintType type = tainttracking::GetTaintStatus(*string, i);
       if (DoNotEscape(c)) {
-        builder_.Append<SrcChar, DestChar>(c);
+        builder_.Append<SrcChar, DestChar>(c, type);
       } else if (c >= 0xD800 && c <= 0xDFFF) {
         // The current character is a surrogate.
         if (c <= 0xDBFF) {
@@ -957,23 +961,23 @@ void JsonStringifier::SerializeString_(Handle<String> string) {
             if (next >= 0xDC00 && next <= 0xDFFF) {
               // The next character is a trailing surrogate, meaning this is a
               // surrogate pair.
-              builder_.Append<SrcChar, DestChar>(c);
-              builder_.Append<SrcChar, DestChar>(next);
+              builder_.Append<SrcChar, DestChar>(c, type);
+              builder_.Append<SrcChar, DestChar>(next, type);
               i++;
             } else {
               // The next character is not a trailing surrogate. Thus, the
               // current character is a lone leading surrogate.
-              builder_.AppendCString("\\u");
+              builder_.AppendCString("\\u", type);
               char* const hex = DoubleToRadixCString(c, 16);
-              builder_.AppendCString(hex);
+              builder_.AppendCString(hex, type);
               DeleteArray(hex);
             }
           } else {
             // There is no next character. Thus, the current character is a
             // lone leading surrogate.
-            builder_.AppendCString("\\u");
+            builder_.AppendCString("\\u", type);
             char* const hex = DoubleToRadixCString(c, 16);
-            builder_.AppendCString(hex);
+            builder_.AppendCString(hex, type);
             DeleteArray(hex);
           }
         } else {
@@ -981,13 +985,14 @@ void JsonStringifier::SerializeString_(Handle<String> string) {
           // been preceded by a leading surrogate, we would've ended up in the
           // other branch earlier on, and the current character would've been
           // handled as part of the surrogate pair already.)
-          builder_.AppendCString("\\u");
+          builder_.AppendCString("\\u", type);
           char* const hex = DoubleToRadixCString(c, 16);
-          builder_.AppendCString(hex);
+          builder_.AppendCString(hex, type);
           DeleteArray(hex);
         }
       } else {
-        builder_.AppendCString(&JsonEscapeTable[c * kJsonEscapeTableEntrySize]);
+        builder_.AppendCString(&JsonEscapeTable[c * kJsonEscapeTableEntrySize],
+                               type);
       }
     }
   }
