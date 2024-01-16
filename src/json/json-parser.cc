@@ -990,9 +990,12 @@ Handle<String> JsonParser<Char>::DecodeString(
   {
     DisallowGarbageCollection no_gc;
     SinkChar* dest = intermediate->GetChars(no_gc);
+    tainttracking::TaintData* taintDest = intermediate->GetTaintChars(no_gc);
     if (!string.has_escape()) {
       DCHECK(!string.internalize());
       CopyChars(dest, chars_ + string.start(), string.length());
+      // CopyChars(dest, chars_ + string.start(), string.length());
+      tainttracking::FlattenTaint(*source_, taintDest, string.start(), string.length());
       return intermediate;
     }
     DecodeString(dest, string.start(), string.length());
@@ -1047,6 +1050,7 @@ void JsonParser<Char>::DecodeString(SinkChar* sink, int start, int length) {
     cursor = std::find_if(cursor, end, [&sink](Char c) {
       if (c == '\\') return true;
       *sink++ = c;
+      // here should also be set taint
       return false;
     });
 

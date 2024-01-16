@@ -2073,8 +2073,8 @@ template void OnNewSubStringCopy<String>(
     String, TaintData*, int, int);
 template void OnNewSubStringCopy<SeqOneByteString>(
     SeqOneByteString, TaintData*, int, int);
-// template void OnNewSubStringCopy<String>(
-//     String, TaintData*, int, int);
+template void OnNewSubStringCopy<SeqTwoByteString>(
+    SeqTwoByteString, TaintData*, int, int);
 template void OnNewSubStringCopy<ConsString>(
     ConsString, TaintData*, int, int);
 // template void OnNewSubStringCopy<SeqOneByteString>(

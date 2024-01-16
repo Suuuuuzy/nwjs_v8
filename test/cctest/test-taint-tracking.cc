@@ -1001,6 +1001,28 @@ TEST(TaintRegexpSimpleNo) {
   (void)result;
 }
 
+// TEST(TaintRegexpSimpleBad) {
+//   TestCase test_case;
+//   v8::HandleScope scope(CcTest::isolate());
+//   v8::Local<v8::String> source = v8_str(CcTest::isolate(),
+//             "var a = /asdf/g;"
+//             "var b = 'asdf';"
+//             "b.__setTaint__(1);"
+//             "var d = 'jfj';"
+//             "d.__setTaint__(1)"
+//             "b.replace(a, d);"
+//             //  "eval('\'' + b.replace(a, d) + '\'');"
+//              );
+//   TestTaintListener* listener = new TestTaintListener();
+//   CHECK_EQ(listener->GetScripts().size(), 0);
+//   TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
+//   v8::Local<v8::Context> run_context = CcTest::isolate()->GetCurrentContext();
+//   auto result = v8::Script::Compile(
+//     run_context, source).ToLocalChecked()->Run(run_context).ToLocalChecked();
+//   CHECK_EQ(listener->GetScripts().size(), 0);
+//   (void)result;
+// }
+
 TEST(TaintJSONStringify) {
   TestCase test_case;
   v8::HandleScope scope(CcTest::isolate());
@@ -1022,22 +1044,25 @@ TEST(TaintJSONStringify) {
   (void)result;
 }
 
-// TEST(TaintJSONParse) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   v8::Local<v8::String> source = v8_str(
-//       CcTest::isolate(),
-//       "var a = '{ \"asdf\" : \"1\" }'; "
-//       "a.__setTaint__(1);"
-//       "var b = JSON.parse(a);"
-//       "eval(b.asdf); ");
-//   TestTaintListener* listener = new TestTaintListener();
-//   CHECK_EQ(listener->GetScripts().size(), 0);
-//   TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
-//   auto result = v8::Script::Compile(
-//       CcTest::isolate()->GetCurrentContext(), source).ToLocalChecked()->Run();
-//   CHECK_EQ(listener->GetScripts().size(), 1);
-// }
+TEST(TaintJSONParse) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  v8::Local<v8::String> source = v8_str(
+      CcTest::isolate(),
+      "var a = '{ \"asdf\" : \"2\" }'; "
+      "a.__setTaint__(1);"
+      "var b = JSON.parse(a);"
+      "var c = b.asdf.__getTaint__(); "
+      "eval(b.asdf); ");
+  TestTaintListener* listener = new TestTaintListener();
+  CHECK_EQ(listener->GetScripts().size(), 0);
+  TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
+  v8::Local<v8::Context> run_context = CcTest::isolate()->GetCurrentContext();
+  auto result = v8::Script::Compile(
+    run_context, source).ToLocalChecked()->Run(run_context).ToLocalChecked();
+  CHECK_EQ(listener->GetScripts().size(), 1);
+  (void)result;
+}
 
 // TEST(TaintStringUpper) {
 //   TestCase test_case;

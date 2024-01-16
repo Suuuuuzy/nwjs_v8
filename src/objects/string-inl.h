@@ -24,6 +24,8 @@
 // Has to be the last include (doesn't have include guards):
 #include "src/objects/object-macros.h"
 
+#include "src/taint_tracking.h"
+
 namespace v8 {
 namespace internal {
 
@@ -416,6 +418,8 @@ class SeqSubStringKey final : public StringTableKey {
       DisallowGarbageCollection no_gc;
       CopyChars(result->GetChars(no_gc), string_->GetChars(no_gc) + from_,
                 length());
+      tainttracking::OnNewSubStringCopy(
+        *string_, result->GetTaintChars(no_gc), from_, length());
       return result;
     }
     Handle<SeqTwoByteString> result =
@@ -424,6 +428,8 @@ class SeqSubStringKey final : public StringTableKey {
     DisallowGarbageCollection no_gc;
     CopyChars(result->GetChars(no_gc), string_->GetChars(no_gc) + from_,
               length());
+    tainttracking::OnNewSubStringCopy(
+        *string_, result->GetTaintChars(no_gc), from_, length());
     return result;
   }
 
