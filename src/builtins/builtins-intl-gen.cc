@@ -43,11 +43,11 @@ TF_BUILTIN(StringToLowerCaseIntl, IntlBuiltinsAssembler) {
   const auto string = Parameter<String>(Descriptor::kString);
 
   Label call_c(this), return_string(this), runtime(this, Label::kDeferred);
-
+  // GotoIf(IntPtrEqual(IntPtrConstant(0), IntPtrConstant(0)), &runtime);
   // Early exit on empty strings.
   const TNode<Uint32T> length = LoadStringLengthAsWord32(string);
   GotoIf(Word32Equal(length, Uint32Constant(0)), &return_string);
-
+  // GotoIf(IntPtrEqual(IntPtrConstant(0), IntPtrConstant(0)), &runtime);
   // Unpack strings if possible, and bail to runtime unless we get a one-byte
   // flat string.
   ToDirectStringAssembler to_direct(
@@ -58,7 +58,7 @@ TF_BUILTIN(StringToLowerCaseIntl, IntlBuiltinsAssembler) {
   CSA_ASSERT(this,
              Word32BinaryNot(IsIndirectStringInstanceType(instance_type)));
   GotoIfNot(IsOneByteStringInstanceType(instance_type), &runtime);
-
+  GotoIf(IntPtrEqual(IntPtrConstant(0), IntPtrConstant(0)), &runtime);
   // For short strings, do the conversion in CSA through the lookup table.
 
   const TNode<String> dst = AllocateSeqOneByteString(length);

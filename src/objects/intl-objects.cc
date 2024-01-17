@@ -305,6 +305,7 @@ String Intl::ConvertOneByteToLower(String src, String dst) {
                                &has_changed_character);
 
     if (index_to_first_unprocessed == length) {
+      tainttracking::OnConvertCase(src, SeqOneByteString::cast(dst).GetTaintChars(no_gc));
       return has_changed_character ? dst : src;
     }
 
@@ -324,7 +325,7 @@ String Intl::ConvertOneByteToLower(String src, String dst) {
       dst_data[index] = ToLatin1Lower(static_cast<uint16_t>(src_data[index]));
     }
   }
-
+  tainttracking::OnConvertCase(src, SeqOneByteString::cast(dst).GetTaintChars(no_gc));
   return dst;
 }
 
