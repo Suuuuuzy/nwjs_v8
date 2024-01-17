@@ -2250,18 +2250,18 @@ void OnJoinManyStrings(T target, Array array) {
 }
 
 // template <class T>
-// void OnConvertCase(String* source, T* answer) {
-//   FlattenTaint(source, answer, 0, source.length());
-//   if (FLAG_taint_tracking_enable_symbolic) {
-//     LogSymbolic<1>(answer, {{source}}, "", CASE_CHANGE);
-//   }
-// }
+void OnConvertCase(String source,  TaintData* answer) {
+  FlattenTaint(source, answer, 0, source.length());
+  // if (FLAG_taint_tracking_enable_symbolic) {
+  //   LogSymbolic<1>(answer, {{source}}, "", CASE_CHANGE);
+  // }
+}
 // template void OnConvertCase<SeqOneByteString>(
-//     String* source, SeqOneByteString* answer);
+//     String source, SeqOneByteString* answer);
 // template void OnConvertCase<SeqTwoByteString>(
-//     String* source, SeqTwoByteString* answer);
+//     String source, SeqTwoByteString* answer);
 // template void OnConvertCase<SeqString>(
-//     String* source, SeqString* answer);
+//     String source, SeqString* answer);
 
 template void OnGenericOperation<String>(SymbolicType, String);
 template void OnGenericOperation<SeqOneByteString>(

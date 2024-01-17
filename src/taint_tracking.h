@@ -302,8 +302,8 @@ void OnNewSlicedString(v8::internal::SlicedString target,
 //     v8::internal::JSRegExp* pattern,
 //     v8::internal::String* replacement);
 template <class T, class Array> void OnJoinManyStrings(T target, Array array);
-// template <class T> void OnConvertCase(
-//     v8::internal::String* source, T* answer);
+// template <class T>
+void OnConvertCase(v8::internal::String source, TaintData* answer);
 template <class T> void OnGenericOperation(
     SymbolicType type, T source);
 

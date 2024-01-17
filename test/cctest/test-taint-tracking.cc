@@ -1064,21 +1064,24 @@ TEST(TaintJSONParse) {
   (void)result;
 }
 
-// TEST(TaintStringUpper) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   v8::Local<v8::String> source = v8_str(
-//       CcTest::isolate(),
-//       "var a = 'aaaaa'; "
-//       "a.__setTaint__(1);"
-//       "eval('\"' + a.toUpperCase() + '\"'); ");
-//   TestTaintListener* listener = new TestTaintListener();
-//   CHECK_EQ(listener->GetScripts().size(), 0);
-//   TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
-//   auto result = v8::Script::Compile(
-//       CcTest::isolate()->GetCurrentContext(), source).ToLocalChecked()->Run();
-//   CHECK_EQ(listener->GetScripts().size(), 1);
-// }
+TEST(TaintStringUpper) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  v8::Local<v8::String> source = v8_str(
+      CcTest::isolate(),
+      "var a = 'aaaaa'; "
+      "a.__setTaint__(1);"
+      "var c = a.toUpperCase().__getTaint__(); "
+      "eval('\"' + a.toUpperCase() + '\"'); ");
+  TestTaintListener* listener = new TestTaintListener();
+  CHECK_EQ(listener->GetScripts().size(), 0);
+  TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
+  v8::Local<v8::Context> run_context = CcTest::isolate()->GetCurrentContext();
+  auto result = v8::Script::Compile(
+    run_context, source).ToLocalChecked()->Run(run_context).ToLocalChecked();
+  CHECK_EQ(listener->GetScripts().size(), 1);
+  (void)result;
+}
 
 // TEST(TaintStringLower) {
 //   TestCase test_case;
@@ -1114,21 +1117,23 @@ TEST(TaintJSONParse) {
 //       2, result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
 // }
 
-// TEST(TaintStringLocaleUpper) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   v8::Local<v8::String> source = v8_str(
-//       CcTest::isolate(),
-//       "var a = 'aaaaa'; "
-//       "a.__setTaint__(1);"
-//       "eval('\"' + a.toLocaleUpperCase() + '\"'); ");
-//   TestTaintListener* listener = new TestTaintListener();
-//   CHECK_EQ(listener->GetScripts().size(), 0);
-//   TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
-//   auto result = v8::Script::Compile(
-//       CcTest::isolate()->GetCurrentContext(), source).ToLocalChecked()->Run();
-//   CHECK_EQ(listener->GetScripts().size(), 1);
-// }
+TEST(TaintStringLocaleUpper) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  v8::Local<v8::String> source = v8_str(
+      CcTest::isolate(),
+      "var a = 'aaaaa'; "
+      "a.__setTaint__(1);"
+      "eval('\"' + a.toLocaleUpperCase() + '\"'); ");
+  TestTaintListener* listener = new TestTaintListener();
+  CHECK_EQ(listener->GetScripts().size(), 0);
+  TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
+  v8::Local<v8::Context> run_context = CcTest::isolate()->GetCurrentContext();
+  auto result = v8::Script::Compile(
+    run_context, source).ToLocalChecked()->Run(run_context).ToLocalChecked();
+  CHECK_EQ(listener->GetScripts().size(), 1);
+  (void) result;
+}
 
 // TEST(TaintStringLocaleLower) {
 //   TestCase test_case;

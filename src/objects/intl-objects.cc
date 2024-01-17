@@ -267,9 +267,13 @@ MaybeHandle<String> LocaleConvertCase(Isolate* isolate, Handle<String> s,
   DCHECK(U_SUCCESS(status));
   if (V8_LIKELY(status == U_STRING_NOT_TERMINATED_WARNING)) {
     DCHECK(dest_length == result->length());
+    DisallowGarbageCollection no_gc;
+    tainttracking::OnConvertCase(*s, result->GetTaintChars(no_gc));
     return result;
   }
   DCHECK(dest_length < result->length());
+  DisallowGarbageCollection no_gc;
+  tainttracking::OnConvertCase(*s, result->GetTaintChars(no_gc));
   return SeqString::Truncate(result, dest_length);
 }
 
@@ -376,6 +380,7 @@ MaybeHandle<String> Intl::ConvertToUpper(Isolate* isolate, Handle<String> s) {
             reinterpret_cast<const char*>(src.begin()), length,
             &has_changed_character);
         if (index_to_first_unprocessed == length) {
+          tainttracking::OnConvertCase(*s, result->GetTaintChars(no_gc));
           return has_changed_character ? result : s;
         }
         // If not ASCII, we keep the result up to index_to_first_unprocessed and
@@ -386,7 +391,10 @@ MaybeHandle<String> Intl::ConvertToUpper(Isolate* isolate, Handle<String> s) {
       } else {
         DCHECK(flat.IsTwoByte());
         Vector<const uint16_t> src = flat.ToUC16Vector();
-        if (ToUpperFastASCII(src, result)) return result;
+        if (ToUpperFastASCII(src, result)) {
+          tainttracking::OnConvertCase(*s, result->GetTaintChars(no_gc));
+          return result;
+        }
         is_result_single_byte = ToUpperOneByte(src, dest, &sharp_s_count);
       }
     }
@@ -397,7 +405,11 @@ MaybeHandle<String> Intl::ConvertToUpper(Isolate* isolate, Handle<String> s) {
       return LocaleConvertCase(isolate, s, true, "");
     }
 
-    if (sharp_s_count == 0) return result;
+    if (sharp_s_count == 0) {
+      DisallowGarbageCollection no_gc;
+      tainttracking::OnConvertCase(*s, result->GetTaintChars(no_gc));
+      return result;
+    }
 
     // We have sharp_s_count sharp-s characters, but the result is still
     // in the Latin-1 range.
@@ -412,7 +424,7 @@ MaybeHandle<String> Intl::ConvertToUpper(Isolate* isolate, Handle<String> s) {
     } else {
       ToUpperWithSharpS(flat.ToUC16Vector(), result);
     }
-
+    tainttracking::OnConvertCase(*s, result->GetTaintChars(no_gc));
     return result;
   }
 
