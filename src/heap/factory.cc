@@ -795,20 +795,25 @@ Handle<String> Factory::AllocateInternalizedStringImpl(T t, int chars,
 
   if (is_one_byte) {
     WriteOneByteData(t, SeqOneByteString::cast(result).GetChars(no_gc), chars);
+    tainttracking::TaintData* dest = SeqOneByteString::cast(result).GetTaintChars(no_gc);
+    tainttracking::OnNewSubStringCopy(*t, dest, 0, chars);
   } else {
     WriteTwoByteData(t, SeqTwoByteString::cast(result).GetChars(no_gc), chars);
+    tainttracking::TaintData* dest = SeqTwoByteString::cast(result).GetTaintChars(no_gc);
+    tainttracking::OnNewSubStringCopy(*t, dest, 0, chars);
   }
-  tainttracking::InitTaintData(SeqString::cast(result), no_gc);
   return handle(result, isolate());
 }
 
 Handle<String> Factory::NewInternalizedStringImpl(Handle<String> string,
                                                   int chars,
                                                   uint32_t hash_field) {
+  Handle<String> result;
   if (string->IsOneByteRepresentation()) {
-    return AllocateInternalizedStringImpl<true>(string, chars, hash_field);
+     result= AllocateInternalizedStringImpl<true>(string, chars, hash_field);
   }
-  return AllocateInternalizedStringImpl<false>(string, chars, hash_field);
+  result = AllocateInternalizedStringImpl<false>(string, chars, hash_field);
+  return result;
 }
 
 namespace {
