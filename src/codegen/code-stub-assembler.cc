@@ -6900,6 +6900,12 @@ TNode<String> CodeStubAssembler::StringFromSingleCharCode(TNode<Int32T> code) {
       StoreNoWriteBarrier(
           MachineRepresentation::kWord8, result,
           IntPtrConstant(SeqOneByteString::kHeaderSize - kHeapObjectTag), code);
+      StoreNoWriteBarrier(
+          MachineRepresentation::kWord8, result,
+          IntPtrAdd(
+              IntPtrConstant(SeqOneByteString::kHeaderSize - kHeapObjectTag),
+              IntPtrConstant(1)),
+          IntPtrConstant(0));
       StoreFixedArrayElement(cache, code_index, result);
       var_result = result;
       Goto(&if_done);
@@ -6920,6 +6926,11 @@ TNode<String> CodeStubAssembler::StringFromSingleCharCode(TNode<Int32T> code) {
     StoreNoWriteBarrier(
         MachineRepresentation::kWord16, result,
         IntPtrConstant(SeqTwoByteString::kHeaderSize - kHeapObjectTag), code);
+    StoreNoWriteBarrier(
+        MachineRepresentation::kWord8, result,
+        IntPtrAdd(IntPtrConstant(SeqTwoByteString::kHeaderSize -kHeapObjectTag),
+                  IntPtrConstant(1)),
+        IntPtrConstant(0));
     var_result = result;
     Goto(&if_done);
   }

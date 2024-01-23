@@ -495,7 +495,7 @@ BUILTIN(StringPrototypeSetTaint) {
     tainttracking::SetTaintString(
         string, static_cast<tainttracking::TaintType>(taint_value));
     return *(isolate->factory()->undefined_value());
-  } 
+  }
   else if (taint_arg->IsJSArrayBuffer()) {
     JSArrayBuffer taint_data = JSArrayBuffer::cast(*taint_arg);
     int len = static_cast<int>(taint_data.byte_length());
@@ -520,15 +520,15 @@ BUILTIN(StringPrototypeGetTaint) {
   return *tainttracking::JSGetTaintStatus(string, isolate);
 }
 
-// BUILTIN(StringPrototypeCheckTaint) {
-//   HandleScope scope(isolate);
-//   TO_THIS_STRING(string, "String.prototype.__checkTaint__");
-//   return *(tainttracking::JSCheckTaintMaybeLog(
-//                    isolate,
-//                    string,
-//                    args.atOrUndefined(isolate, 1),
-//                    0));
-// }
+BUILTIN(StringPrototypeCheckTaint) {
+  HandleScope scope(isolate);
+  TO_THIS_STRING(string, "String.prototype.__checkTaint__");
+  return *(tainttracking::JSCheckTaintMaybeLog(
+                   isolate,
+                   string,
+                   args.atOrUndefined(isolate, 1),
+                   0));
+}
 
 
 }  // namespace internal

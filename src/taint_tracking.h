@@ -337,11 +337,11 @@ JSGetTaintStatus(v8::internal::Handle<v8::internal::String> str,
 // void JSTaintLog(v8::internal::Handle<v8::internal::String> str,
 //                 v8::internal::MaybeHandle<v8::internal::String> extra_ref);
 
-// v8::internal::Handle<v8::internal::Object> JSCheckTaintMaybeLog(
-//     v8::internal::Isolate* isolate,
-//     v8::internal::Handle<v8::internal::String> str,
-//     v8::internal::Handle<v8::internal::Object> tag,
-//     int symbolic_data);
+v8::internal::Handle<v8::internal::Object> JSCheckTaintMaybeLog(
+    v8::internal::Isolate* isolate,
+    v8::internal::Handle<v8::internal::String> str,
+    v8::internal::Handle<v8::internal::Object> tag,
+    int symbolic_data);
 
 // V8_WARN_UNUSED_RESULT v8::internal::Handle<v8::internal::HeapObject>
 // JSTaintConstants(v8::internal::Isolate* isolate);

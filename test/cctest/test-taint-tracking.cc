@@ -1160,55 +1160,56 @@ TEST(TaintStringLocaleLower) {
   (void) result;
 }
 
-// TEST(TaintStringCharAt) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   v8::Local<v8::String> source = v8_str(
-//       CcTest::isolate(),
-//       "var a = '2sdfasdf'; "
-//       "a.__setTaint__(1);"
-//       "var b = a.charAt(0);"
-//       "eval(b); ");
-//   TestTaintListener* listener = new TestTaintListener();
-//   CHECK_EQ(listener->GetScripts().size(), 0);
-//   TaintTracker::FromIsolate(
-//       reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->
-//     RegisterTaintListener(listener);
-//   auto result = v8::Script::Compile(
-//       CcTest::isolate()->GetCurrentContext(), source).ToLocalChecked()->Run();
+TEST(TaintStringCharAt) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  v8::Local<v8::String> source = v8_str(
+      CcTest::isolate(),
+      "var a = '2sdfasdf'; "
+      "a.__setTaint__(1);"
+      "var b = a.charAt(0);"
+      "eval(b); ");
+  TestTaintListener* listener = new TestTaintListener();
+  CHECK_EQ(listener->GetScripts().size(), 0);
+  TaintTracker::FromIsolate(
+      reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->
+    RegisterTaintListener(listener);
+  v8::Local<v8::Context> run_context = CcTest::isolate()->GetCurrentContext();
+  auto result = v8::Script::Compile(
+    run_context, source).ToLocalChecked()->Run(run_context).ToLocalChecked();
+  // Ideally, this would be 1, but now we just want to make sure it doesn't
+  // crash
+  CHECK_EQ(listener->GetScripts().size(), 0);
+  CHECK_EQ(
+      2, result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
+}
 
-//   // Ideally, this would be 1, but now we just want to make sure it doesn't
-//   // crash
-//   CHECK_EQ(listener->GetScripts().size(), 0);
-//   CHECK_EQ(
-//       2, result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
-// }
-
-// TEST(TaintStringFromCharCodeAt) {
-//   TestCase test_case;
-//   v8::HandleScope scope(CcTest::isolate());
-//   v8::Local<v8::String> source = v8_str(
-//       CcTest::isolate(),
-//       "function a(val) {"
-//       "  var a = String.fromCharCode(val); " // An 'A'
-//       "  a.__checkTaint__(a[0]);"
-//       "}"
-//       "for (var j = 0; j < 10000; j++){"
-//       "  a((j % 32) + 60);"
-//       "}"
-//       "2;");
-//   TestTaintListener* listener = new TestTaintListener();
-//   CHECK_EQ(listener->GetScripts().size(), 0);
-//   TaintTracker::FromIsolate(
-//       reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->
-//     RegisterTaintListener(listener);
-//   auto result = v8::Script::Compile(
-//       CcTest::isolate()->GetCurrentContext(), source).ToLocalChecked()->Run();
-//   CHECK_EQ(listener->GetScripts().size(), 0);
-//   CHECK_EQ(
-//       2, result->Int32Value(
-//           CcTest::isolate()->GetCurrentContext()).FromJust());
-// }
+TEST(TaintStringFromCharCodeAt) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  v8::Local<v8::String> source = v8_str(
+      CcTest::isolate(),
+      "function a(val) {"
+      "  var a = String.fromCharCode(val); " // An 'A'
+      "  a.__checkTaint__(a[0]);"
+      "}"
+      "for (var j = 0; j < 10000; j++){"
+      "  a((j % 32) + 60);"
+      "}"
+      "2;");
+  TestTaintListener* listener = new TestTaintListener();
+  CHECK_EQ(listener->GetScripts().size(), 0);
+  TaintTracker::FromIsolate(
+      reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->
+    RegisterTaintListener(listener);
+  v8::Local<v8::Context> run_context = CcTest::isolate()->GetCurrentContext();
+  auto result = v8::Script::Compile(
+    run_context, source).ToLocalChecked()->Run(run_context).ToLocalChecked();
+  CHECK_EQ(listener->GetScripts().size(), 0);
+  CHECK_EQ(
+      2, result->Int32Value(
+          CcTest::isolate()->GetCurrentContext()).FromJust());
+}
 
 
 // TEST(ControlFlowLog) {

@@ -1153,7 +1153,7 @@ namespace internal {
   CPP(V8BreakIteratorSupportedLocalesOf)                               \
   CPP(StringPrototypeSetTaint)                                         \
   CPP(StringPrototypeGetTaint)                                         \
-//   CPP(StringPrototypeCheckTaint) 
+  CPP(StringPrototypeCheckTaint)
 #else
 #define BUILTIN_LIST_INTL(CPP, TFJ, TFS)      \
   /* no-op fallback version */                \
@@ -1168,7 +1168,7 @@ namespace internal {
   CPP(StringPrototypeToUpperCase)             \
   CPP(StringPrototypeSetTaint)                \
   CPP(StringPrototypeGetTaint)                \
-//   CPP(StringPrototypeCheckTaint) 
+//   CPP(StringPrototypeCheckTaint)
 #endif  // V8_INTL_SUPPORT
 
 #define BUILTIN_LIST(CPP, TFJ, TFC, TFS, TFH, BCH, ASM)  \

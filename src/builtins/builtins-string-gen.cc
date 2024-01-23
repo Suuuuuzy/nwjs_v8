@@ -838,8 +838,11 @@ TF_BUILTIN(StringFromCharCode, StringBuiltinsAssembler) {
       TNode<IntPtrT> offset = ElementOffsetFromIndex(
           var_max_index.value(), UINT8_ELEMENTS,
           SeqOneByteString::kHeaderSize - kHeapObjectTag);
+      TNode<IntPtrT> taint_offset = IntPtrAdd(offset, arguments.GetLength());
       StoreNoWriteBarrier(MachineRepresentation::kWord8, one_byte_result,
                           offset, code16);
+      StoreNoWriteBarrier(MachineRepresentation::kWord8, one_byte_result,
+                          taint_offset, IntPtrConstant(0));
       var_max_index = IntPtrAdd(var_max_index.value(), IntPtrConstant(1));
     });
     arguments.PopAndReturn(one_byte_result);
@@ -857,13 +860,19 @@ TF_BUILTIN(StringFromCharCode, StringBuiltinsAssembler) {
     CopyStringCharacters(one_byte_result, two_byte_result, zero, zero,
                          var_max_index.value(), String::ONE_BYTE_ENCODING,
                          String::TWO_BYTE_ENCODING);
+    // CopyStringCharacters(one_byte_result, two_byte_result, zero, zero,
+    //                      var_max_index.value(), String::ONE_BYTE_ENCODING,
+    //                      String::TWO_BYTE_ENCODING);
 
     // Write the character that caused the 8-bit to 16-bit fault.
     TNode<IntPtrT> max_index_offset =
         ElementOffsetFromIndex(var_max_index.value(), UINT16_ELEMENTS,
                                SeqTwoByteString::kHeaderSize - kHeapObjectTag);
+    TNode<IntPtrT> taint_offset = IntPtrAdd(max_index_offset, arguments.GetLength());
     StoreNoWriteBarrier(MachineRepresentation::kWord16, two_byte_result,
                         max_index_offset, code16);
+    StoreNoWriteBarrier(MachineRepresentation::kWord8, two_byte_result,
+                          taint_offset, IntPtrConstant(0));
     var_max_index = IntPtrAdd(var_max_index.value(), IntPtrConstant(1));
 
     // Resume copying the passed-in arguments from the same place where the
@@ -879,8 +888,11 @@ TF_BUILTIN(StringFromCharCode, StringBuiltinsAssembler) {
           TNode<IntPtrT> offset = ElementOffsetFromIndex(
               var_max_index.value(), UINT16_ELEMENTS,
               SeqTwoByteString::kHeaderSize - kHeapObjectTag);
+          TNode<IntPtrT> taint_offset = IntPtrAdd(offset, arguments.GetLength());
           StoreNoWriteBarrier(MachineRepresentation::kWord16, two_byte_result,
                               offset, code16);
+          StoreNoWriteBarrier(MachineRepresentation::kWord8, two_byte_result,
+                          taint_offset, IntPtrConstant(0));
           var_max_index = IntPtrAdd(var_max_index.value(), IntPtrConstant(1));
         },
         var_max_index.value());

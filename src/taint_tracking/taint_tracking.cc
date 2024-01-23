@@ -1821,15 +1821,15 @@ void SetTaint(v8::internal::Handle<v8::internal::Object> obj,
 // }
 
 
-// Handle<Object> JSCheckTaintMaybeLog(Isolate* isolate,
-//                                     Handle<String> str,
-//                                     Handle<Object> sink,
-//                                     int symbolic_data) {
-//   int64_t ret = LogIfTainted(str, TaintSinkLabel::JAVASCRIPT, symbolic_data);
-//   return ret == -1 ?
-//     isolate->factory()->ToBoolean(false) :
-//     isolate->factory()->NewNumberFromInt64(ret);
-// }
+Handle<Object> JSCheckTaintMaybeLog(Isolate* isolate,
+                                    Handle<String> str,
+                                    Handle<Object> sink,
+                                    int symbolic_data) {
+  int64_t ret = LogIfTainted(isolate, str, TaintSinkLabel::JAVASCRIPT, symbolic_data);
+  return ret == -1 ?
+    isolate->factory()->ToBoolean(false) :
+    isolate->factory()->NewNumberFromInt64(ret);
+}
 
 V8_WARN_UNUSED_RESULT v8::internal::Handle<v8::internal::JSArrayBuffer>
 JSGetTaintStatus(v8::internal::Handle<v8::internal::String> str,
