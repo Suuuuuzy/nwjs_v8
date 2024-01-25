@@ -4685,7 +4685,7 @@ void WriteFixedArrayToFlat(FixedArray fixed_array, int length, String separator,
       sink += string_length;
       taintDest += string_length;
 
-      std::cout  << "jianjia see sep 2 "<< string << std::endl;
+      // std::cout  << "jianjia see sep 2 "<< string << std::endl;
 
       // Next string element, needs at least one separator preceding it.
       num_separators = 1;

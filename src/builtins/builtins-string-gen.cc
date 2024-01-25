@@ -860,6 +860,7 @@ TF_BUILTIN(StringFromCharCode, StringBuiltinsAssembler) {
     CopyStringCharacters(one_byte_result, two_byte_result, zero, zero,
                          var_max_index.value(), String::ONE_BYTE_ENCODING,
                          String::TWO_BYTE_ENCODING);
+    // Jianjia: here we should also implement the copy of the taints of the characters
     // CopyStringCharacters(one_byte_result, two_byte_result, zero, zero,
     //                      var_max_index.value(), String::ONE_BYTE_ENCODING,
     //                      String::TWO_BYTE_ENCODING);
@@ -1576,6 +1577,8 @@ void StringBuiltinsAssembler::CopyStringCharacters(
   ElementsKind to_kind = to_one_byte ? UINT8_ELEMENTS : UINT16_ELEMENTS;
   STATIC_ASSERT(SeqOneByteString::kHeaderSize == SeqTwoByteString::kHeaderSize);
   int header_size = SeqOneByteString::kHeaderSize - kHeapObjectTag;
+  // I don't know how to get length of the strings
+  // int length =
   TNode<IntPtrT> from_offset =
       ElementOffsetFromIndex(from_index, from_kind, header_size);
   TNode<IntPtrT> to_offset =
@@ -1606,6 +1609,9 @@ void StringBuiltinsAssembler::CopyStringCharacters(
         StoreNoWriteBarrier(rep, to_string,
                             index_same ? offset : current_to_offset.value(),
                             Load(type, from_string, offset));
+        // StoreNoWriteBarrier(MachineRepresentation::kWord8, to_string,
+        //                     index_same ? IntPtrAdd(offset) : current_to_offset.value(),
+        //                     Load(type, from_string, offset));
         if (!index_same) {
           Increment(&current_to_offset, to_increment);
         }
