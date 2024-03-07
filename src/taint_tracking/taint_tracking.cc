@@ -1088,7 +1088,13 @@ template <> void TaintVisitor::VisitIntoStringTemplate<String>(
     VisitIntoStringTemplate(
         SeqTwoByteString::cast(source), from_offset, from_len);
   } else {
-    FATAL("Taint Tracking Unreachable");
+    // std::cout << "jianjia see shape " << shape.type() << std::endl;
+    if (shape.IsThin()) {
+      std::cout << "This is a thin string" << std::endl;
+    } else if (shape.IsInternalized()) {
+      std::cout << "This is an internalized string" << std::endl;
+    }
+    // FATAL("Taint Tracking Unreachable");
   }
 }
 
@@ -2075,12 +2081,7 @@ template void OnNewSubStringCopy<SeqOneByteString>(
     SeqOneByteString, TaintData*, int, int);
 template void OnNewSubStringCopy<SeqTwoByteString>(
     SeqTwoByteString, TaintData*, int, int);
-template void OnNewSubStringCopy<ConsString>(
-    ConsString, TaintData*, int, int);
-// template void OnNewSubStringCopy<SeqOneByteString>(
-//     SeqOneByteString, TaintData*, int, int);
-// template void OnNewSubStringCopy<String>(
-//     String, TaintData*, int, int);
+template void OnNewSubStringCopy<ConsString>(ConsString, TaintData*, int, int);
 
 // template void FlattenTaintData<ExternalString>(
 //     ExternalString, TaintData*, int, int);
@@ -2186,6 +2187,10 @@ template void OnNewStringLiteral(SeqTwoByteString source);
 
 template <class T>
 void OnNewSubStringCopy(T source, TaintData* dest, int offset, int length) {
+  // zliu
+  if (FLAG_using_breakpoint) {
+    v8::base::OS::DebugBreak();
+  }
   FlattenTaint(source, dest, offset, length);
   // if (FLAG_taint_tracking_enable_symbolic) {
   //   LogSymbolic<1>(dest, {{source}}, std::to_string(offset), SLICE);

@@ -4561,6 +4561,7 @@ MaybeHandle<String> Name::ToFunctionName(Isolate* isolate, Handle<Name> name,
   ASSIGN_RETURN_ON_EXCEPTION(isolate, name_string,
                              ToFunctionName(isolate, name), String);
   IncrementalStringBuilder builder(isolate);
+  // std::cout << "jianjia see prefix" << prefix << std::endl;
   builder.AppendString(prefix);
   builder.AppendCharacter(' ');
   builder.AppendString(name_string);
@@ -4727,7 +4728,7 @@ Address JSArray::ArrayJoinConcatToSequentialString(Isolate* isolate,
                           dest.length(),
                           SeqTwoByteString::cast(dest).GetTaintChars(no_gc));
   }
-  std::cout  << "jianjia see sep "<< separator << dest << std::endl;
+  // std::cout  << "jianjia see sep "<< separator << dest << std::endl;
   return dest.ptr();
 }
 
