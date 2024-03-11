@@ -380,6 +380,10 @@ DEFINE_BOOL(taint_tracking_write_packed_logs, false,
 DEFINE_BOOL(taint_tracking_sources_sinks_to_logs, false,
             "Write to the log whenever a source or sink is executed.")
 
+// Added by Jianjia
+DEFINE_STRING(name_should_exclude, "::",
+              "Names that should be excluded from log_file or sending to db, "
+              "e.g., extensions::. ")
 
 DEFINE_IMPLICATION(
     taint_tracking_enable_ast_modification, taint_tracking_disable_code_caching)

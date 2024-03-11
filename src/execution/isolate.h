@@ -840,6 +840,11 @@ class V8_EXPORT_PRIVATE Isolate final : private HiddenFactory {
   void PrintStack(StringStream* accumulator,
                   PrintStackMode mode = kPrintStackVerbose);
   void PrintStack(FILE* out, PrintStackMode mode = kPrintStackVerbose);
+  void ConcisePrint(FILE* out);
+  bool ConcisePrint(StringStream* accumulator);
+  bool ConcisePrint(std::map<std::string, std::string>* data_map);
+  bool DoConcisePrint(StringStream* accumulator);
+  bool DoConcisePrint(std::map<std::string, std::string>* data_map);
   Handle<String> StackTraceString();
   // Stores a stack trace in a stack-allocated temporary buffer which will
   // end up in the minidump for debugging purposes.

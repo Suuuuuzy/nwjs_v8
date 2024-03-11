@@ -106,7 +106,7 @@ inline void CheckTaintError(TaintType type, String object) {
         &alloc, StringStream::ObjectPrintMode::kPrintObjectConcise);
     isolate->PrintStack(&stream);
 
-    // isolate->PrintStack(stdout);
+    // isolate->ConcisePrint(stdout);
 
     std::cerr << "Taint tracking memory error: "
               << std::to_string(static_cast<uint8_t>(type)).c_str()

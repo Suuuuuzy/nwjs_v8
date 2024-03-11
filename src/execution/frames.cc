@@ -2109,8 +2109,7 @@ StackFrame::TaintStackFrameInfo JavaScriptFrame::InfoForTaintLog() {
   //   }
 
     return answer;
-  } else 
-  {
+  } else {
     return answer;
   }
 }
@@ -2228,6 +2227,224 @@ void JavaScriptFrame::Print(StringStream* accumulator, PrintMode mode,
   PrintFunctionSource(accumulator, *shared, code);
 
   accumulator->Add("}\n\n");
+}
+
+// Add by Inactive
+bool JavaScriptFrame::DoConcisePrintFrame(StringStream* accumulator,
+                                          PrintMode mode) const {
+  DisallowHeapAllocation no_gc;
+  Object receiver = this->receiver();
+  JSFunction function = this->function();
+
+  Code* code = nullptr;
+  if (IsConstructor()) accumulator->Add("new ");
+  accumulator->PrintFunction(function, receiver, code);
+
+  // Get scope information for nicer output, if possible. If code is NULL, or
+  // doesn't contain scope info, scope_info will return 0 for the number of
+  // parameters, stack local variables, context local variables, stack slots,
+  // or context slots.
+  SharedFunctionInfo shared = function.shared();
+  // ScopeInfo scope_info = shared.scope_info();
+  Object script_obj = shared.script();
+  if (script_obj.IsScript()) {
+    Script script = Script::cast(script_obj);
+    accumulator->Add(" [");
+    if (!accumulator->ShouldPrintName(script.name(),
+                                      FLAG_name_should_exclude)) {
+      // Excluding names with FLAG_name_should_exclude
+      return false;
+    }
+    accumulator->PrintName(script.name());
+
+    Address pc = this->pc();
+    if (code != nullptr && CodeKindIsUnoptimizedJSFunction(code->kind()) &&
+        pc >= code->InstructionStart() && pc < code->InstructionEnd()) {
+      int offset = static_cast<int>(pc - code->InstructionStart());
+      int source_pos = AbstractCode::cast(*code).SourcePosition(offset);
+      int line = script.GetLineNumber(source_pos) + 1;
+      Handle<Script> script_handler(script, isolate());
+      int column = Script::GetColumnNumber(script_handler, source_pos);
+      accumulator->Add(":%d:%d]", line, column);
+    } else if (is_interpreted()) {
+      const InterpretedFrame* iframe =
+          reinterpret_cast<const InterpretedFrame*>(this);
+      BytecodeArray bytecodes = iframe->GetBytecodeArray();
+      int offset = iframe->GetBytecodeOffset();
+      int source_pos = AbstractCode::cast(bytecodes).SourcePosition(offset);
+      int line = script.GetLineNumber(source_pos) + 1;
+      Handle<Script> script_handler(script, isolate());
+      int column = Script::GetColumnNumber(script_handler, source_pos);
+      accumulator->Add(":%d:%d]", line, column);
+    } else {
+      int function_start_pos = shared.StartPosition();
+      int line = script.GetLineNumber(function_start_pos) + 1;
+      Handle<Script> script_handler(script, isolate());
+      int column = Script::GetColumnNumber(script_handler, line);
+      accumulator->Add(":%d:%d]", line, column);
+    }
+  }
+  accumulator->Put('\n');
+  PrintFunctionSource(accumulator, shared, *code);
+  return true;
+}
+
+// Add by Inactive
+bool JavaScriptFrame::DoConcisePrintFrame(
+    std::map<std::string, std::string>* data_map, PrintMode mode) const {
+  DisallowHeapAllocation no_gc;
+  Object receiver = this->receiver();
+  JSFunction function = this->function();
+
+  std::string func_name = "";
+  Code* code = nullptr;
+  if (IsConstructor()) func_name.append("new ");
+
+  // create a v8::internal::StringStream
+  HeapStringAllocator func_name_allocator;
+  StringStream func_name_accumulator(&func_name_allocator);
+  func_name_accumulator.PrintFunction(function, receiver, code);
+
+  // get func_name from func_name_accumulator
+  func_name.append(func_name_accumulator.ToCString().get());
+
+  // insert func_name into data_map
+  data_map->insert(std::pair<std::string, std::string>("func_name", func_name));
+
+  // Get scope information for nicer output, if possible. If code is NULL, or
+  // doesn't contain scope info, scope_info will return 0 for the number of
+  // parameters, stack local variables, context local variables, stack slots,
+  // or context slots.
+  SharedFunctionInfo shared = function.shared();
+  // ScopeInfo scope_info = shared.scope_info();
+  Object script_obj = shared.script();
+  if (script_obj.IsScript()) {
+    Script script = Script::cast(script_obj);
+
+    // borrow from StringStream::ShouldPrintName
+    Object name = script.name();
+    if (name.IsString()) {
+      String name_str = String::cast(name);
+      std::string cppString(name_str.ToCString().get());
+      if (cppString.find(FLAG_name_should_exclude) == std::string::npos) {
+        // insert js into data_map (the name of that script)
+        data_map->insert(std::pair<std::string, std::string>("js", cppString));
+      } else {
+        return false;
+      }
+    }
+
+    Address pc = this->pc();
+    if (code != nullptr && CodeKindIsUnoptimizedJSFunction(code->kind()) &&
+        pc >= code->InstructionStart() && pc < code->InstructionEnd()) {
+      int offset = static_cast<int>(pc - code->InstructionStart());
+      int source_pos = AbstractCode::cast(*code).SourcePosition(offset);
+      int line = script.GetLineNumber(source_pos) + 1;
+      Handle<Script> script_handler(script, isolate());
+      int column = Script::GetColumnNumber(script_handler, source_pos);
+      // insert row and col into data_map
+      data_map->insert(
+          std::pair<std::string, std::string>("row", std::to_string(line)));
+      data_map->insert(
+          std::pair<std::string, std::string>("col", std::to_string(column)));
+    } else if (is_interpreted()) {
+      const InterpretedFrame* iframe =
+          reinterpret_cast<const InterpretedFrame*>(this);
+      BytecodeArray bytecodes = iframe->GetBytecodeArray();
+      int offset = iframe->GetBytecodeOffset();
+      int source_pos = AbstractCode::cast(bytecodes).SourcePosition(offset);
+      int line = script.GetLineNumber(source_pos) + 1;
+      Handle<Script> script_handler(script, isolate());
+      int column = Script::GetColumnNumber(script_handler, source_pos);
+      // insert row and col into data_map
+      data_map->insert(
+          std::pair<std::string, std::string>("row", std::to_string(line)));
+      data_map->insert(
+          std::pair<std::string, std::string>("col", std::to_string(column)));
+    } else {
+      int function_start_pos = shared.StartPosition();
+      int line = script.GetLineNumber(function_start_pos) + 1;
+      Handle<Script> script_handler(script, isolate());
+      int column = Script::GetColumnNumber(script_handler, line);
+      // insert row and col into data_map
+      data_map->insert(
+          std::pair<std::string, std::string>("row", std::to_string(line)));
+      data_map->insert(
+          std::pair<std::string, std::string>("col", std::to_string(column)));
+    }
+  }
+
+  // borrow from PrintFunctionSource(accumulator, shared, code)
+  if (FLAG_max_stack_trace_source_length != 0 && code != nullptr) {
+    std::ostringstream os;
+    os << SourceCodeOf(shared, FLAG_max_stack_trace_source_length);
+    // insert func into data_map
+    data_map->insert(std::pair<std::string, std::string>("func", os.str()));
+  }
+
+  return true;
+}
+
+// Add by Inactive
+// Update: Also include column number for precise position match
+void JavaScriptFrame::GetScriptInfo(
+    StringStream* source_code_accumulator,
+    StringStream* line_number_accumulator) const {
+  DisallowHeapAllocation no_gc;
+  // Object receiver = this->receiver();
+  JSFunction function = this->function();
+
+  Code code = function.code();
+  // if (IsConstructor()) accumulator->Add("new ");
+  // accumulator->PrintFunction(function, receiver, &code);
+
+  SharedFunctionInfo shared = function.shared();
+  // ScopeInfo scope_info = shared.scope_info();
+  Object script_obj = shared.script();
+  if (script_obj.IsScript()) {
+    Script script = Script::cast(script_obj);
+    // accumulator->Add(" [");
+    // accumulator->PrintName(script->name());
+
+    Address pc = this->pc();
+    if (
+        // code != nullptr &&
+        CodeKindIsUnoptimizedJSFunction(code.kind()) &&
+        pc >= code.InstructionStart() && pc < code.InstructionEnd()) {
+      int offset = static_cast<int>(pc - code.InstructionStart());
+      int source_pos = AbstractCode::cast(code).SourcePosition(offset);
+      int line = script.GetLineNumber(source_pos) + 1;
+      Handle<Script> script_handler(script, isolate());
+      int column = Script::GetColumnNumber(script_handler, source_pos);
+      // Also include column number
+      line_number_accumulator->Add("%d,%d", line, column);
+    } else if (is_interpreted()) {
+      const InterpretedFrame* iframe =
+          reinterpret_cast<const InterpretedFrame*>(this);
+      BytecodeArray bytecodes = iframe->GetBytecodeArray();
+      int offset = iframe->GetBytecodeOffset();
+      int source_pos = AbstractCode::cast(bytecodes).SourcePosition(offset);
+      int line = script.GetLineNumber(source_pos) + 1;
+      Handle<Script> script_handler(script, isolate());
+      int column = Script::GetColumnNumber(script_handler, source_pos);
+      line_number_accumulator->Add("%d,%d", line, column);
+    } else {
+      int function_start_pos = shared.StartPosition();
+      int line = script.GetLineNumber(function_start_pos) + 1;
+      Handle<Script> script_handler(script, isolate());
+      int column = Script::GetColumnNumber(script_handler, function_start_pos);
+      line_number_accumulator->Add("%d,%d", line, column);
+    }
+  }
+  // accumulator->Put('\n');
+  // PrintFunctionSource(accumulator, shared, code);
+  if (FLAG_max_stack_trace_source_length != 0
+      // && code != nullptr
+  ) {
+    std::ostringstream os;
+    os << SourceCodeOf(shared, FLAG_max_stack_trace_source_length);
+    source_code_accumulator->Add(os.str().c_str());
+  }
 }
 
 void EntryFrame::Iterate(RootVisitor* v) const {

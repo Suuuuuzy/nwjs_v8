@@ -1282,6 +1282,81 @@ void Isolate::PrintStack(FILE* out, PrintStackMode mode) {
   }
 }
 
+void Isolate::ConcisePrint(FILE* out) {
+  if (stack_trace_nesting_level_ == 0) {
+    stack_trace_nesting_level_++;
+    StringStream::ClearMentionedObjectCache(this);
+    HeapStringAllocator allocator;
+    StringStream accumulator(&allocator);
+    incomplete_message_ = &accumulator;
+    ConcisePrint(&accumulator);
+    accumulator.OutputToFile(out);
+    InitializeLoggingAndCounters();
+    accumulator.Log(this);
+    incomplete_message_ = nullptr;
+    stack_trace_nesting_level_ = 0;
+  } else if (stack_trace_nesting_level_ == 1) {
+    stack_trace_nesting_level_++;
+    base::OS::PrintError(
+        "\n\nAttempt to print stack while printing stack (double fault)\n");
+    base::OS::PrintError(
+        "If you are lucky you may find a partial stack dump on stdout.\n\n");
+    incomplete_message_->OutputToFile(out);
+  }
+}
+
+// Add by Inactive
+bool Isolate::ConcisePrint(StringStream* accumulator) {
+  if (stack_trace_nesting_level_ == 0) {
+    stack_trace_nesting_level_++;
+    StringStream::ClearMentionedObjectCache(this);
+    // HeapStringAllocator allocator;
+    // StringStream accumulator(&allocator);
+    incomplete_message_ = accumulator;
+    bool should_output = DoConcisePrint(accumulator);
+    // if (should_output) accumulator.OutputToFile(out);
+    InitializeLoggingAndCounters();
+    accumulator->Log(this);
+    incomplete_message_ = nullptr;
+    stack_trace_nesting_level_ = 0;
+    return should_output;
+  } else if (stack_trace_nesting_level_ == 1) {
+    stack_trace_nesting_level_++;
+    base::OS::PrintError(
+        "\n\nAttempt to print stack while printing stack (double fault)\n");
+    base::OS::PrintError(
+        "If you are lucky you may find a partial stack dump on stdout.\n\n");
+    accumulator = incomplete_message_;
+    return true;
+  } else {
+    base::OS::Abort();
+    // Unreachable
+    return false;
+  }
+}
+
+// Add by Inactive
+bool Isolate::ConcisePrint(std::map<std::string, std::string>* data_map) {
+  if (stack_trace_nesting_level_ == 0) {
+    stack_trace_nesting_level_++;
+    bool should_output = DoConcisePrint(data_map);
+    stack_trace_nesting_level_ = 0;
+    return should_output;
+  } else if (stack_trace_nesting_level_ == 1) {
+    stack_trace_nesting_level_++;
+    base::OS::PrintError(
+        "\n\nAttempt to print stack while printing stack (double fault)\n");
+    base::OS::PrintError(
+        "If you are lucky you may find a partial stack dump on stdout.\n\n");
+    // accumulator = incomplete_message_;
+    return true;
+  } else {
+    base::OS::Abort();
+    // Unreachable
+    return false;
+  }
+}
+
 static void PrintFrames(Isolate* isolate, StringStream* accumulator,
                         StackFrame::PrintMode mode) {
   StackFrameIterator it(isolate);
@@ -1305,8 +1380,94 @@ void Isolate::PrintStack(StringStream* accumulator, PrintStackMode mode) {
         "\n==== Details ================================================\n\n");
     PrintFrames(this, accumulator, StackFrame::DETAILS);
     accumulator->PrintMentionedObjectCache(this);
+  } else {
+    // Add by Inactive
+    DoConcisePrint(accumulator);
   }
   accumulator->Add("=====================\n\n");
+}
+
+// Add by Inactive
+bool Isolate::DoConcisePrint(StringStream* accumulator) {
+  // The MentionedObjectCache is not GC-proof at the moment.
+  DisallowHeapAllocation no_gc;
+  HandleScope scope(this);
+  DCHECK(accumulator->IsMentionedObjectCacheClear(this));
+
+  // Avoid printing anything if there are no frames.
+  if (c_entry_fp(thread_local_top()) == 0) return false;
+
+  StackFrameIterator it(this);
+  // Only print top JS frame info
+  bool has_js_frame = false;
+  bool should_print = false;
+  accumulator->Add("\n=== JS Info ===\n");
+  while (!it.done()) {
+    if (it.frame()->is_java_script()) {
+      JavaScriptFrame* jsFrame = static_cast<JavaScriptFrame*>(it.frame());
+      if (!jsFrame->function().IsJSFunction()) {
+        accumulator->Add("Skip Non-JSFunction;");
+        it.Advance();
+        continue;
+      }
+      Object script = jsFrame->function().shared().script();
+      // Don't show functions from native scripts to user.
+      if (script.IsScript() &&
+          Script::TYPE_NATIVE != Script::cast(script).type()) {
+        accumulator->Put('\n');
+        should_print =
+            jsFrame->DoConcisePrintFrame(accumulator, StackFrame::OVERVIEW);
+        has_js_frame = true;
+        break;
+      } else {
+        accumulator->Add("Skip native-code;");
+        it.Advance();
+        continue;
+      }
+    }
+    accumulator->Add("Skip Non-JS;");
+    it.Advance();
+  }
+  return has_js_frame && should_print;
+}
+
+// Add by Inactive
+bool Isolate::DoConcisePrint(std::map<std::string, std::string>* data_map) {
+  // The MentionedObjectCache is not GC-proof at the moment.
+  DisallowHeapAllocation no_gc;
+  HandleScope scope(this);
+
+  // Avoid printing anything if there are no frames.
+  if (c_entry_fp(thread_local_top()) == 0) return false;
+
+  StackFrameIterator it(this);
+  // Only print top JS frame info
+  bool has_js_frame = false;
+  bool should_print = false;
+  while (!it.done()) {
+    if (it.frame()->is_java_script()) {
+      JavaScriptFrame* jsFrame = static_cast<JavaScriptFrame*>(it.frame());
+      if (!jsFrame->function().IsJSFunction()) {
+        // accumulator->Add("Skip Non-JSFunction;");
+        it.Advance();
+        continue;
+      }
+      Object script = jsFrame->function().shared().script();
+      // Don't show functions from native scripts to user.
+      if (script.IsScript() &&
+          Script::TYPE_NATIVE != Script::cast(script).type()) {
+        should_print =
+            jsFrame->DoConcisePrintFrame(data_map, StackFrame::OVERVIEW);
+        has_js_frame = true;
+        break;
+      } else {
+        it.Advance();
+        continue;
+      }
+    }
+    it.Advance();
+  }
+  return has_js_frame && should_print;
 }
 
 void Isolate::SetFailedAccessCheckCallback(
@@ -3856,7 +4017,7 @@ bool Isolate::Init(SnapshotData* startup_snapshot_data,
 
   if (!serializer_enabled()) {
     taint_tracking_data_->Initialize(this);
-  }  
+  }
   return true;
 }
 

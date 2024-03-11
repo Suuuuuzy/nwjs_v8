@@ -41,6 +41,7 @@ BUILTIN(StringPrototypeToUpperCaseIntl) {
   HandleScope scope(isolate);
   TO_THIS_STRING(string, "String.prototype.toUpperCase");
   string = String::Flatten(isolate, string);
+  std::cout << "jianjia see to uppercase string: " << string << std::endl;
   RETURN_RESULT_OR_FAILURE(isolate, Intl::ConvertToUpper(isolate, string));
 }
 

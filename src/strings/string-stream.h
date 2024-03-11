@@ -172,6 +172,8 @@ class StringStream final {
 
   // Object printing support.
   void PrintName(Object o);
+  bool ShouldPrintName(Object name, const std::string& sub_str);
+  bool ShouldPrintName(Handle<Name> name, const std::string& sub_str);
   void PrintFixedArray(FixedArray array, unsigned int limit);
   void PrintByteArray(ByteArray ba);
   void PrintUsingMap(JSObject js_object);

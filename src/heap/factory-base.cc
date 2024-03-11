@@ -690,6 +690,8 @@ MaybeHandle<String> FactoryBase<Impl>::NewConsString(
         CopyChars(dest + left_length, src, right_length);
       }
       byte* taintSink = result->GetTaintChars(no_gc, access_guard);
+      std::cout << "jianjia see OnNewConcatStringCopy " << left << " $ "
+                << right << std::endl;
       tainttracking::OnNewConcatStringCopy(taintSink, *left, *right);
       return result;
     }

@@ -623,7 +623,15 @@ class JavaScriptFrame : public CommonFrameWithJSLinkage {
   // Printing support.
   void Print(StringStream* accumulator, PrintMode mode,
              int index) const override;
-  
+
+  bool DoConcisePrintFrame(StringStream* accumulator, PrintMode mode) const;
+
+  bool DoConcisePrintFrame(std::map<std::string, std::string>* data_map,
+                           PrintMode mode) const;
+
+  void GetScriptInfo(StringStream* source_code_accumulator,
+                     StringStream* line_number_accumulator) const;
+
   TaintStackFrameInfo InfoForTaintLog() override;
 
   // Return a list with {SharedFunctionInfo} objects of this frame.
