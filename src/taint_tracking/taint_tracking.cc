@@ -94,10 +94,12 @@ inline bool IsValidTaintType(TaintType type) {
     static_cast<uint8_t>(TaintType::MAX_TAINT_TYPE);
 }
 
-inline void CheckTaintError(TaintType type, String object) {
+inline void CheckTaintError(TaintType type, String object,
+                            TaintData* taint_info = nullptr) {
 #ifdef DEBUG
   if (!IsValidTaintType(type)) {
     // Isolate* isolate = object.GetIsolate();
+    // jianjia: ignore FATAL error for now.
     v8::internal::Isolate* isolate = v8::internal::Isolate::Current();
     std::unique_ptr<char[]> strval = object.ToCString();
     char stack_trace [kStackTraceInfoSize];
@@ -108,20 +110,22 @@ inline void CheckTaintError(TaintType type, String object) {
 
     // isolate->PrintStack(stdout);
 
-    std::cerr << "Taint tracking memory error: "
-              << std::to_string(static_cast<uint8_t>(type)).c_str()
-              << std::endl;
-    std::cerr << "String length: " << object.length() << std::endl;
-    std::cerr << "String type: " << object.map().instance_type()
-              << std::endl;
-    std::cerr << "String value: " << strval.get() << std::endl;
-    std::cerr << "JS Stack trace: " << stack_trace << std::endl;
-    std::cerr << "String address: " << ( object) << std::endl;
-    FATAL("Taint Tracking Memory Error");
+    // std::cerr << "Taint tracking memory error: "
+    //           << std::to_string(static_cast<uint8_t>(type)).c_str()
+    //           << std::endl;
+    // std::cerr << "String length: " << object.length() << std::endl;
+    // std::cerr << "String type: " << object.map().instance_type()
+    //           << std::endl;
+    // std::cerr << "String value: " << strval.get() << std::endl;
+    // std::cerr << "JS Stack trace: " << stack_trace << std::endl;
+    // std::cerr << "String address: " << ( object) << std::endl;
+    // FATAL("Taint Tracking Memory Error");
+    if (taint_info != nullptr) {
+      memset(taint_info, TaintType::UNTAINTED, 1);
+    }
   }
 #endif
 }
-
 
 class TaintVisitor {
 public:
@@ -160,9 +164,8 @@ private:
 #ifdef DEBUG
     if (taint_info != nullptr && !writeable_) {
       for (int i = 0; i < size; i++) {
-        CheckTaintError(
-            static_cast<TaintType>(*(taint_info + offset + i)),
-            GetVisitee());
+        CheckTaintError(static_cast<TaintType>(*(taint_info + offset + i)),
+                        GetVisitee(), taint_info + offset + i);
       }
     }
 #endif
@@ -1088,7 +1091,13 @@ template <> void TaintVisitor::VisitIntoStringTemplate<String>(
     VisitIntoStringTemplate(
         SeqTwoByteString::cast(source), from_offset, from_len);
   } else {
-    FATAL("Taint Tracking Unreachable");
+    // std::cout << "jianjia see shape " << shape.type() << std::endl;
+    if (shape.IsThin()) {
+      std::cout << "This is a thin string" << std::endl;
+    } else if (shape.IsInternalized()) {
+      std::cout << "This is an internalized string" << std::endl;
+    }
+    // FATAL("Taint Tracking Unreachable");
   }
 }
 

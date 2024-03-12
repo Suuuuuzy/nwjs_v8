@@ -381,8 +381,13 @@ MaybeHandle<String> Intl::ConvertToUpper(Isolate* isolate, Handle<String> s) {
             reinterpret_cast<const char*>(src.begin()), length,
             &has_changed_character);
         if (index_to_first_unprocessed == length) {
-          tainttracking::OnConvertCase(*s, result->GetTaintChars(no_gc));
-          return has_changed_character ? result : s;
+          if (has_changed_character) {
+            tainttracking::OnConvertCase(*s, result->GetTaintChars(no_gc));
+            return result;
+          } else {
+            return s;
+          }
+          // return has_changed_character ? result : s;
         }
         // If not ASCII, we keep the result up to index_to_first_unprocessed and
         // process the rest.
