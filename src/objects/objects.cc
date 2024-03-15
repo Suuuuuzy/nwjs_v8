@@ -4714,20 +4714,22 @@ Address JSArray::ArrayJoinConcatToSequentialString(Isolate* isolate,
          StringShape(dest).IsSequentialTwoByte());
 
   if (StringShape(dest).IsSequentialOneByte()) {
-    tainttracking::InitTaintData( SeqOneByteString::cast(dest), no_gc);
+    tainttracking::InitTaintData(SeqOneByteString::cast(dest), no_gc,
+                                 SharedStringAccessGuardIfNeeded::NotNeeded());
     WriteFixedArrayToFlat(fixed_array, static_cast<int>(length), separator,
                           SeqOneByteString::cast(dest).GetChars(no_gc),
                           dest.length(),
                           SeqOneByteString::cast(dest).GetTaintChars(no_gc));
   } else {
     DCHECK(StringShape(dest).IsSequentialTwoByte());
-    tainttracking::InitTaintData(SeqTwoByteString::cast(dest), no_gc);
+    tainttracking::InitTaintData(SeqTwoByteString::cast(dest), no_gc,
+                                 SharedStringAccessGuardIfNeeded::NotNeeded());
     WriteFixedArrayToFlat(fixed_array, static_cast<int>(length), separator,
                           SeqTwoByteString::cast(dest).GetChars(no_gc),
                           dest.length(),
                           SeqTwoByteString::cast(dest).GetTaintChars(no_gc));
   }
-  std::cout  << "jianjia see sep "<< separator << dest << std::endl;
+  // std::cout  << "jianjia see sep "<< separator << dest << std::endl;
   return dest.ptr();
 }
 

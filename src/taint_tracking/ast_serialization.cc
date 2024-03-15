@@ -198,7 +198,7 @@ Status ObjectOwnPropertiesVisitor::ProcessReceiver(
   // stop doing that.
   MaybeHandle<FixedArray> maybe_entries =
     JSReceiver::OwnPropertyKeys(receiver);
-  std::cout << "jianjia " << receiver << std::endl;
+  // std::cout << "jianjia " << receiver << std::endl;
   Handle<FixedArray> entries;
   if (!maybe_entries.ToHandle(&entries)) {
     return Status::FAILURE;

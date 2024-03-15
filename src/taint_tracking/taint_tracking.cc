@@ -94,6 +94,34 @@ inline bool IsValidTaintType(TaintType type) {
     static_cast<uint8_t>(TaintType::MAX_TAINT_TYPE);
 }
 
+inline void CheckTaintErrorOld(TaintType type, String object,
+                               TaintData* taint_info = nullptr) {
+#ifdef DEBUG
+  if (!IsValidTaintType(type)) {
+    // Isolate* isolate = object.GetIsolate();
+    v8::internal::Isolate* isolate = v8::internal::Isolate::Current();
+    std::unique_ptr<char[]> strval = object.ToCString();
+    char stack_trace[kStackTraceInfoSize];
+    FixedStringAllocator alloc(stack_trace, sizeof(stack_trace));
+    StringStream stream(&alloc,
+                        StringStream::ObjectPrintMode::kPrintObjectConcise);
+    isolate->PrintStack(&stream);
+
+    // isolate->PrintStack(stdout);
+
+    std::cerr << "Taint tracking memory error: "
+              << std::to_string(static_cast<uint8_t>(type)).c_str()
+              << std::endl;
+    std::cerr << "String length: " << object.length() << std::endl;
+    std::cerr << "String type: " << object.map().instance_type() << std::endl;
+    std::cerr << "String value: " << strval.get() << std::endl;
+    std::cerr << "JS Stack trace: " << stack_trace << std::endl;
+    std::cerr << "String address: " << (object) << std::endl;
+    FATAL("Taint Tracking Memory Error");
+  }
+#endif
+}
+
 inline void CheckTaintError(TaintType type, String object,
                             TaintData* taint_info = nullptr) {
 #ifdef DEBUG
@@ -122,6 +150,8 @@ inline void CheckTaintError(TaintType type, String object,
     // FATAL("Taint Tracking Memory Error");
     if (taint_info != nullptr) {
       memset(taint_info, TaintType::UNTAINTED, 1);
+      CheckTaintErrorOld(static_cast<TaintType>(*(taint_info)), object,
+                         taint_info);
     }
   }
 #endif
@@ -944,19 +974,26 @@ template <class T> void InitTaintSeqByteString(T str, TaintType type, const Disa
   MarkNewString(str);
 }
 
-template<> void InitTaintData<SeqOneByteString>(
-    SeqOneByteString str, const DisallowGarbageCollection& no_gc, TaintType type) {
+template <>
+void InitTaintData<SeqOneByteString>(
+    SeqOneByteString str, const DisallowGarbageCollection& no_gc,
+    const SharedStringAccessGuardIfNeeded& access_guard, TaintType type) {
   InitTaintSeqByteString(str, type, no_gc);
 }
-template<> void InitTaintData<SeqTwoByteString>(
-    SeqTwoByteString str, const DisallowGarbageCollection& no_gc, TaintType type) {
+template <>
+void InitTaintData<SeqTwoByteString>(
+    SeqTwoByteString str, const DisallowGarbageCollection& no_gc,
+    const SharedStringAccessGuardIfNeeded& access_guard, TaintType type) {
   InitTaintSeqByteString(str, type, no_gc);
 }
-template<> void InitTaintData<SeqString>(SeqString str, const DisallowGarbageCollection& no_gc, TaintType type) {
+template <>
+void InitTaintData<SeqString>(
+    SeqString str, const DisallowGarbageCollection& no_gc,
+    const SharedStringAccessGuardIfNeeded& access_guard, TaintType type) {
   if (str.IsSeqOneByteString()) {
-    InitTaintData(SeqOneByteString::cast(str), no_gc, type);
+    InitTaintData(SeqOneByteString::cast(str), no_gc, access_guard, type);
   } else {
-    InitTaintData(SeqTwoByteString::cast(str), no_gc, type);
+    InitTaintData(SeqTwoByteString::cast(str), no_gc, access_guard, type);
   }
 }
 
@@ -1753,17 +1790,17 @@ public:
 
   bool VisitKeyValue(Handle<String> key, Handle<Object> value, bool visitKey = true) override {
     DisallowHeapAllocation no_gc;
-    if (key->IsInternalizedString()){
-      std::cout << "jianjia key IsInternalizedString " << std::endl;
-    }
+    // if (key->IsInternalizedString()){
+    //   std::cout << "jianjia key IsInternalizedString " << std::endl;
+    // }
     if (value->IsString()) {
       Handle<String> value_as_string = Handle<String>::cast(value);
-      if (value_as_string->IsInternalizedString()){
-        std::cout << "jianjia value IsInternalizedString " << std::endl;
-      }
-      if (IsReadOnlyHeapObject(*value_as_string)){
-        std::cout << "jianjia value read only " <<  std::endl;
-      }
+      // if (value_as_string->IsInternalizedString()){
+      //   std::cout << "jianjia value IsInternalizedString " << std::endl;
+      // }
+      // if (IsReadOnlyHeapObject(*value_as_string)){
+      //   std::cout << "jianjia value read only " <<  std::endl;
+      // }
       CopyIn(*value_as_string, type_, 0, value_as_string->length());
     }
     if (visitKey) {

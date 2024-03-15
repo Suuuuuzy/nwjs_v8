@@ -234,12 +234,24 @@ const bool kInternalizedStringsEnabled = !kTaintTrackingEnabled;
 
 // Functions for manipulating taint data
 template <class T>
-void InitTaintData(T str, const v8::internal::DisallowGarbageCollection& no_gc, TaintType type = TaintType::UNTAINTED);
+void InitTaintData(
+    T str, const v8::internal::DisallowGarbageCollection& no_gc,
+    const v8::internal::SharedStringAccessGuardIfNeeded& access_guard,
+    // = v8::internal::SharedStringAccessGuardIfNeeded::NotNeeded(),
+    TaintType type = TaintType::UNTAINTED);
 
-template <> void InitTaintData<v8::internal::SeqOneByteString>(
-    v8::internal::SeqOneByteString str, const v8::internal::DisallowGarbageCollection& no_gc, TaintType type);
-template <> void InitTaintData<v8::internal::SeqTwoByteString>(
-    v8::internal::SeqTwoByteString str, const v8::internal::DisallowGarbageCollection& no_gc, TaintType type);
+template <>
+void InitTaintData<v8::internal::SeqOneByteString>(
+    v8::internal::SeqOneByteString str,
+    const v8::internal::DisallowGarbageCollection& no_gc,
+    const v8::internal::SharedStringAccessGuardIfNeeded& access_guard,
+    TaintType type);
+template <>
+void InitTaintData<v8::internal::SeqTwoByteString>(
+    v8::internal::SeqTwoByteString str,
+    const v8::internal::DisallowGarbageCollection& no_gc,
+    const v8::internal::SharedStringAccessGuardIfNeeded& access_guard,
+    TaintType type);
 
 void InitTaintDataWithDestLen(TaintData* dest, int len, TaintType type = TaintType::UNTAINTED);
 

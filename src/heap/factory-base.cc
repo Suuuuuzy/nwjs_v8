@@ -550,7 +550,8 @@ Handle<SeqOneByteString> FactoryBase<Impl>::NewOneByteInternalizedStringHelper(
   MemCopy(result->GetChars(no_gc, SharedStringAccessGuardIfNeeded::NotNeeded()),
           str.begin(), str.length());
   // tainttracking::InitTaintDataWithDestLen(result->GetTaintChars(no_gc, SharedStringAccessGuardIfNeeded::NotNeeded()), str.length());
-  tainttracking::InitTaintData(*result, no_gc);
+  tainttracking::InitTaintData(*result, no_gc,
+                               SharedStringAccessGuardIfNeeded::NotNeeded());
   return result;
 }
 
@@ -574,7 +575,8 @@ Handle<SeqTwoByteString> FactoryBase<Impl>::NewTwoByteInternalizedStringHelper(
   DisallowGarbageCollection no_gc;
   MemCopy(result->GetChars(no_gc, SharedStringAccessGuardIfNeeded::NotNeeded()),
           str.begin(), str.length() * kUC16Size);
-  tainttracking::InitTaintData(*result, no_gc);
+  tainttracking::InitTaintData(*result, no_gc,
+                               SharedStringAccessGuardIfNeeded::NotNeeded());
   return result;
 }
 
@@ -605,7 +607,8 @@ MaybeHandle<SeqOneByteString> FactoryBase<Impl>::NewRawOneByteString(
   string.set_length(length);
   string.set_raw_hash_field(String::kEmptyHashField);
   DCHECK_EQ(size, string.Size());
-  tainttracking::InitTaintData(string, no_gc);
+  tainttracking::InitTaintData(string, no_gc,
+                               SharedStringAccessGuardIfNeeded::NotNeeded());
   return handle(string, isolate());
 }
 
@@ -625,7 +628,8 @@ MaybeHandle<SeqTwoByteString> FactoryBase<Impl>::NewRawTwoByteString(
   string.set_length(length);
   string.set_raw_hash_field(String::kEmptyHashField);
   DCHECK_EQ(size, string.Size());
-  tainttracking::InitTaintData(string, no_gc);
+  tainttracking::InitTaintData(string, no_gc,
+                               SharedStringAccessGuardIfNeeded::NotNeeded());
   return handle(string, isolate());
 }
 
