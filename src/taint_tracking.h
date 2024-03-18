@@ -19,7 +19,7 @@
 // #include "src/heap/factory-inl.h"
 // Suzy: for the AstRawString
 #include "src/ast/ast-value-factory.h"
-
+// #include "src/objects/string-inl.h"
 
 
 #include <fstream>
@@ -33,6 +33,7 @@ namespace internal {
 class FunctionLiteral;
 class Parser;
 class ParseInfo;
+class SharedStringAccessGuardIfNeeded;
 }
 }
 

@@ -799,14 +799,6 @@ byte* SeqOneByteString::GetTaintChars(const DisallowGarbageCollection& no_gc) {
             kHeaderSize + (length() * kCharSize)));
 }
 
-
-byte* SeqTwoByteString::GetTaintChars(const DisallowGarbageCollection& no_gc) {
-  USE(no_gc);
-  DCHECK(!SharedStringAccessGuardIfNeeded::IsNeeded(*this));
-  return reinterpret_cast<byte*>(field_address(
-            kHeaderSize + (length() * kShortSize)));
-}
-
 byte* SeqTwoByteString::GetTaintChars(
   const DisallowGarbageCollection& no_gc,
   const SharedStringAccessGuardIfNeeded& access_guard) {
@@ -816,6 +808,12 @@ byte* SeqTwoByteString::GetTaintChars(
             kHeaderSize + (length() * kShortSize)));
 }
 
+byte* SeqTwoByteString::GetTaintChars(const DisallowGarbageCollection& no_gc) {
+  USE(no_gc);
+  DCHECK(!SharedStringAccessGuardIfNeeded::IsNeeded(*this));
+  return reinterpret_cast<byte*>(field_address(
+            kHeaderSize + (length() * kShortSize)));
+}
 
 Address SeqOneByteString::GetCharsAddress() const {
   return field_address(kHeaderSize);

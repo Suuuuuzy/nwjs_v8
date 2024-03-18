@@ -549,7 +549,6 @@ Handle<SeqOneByteString> FactoryBase<Impl>::NewOneByteInternalizedStringHelper(
   DisallowGarbageCollection no_gc;
   MemCopy(result->GetChars(no_gc, SharedStringAccessGuardIfNeeded::NotNeeded()),
           str.begin(), str.length());
-  // tainttracking::InitTaintDataWithDestLen(result->GetTaintChars(no_gc, SharedStringAccessGuardIfNeeded::NotNeeded()), str.length());
   tainttracking::InitTaintData(*result, no_gc,
                                SharedStringAccessGuardIfNeeded::NotNeeded());
   return result;

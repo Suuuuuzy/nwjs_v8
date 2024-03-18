@@ -26,6 +26,7 @@
 #include "src/init/v8.h"
 #include "src/execution/frames.h"
 #include "src/heap/heap-write-barrier-inl.h"
+// #include "src/objects/string-inl.h"
 
 
 #include <array>
@@ -967,9 +968,9 @@ void MarkNewString(String str) {
   // str.set_taint_info(0);
 }
 
-template <class T> void InitTaintSeqByteString(T str, TaintType type, const DisallowGarbageCollection& no_gc) {
+template <class T> void InitTaintSeqByteString(T str, TaintType type, const DisallowGarbageCollection& no_gc, const SharedStringAccessGuardIfNeeded& access_guard) {
   // TaintData* data = StringTaintData(str, no_gc);
-   TaintData* data = str.GetTaintChars(no_gc);
+   TaintData* data = str.GetTaintChars(no_gc, access_guard);
   memset(data, type, str.length());
   MarkNewString(str);
 }
@@ -978,13 +979,13 @@ template <>
 void InitTaintData<SeqOneByteString>(
     SeqOneByteString str, const DisallowGarbageCollection& no_gc,
     const SharedStringAccessGuardIfNeeded& access_guard, TaintType type) {
-  InitTaintSeqByteString(str, type, no_gc);
+  InitTaintSeqByteString(str, type, no_gc, access_guard);
 }
 template <>
 void InitTaintData<SeqTwoByteString>(
     SeqTwoByteString str, const DisallowGarbageCollection& no_gc,
     const SharedStringAccessGuardIfNeeded& access_guard, TaintType type) {
-  InitTaintSeqByteString(str, type, no_gc);
+  InitTaintSeqByteString(str, type, no_gc, access_guard);
 }
 template <>
 void InitTaintData<SeqString>(
