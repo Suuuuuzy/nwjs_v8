@@ -18,6 +18,7 @@
 #include "src/objects/slots-inl.h"
 #include "src/objects/smi.h"
 #include "src/snapshot/serializer-deserializer.h"
+#include "src/taint_tracking.h"
 
 namespace v8 {
 namespace internal {
@@ -565,6 +566,7 @@ void Serializer::ObjectSerializer::SerializeExternalStringAsSequentialString() {
   Map map;
   int content_size;
   int allocation_size;
+  int taint_size = tainttracking::SizeForTaint(length);
   const byte* resource;
   // Find the map and size for the imaginary sequential string.
   bool internalized = object_->IsInternalizedString();
@@ -603,10 +605,21 @@ void Serializer::ObjectSerializer::SerializeExternalStringAsSequentialString() {
 
   // Serialize string content.
   sink_->PutRaw(resource, content_size, "StringContent");
+  byte taint_data[taint_size];
+  tainttracking::FlattenTaintData(*string, taint_data, 0, taint_size);
+  sink_->PutRaw(taint_data, taint_size, "StringTaint");
 
   // Since the allocation size is rounded up to object alignment, there
   // maybe left-over bytes that need to be padded.
-  int padding_size = allocation_size - SeqString::kHeaderSize - content_size;
+  int padding_size =
+      allocation_size - SeqString::kHeaderSize - content_size - taint_size;
+  std::cout << "jianajia see allocation_size: " << allocation_size << std::endl;
+  std::cout << "jianajia see SeqString::kHeaderSize: " << SeqString::kHeaderSize
+            << std::endl;
+  std::cout << "jianajia see content_size: " << content_size << std::endl;
+  std::cout << "jianajia see padding size: " << padding_size << std::endl;
+  std::cout << "jianajia see kObjectAlignment: " << kObjectAlignment
+            << std::endl;
   DCHECK(0 <= padding_size && padding_size < kObjectAlignment);
   for (int i = 0; i < padding_size; i++)
     sink_->Put(static_cast<byte>(0), "StringPadding");
