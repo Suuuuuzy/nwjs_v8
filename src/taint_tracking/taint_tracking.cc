@@ -1136,11 +1136,11 @@ template <> void TaintVisitor::VisitIntoStringTemplate<String>(
         SeqTwoByteString::cast(source), from_offset, from_len);
   } else {
     // std::cout << "jianjia see shape " << shape.type() << std::endl;
-    if (shape.IsThin()) {
-      std::cout << "This is a thin string" << std::endl;
-    } else if (shape.IsInternalized()) {
-      std::cout << "This is an internalized string" << std::endl;
-    }
+    // if (shape.IsThin()) {
+    // std::cout << "This is a thin string" << std::endl;
+    // } else if (shape.IsInternalized()) {
+    // std::cout << "This is an internalized string" << std::endl;
+    // }
     // FATAL("Taint Tracking Unreachable");
   }
 }

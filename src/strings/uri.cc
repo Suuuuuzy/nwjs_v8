@@ -189,6 +189,7 @@ bool IntoOneAndTwoByte(Handle<String> uri, bool is_uri,
 
 MaybeHandle<String> Uri::Decode(Isolate* isolate, Handle<String> uri,
                                 bool is_uri) {
+  std::cout << "jianjia see uri: " << uri << std::endl;
   uri = String::Flatten(isolate, uri);
   std::vector<uint8_t> one_byte_buffer;
   std::vector<uc16> two_byte_buffer;
@@ -210,8 +211,7 @@ MaybeHandle<String> Uri::Decode(Isolate* isolate, Handle<String> uri,
       Handle<String> res_checked = result.ToHandleChecked();
       DCHECK(res_checked->IsSeqString());
       tainttracking::CopyIn(*Handle<SeqString>::cast(res_checked),
-                            &taint_data.front(),
-                            0, static_cast<int>(new_len));
+                            taint_data.data(), 0, static_cast<int>(new_len));
     }
     tainttracking::OnGenericOperation(
         is_uri
@@ -377,9 +377,7 @@ MaybeHandle<String> Uri::Encode(Isolate* isolate, Handle<String> uri,
     DCHECK_EQ(taint_buffer.size(), res_str->length());
     {
       DisallowHeapAllocation no_gc;
-      tainttracking::CopyIn(SeqString::cast(*res_str),
-                            &taint_buffer.front(),
-                            0,
+      tainttracking::CopyIn(SeqString::cast(*res_str), taint_buffer.data(), 0,
                             res_str->length());
       tainttracking::OnGenericOperation(
           is_uri
