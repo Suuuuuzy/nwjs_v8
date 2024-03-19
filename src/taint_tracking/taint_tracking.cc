@@ -2135,8 +2135,8 @@ template void OnNewSubStringCopy<ConsString>(
 // template void OnNewSubStringCopy<String>(
 //     String, TaintData*, int, int);
 
-// template void FlattenTaintData<ExternalString>(
-//     ExternalString, TaintData*, int, int);
+template void FlattenTaintData<ExternalString>(
+     ExternalString, TaintData*, int, int);
 template void FlattenTaintData<String>(String, TaintData*, int, int);
 
 template TaintType GetTaintStatusRange<String>(String, int, int);
