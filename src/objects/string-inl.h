@@ -794,6 +794,8 @@ byte* SeqOneByteString::GetTaintChars(
 
 byte* SeqOneByteString::GetTaintChars(const DisallowGarbageCollection& no_gc) {
   USE(no_gc);
+  // std::cout << "jianjia SeqOneByteString GetTaintChars DCHECK: " << *this
+  //           << std::endl;
   DCHECK(!SharedStringAccessGuardIfNeeded::IsNeeded(*this));
   return reinterpret_cast<byte*>(field_address(
             kHeaderSize + (length() * kCharSize)));
@@ -810,6 +812,8 @@ byte* SeqTwoByteString::GetTaintChars(
 
 byte* SeqTwoByteString::GetTaintChars(const DisallowGarbageCollection& no_gc) {
   USE(no_gc);
+  // std::cout << "jianjia SeqTwoByteString GetTaintChars DCHECK " << *this
+  //           << std::endl;
   DCHECK(!SharedStringAccessGuardIfNeeded::IsNeeded(*this));
   return reinterpret_cast<byte*>(field_address(
             kHeaderSize + (length() * kShortSize)));
@@ -822,6 +826,8 @@ Address SeqOneByteString::GetCharsAddress() const {
 uint8_t* SeqOneByteString::GetChars(
     const DisallowGarbageCollection& no_gc) const {
   USE(no_gc);
+  // std::cout << "jianjia SeqOneByteString GetChars DCHECK " << *this
+  //           << std::endl;
   DCHECK(!SharedStringAccessGuardIfNeeded::IsNeeded(*this));
   return reinterpret_cast<uint8_t*>(GetCharsAddress());
 }
@@ -840,6 +846,8 @@ Address SeqTwoByteString::GetCharsAddress() const {
 
 uc16* SeqTwoByteString::GetChars(const DisallowGarbageCollection& no_gc) const {
   USE(no_gc);
+  // std::cout << "jianjia SeqTwoByteString GetChars DCHECK " << *this
+  //           << std::endl;
   DCHECK(!SharedStringAccessGuardIfNeeded::IsNeeded(*this));
   return reinterpret_cast<uc16*>(GetCharsAddress());
 }

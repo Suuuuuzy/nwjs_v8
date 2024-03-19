@@ -1043,7 +1043,10 @@ template <> void TaintVisitor::VisitIntoStringTemplate<SeqOneByteString>(
   DCHECK_GE(len, 0);
   DCHECK_LE(from + len, source.length());
   DisallowGarbageCollection no_gc;
-  DoVisit(source.GetChars(no_gc), source.GetTaintChars(no_gc), from, len);
+  DoVisit(
+      source.GetChars(no_gc, SharedStringAccessGuardIfNeeded::NotNeeded()),
+      source.GetTaintChars(no_gc, SharedStringAccessGuardIfNeeded::NotNeeded()),
+      from, len);
 }
 
 template <> void TaintVisitor::VisitIntoStringTemplate<SeqTwoByteString>(
@@ -1052,7 +1055,10 @@ template <> void TaintVisitor::VisitIntoStringTemplate<SeqTwoByteString>(
   DCHECK_GE(len, 0);
   DCHECK_LE(from + len, source.length());
   DisallowGarbageCollection no_gc;
-  DoVisit(source.GetChars(no_gc), source.GetTaintChars(no_gc), from, len);
+  DoVisit(
+      source.GetChars(no_gc, SharedStringAccessGuardIfNeeded::NotNeeded()),
+      source.GetTaintChars(no_gc, SharedStringAccessGuardIfNeeded::NotNeeded()),
+      from, len);
 }
 
 template <> void TaintVisitor::VisitIntoStringTemplate<ExternalOneByteString>(
