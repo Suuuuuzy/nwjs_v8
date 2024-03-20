@@ -189,7 +189,6 @@ bool IntoOneAndTwoByte(Handle<String> uri, bool is_uri,
 
 MaybeHandle<String> Uri::Decode(Isolate* isolate, Handle<String> uri,
                                 bool is_uri) {
-  std::cout << "jianjia see uri: " << uri << std::endl;
   uri = String::Flatten(isolate, uri);
   std::vector<uint8_t> one_byte_buffer;
   std::vector<uc16> two_byte_buffer;

@@ -613,13 +613,6 @@ void Serializer::ObjectSerializer::SerializeExternalStringAsSequentialString() {
   // maybe left-over bytes that need to be padded.
   int padding_size =
       allocation_size - SeqString::kHeaderSize - content_size - taint_size;
-  std::cout << "jianajia see allocation_size: " << allocation_size << std::endl;
-  std::cout << "jianajia see SeqString::kHeaderSize: " << SeqString::kHeaderSize
-            << std::endl;
-  std::cout << "jianajia see content_size: " << content_size << std::endl;
-  std::cout << "jianajia see padding size: " << padding_size << std::endl;
-  std::cout << "jianajia see kObjectAlignment: " << kObjectAlignment
-            << std::endl;
   DCHECK(0 <= padding_size && padding_size < kObjectAlignment);
   for (int i = 0; i < padding_size; i++)
     sink_->Put(static_cast<byte>(0), "StringPadding");
