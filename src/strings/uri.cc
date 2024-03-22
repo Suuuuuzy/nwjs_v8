@@ -98,6 +98,8 @@ bool IntoTwoByte(int index, bool is_uri, int uri_length,
                  std::vector<tainttracking::TaintData>* taint_data_out) {
   for (int k = index; k < uri_length; k++) {
     uc16 code = uri_content->Get(k);
+    tainttracking::TaintType taint =
+        static_cast<tainttracking::TaintType>(taint_data_in[k]);
     if (code == '%') {
       int two_digits;
       if (k + 2 >= uri_length ||
@@ -126,14 +128,25 @@ bool IntoTwoByte(int index, bool is_uri, int uri_length,
           octets[number_of_continuation_bytes] = continuation_byte;
         }
 
-        if (!DecodeOctets(octets, number_of_continuation_bytes, buffer)) {
+        int step = DecodeOctets(octets, number_of_continuation_bytes, buffer);
+        if (step == 0) {
           return false;
         }
+        for (int i = 0; i < step; i++) {
+          // TODO: Approximate
+          taint_data_out->push_back(taint);
+        }
       } else {
-        AddToBuffer(decoded, uri_content, k - 2, is_uri, buffer);
+        int step = AddToBuffer(decoded, uri_content, k - 2, is_uri, buffer);
+        taint_data_out->push_back(taint);
+        if (step == 3) {
+          taint_data_out->push_back(taint);
+          taint_data_out->push_back(taint);
+        }
       }
     } else {
       buffer->push_back(code);
+      taint_data_out->push_back(taint);
     }
   }
   return true;
