@@ -3856,7 +3856,7 @@ bool Isolate::Init(SnapshotData* startup_snapshot_data,
 
   if (!serializer_enabled()) {
     taint_tracking_data_->Initialize(this);
-  }  
+  }
   return true;
 }
 

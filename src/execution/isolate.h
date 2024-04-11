@@ -38,9 +38,8 @@
 #include "src/objects/debug-objects.h"
 #include "src/runtime/runtime.h"
 #include "src/strings/unicode.h"
-#include "src/utils/allocation.h"
-
 #include "src/taint_tracking.h"
+#include "src/utils/allocation.h"
 
 #ifdef V8_INTL_SUPPORT
 #include "unicode/uversion.h"  // Define U_ICU_NAMESPACE.

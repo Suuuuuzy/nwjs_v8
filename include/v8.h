@@ -3477,54 +3477,55 @@ class V8_EXPORT String : public Name {
       std::unique_ptr<TaintData> taint_data_;
   };
 
-  class V8_EXPORT ExternalStringResourceBase{  // NOLINT
-   public:
-    virtual ~ExternalStringResourceBase() = default;
+  class V8_EXPORT ExternalStringResourceBase
+      : public virtual TaintTrackingBase {  // NOLINT
+     public:
+      virtual ~ExternalStringResourceBase() = default;
 
-    /**
-     * If a string is cacheable, the value returned by
-     * ExternalStringResource::data() may be cached, otherwise it is not
-     * expected to be stable beyond the current top-level task.
-     */
-    virtual bool IsCacheable() const { return true; }
+      /**
+       * If a string is cacheable, the value returned by
+       * ExternalStringResource::data() may be cached, otherwise it is not
+       * expected to be stable beyond the current top-level task.
+       */
+      virtual bool IsCacheable() const { return true; }
 
-    // Disallow copying and assigning.
-    ExternalStringResourceBase(const ExternalStringResourceBase&) = delete;
-    void operator=(const ExternalStringResourceBase&) = delete;
+      // Disallow copying and assigning.
+      ExternalStringResourceBase(const ExternalStringResourceBase&) = delete;
+      void operator=(const ExternalStringResourceBase&) = delete;
 
-   protected:
-    ExternalStringResourceBase() = default;
+     protected:
+      ExternalStringResourceBase() = default;
 
-    /**
-     * Internally V8 will call this Dispose method when the external string
-     * resource is no longer needed. The default implementation will use the
-     * delete operator. This method can be overridden in subclasses to
-     * control how allocated external string resources are disposed.
-     */
-    virtual void Dispose() { delete this; }
+      /**
+       * Internally V8 will call this Dispose method when the external string
+       * resource is no longer needed. The default implementation will use the
+       * delete operator. This method can be overridden in subclasses to
+       * control how allocated external string resources are disposed.
+       */
+      virtual void Dispose() { delete this; }
 
-    /**
-     * For a non-cacheable string, the value returned by
-     * |ExternalStringResource::data()| has to be stable between |Lock()| and
-     * |Unlock()|, that is the string must behave as is |IsCacheable()| returned
-     * true.
-     *
-     * These two functions must be thread-safe, and can be called from anywhere.
-     * They also must handle lock depth, in the sense that each can be called
-     * several times, from different threads, and unlocking should only happen
-     * when the balance of Lock() and Unlock() calls is 0.
-     */
-    virtual void Lock() const {}
+      /**
+       * For a non-cacheable string, the value returned by
+       * |ExternalStringResource::data()| has to be stable between |Lock()| and
+       * |Unlock()|, that is the string must behave as is |IsCacheable()|
+       * returned true.
+       *
+       * These two functions must be thread-safe, and can be called from
+       * anywhere. They also must handle lock depth, in the sense that each can
+       * be called several times, from different threads, and unlocking should
+       * only happen when the balance of Lock() and Unlock() calls is 0.
+       */
+      virtual void Lock() const {}
 
-    /**
-     * Unlocks the string.
-     */
-    virtual void Unlock() const {}
+      /**
+       * Unlocks the string.
+       */
+      virtual void Unlock() const {}
 
-   private:
-    friend class internal::ExternalString;
-    friend class v8::String;
-    friend class internal::ScopedExternalStringLock;
+     private:
+      friend class internal::ExternalString;
+      friend class v8::String;
+      friend class internal::ScopedExternalStringLock;
   };
 
   /**
@@ -3534,49 +3535,49 @@ class V8_EXPORT String : public Name {
    * buffer.  Note that the string data must be immutable.
    */
   class V8_EXPORT ExternalStringResource
-      : public ExternalStringResourceBase,
-        public TaintTrackingStringBufferImpl {
-   public:
-    /**
-     * Override the destructor to manage the life cycle of the underlying
-     * buffer.
-     */
-    ~ExternalStringResource() override = default;
+  : public ExternalStringResourceBase,
+    public String::TaintTrackingStringBufferImpl{
+     public:
+      /**
+       * Override the destructor to manage the life cycle of the underlying
+       * buffer.
+       */
+      ~ExternalStringResource() override = default;
 
-    /**
-     * The string data from the underlying buffer. If the resource is cacheable
-     * then data() must return the same value for all invocations.
-     */
-    virtual const uint16_t* data() const = 0;
+      /**
+       * The string data from the underlying buffer. If the resource is
+       * cacheable then data() must return the same value for all invocations.
+       */
+      virtual const uint16_t* data() const = 0;
 
-    /**
-     * The length of the string. That is, the number of two-byte characters.
-     */
-    virtual size_t length() const = 0;
+      /**
+       * The length of the string. That is, the number of two-byte characters.
+       */
+      virtual size_t length() const = 0;
 
-    /**
-     * Returns the cached data from the underlying buffer. This method can be
-     * called only for cacheable resources (i.e. IsCacheable() == true) and only
-     * after UpdateDataCache() was called.
-     */
-    const uint16_t* cached_data() const {
-      CheckCachedDataInvariants();
-      return cached_data_;
-    }
+      /**
+       * Returns the cached data from the underlying buffer. This method can be
+       * called only for cacheable resources (i.e. IsCacheable() == true) and
+       * only after UpdateDataCache() was called.
+       */
+      const uint16_t* cached_data() const {
+        CheckCachedDataInvariants();
+        return cached_data_;
+      }
 
-    /**
-     * Update {cached_data_} with the data from the underlying buffer. This can
-     * be called only for cacheable resources.
-     */
-    void UpdateDataCache();
+      /**
+       * Update {cached_data_} with the data from the underlying buffer. This
+       * can be called only for cacheable resources.
+       */
+      void UpdateDataCache();
 
-   protected:
-    ExternalStringResource() = default;
+     protected:
+      ExternalStringResource() = default;
 
-   private:
-    void CheckCachedDataInvariants() const;
+     private:
+      void CheckCachedDataInvariants() const;
 
-    const uint16_t* cached_data_ = nullptr;
+      const uint16_t* cached_data_ = nullptr;
   };
 
   /**
