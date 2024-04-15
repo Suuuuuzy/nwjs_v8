@@ -1677,6 +1677,7 @@ int64_t LogIfTainted(IsTaintedVisitor& visitor,
       StackFrame* frame = it.frame();
       frame->Print(&stream, StackFrame::OVERVIEW, i);
       stream.Add("================details==============\n");
+      std::cout << "jianjia see LogIfTainted" << std::endl;
       frame->Print(&stream, StackFrame::DETAILS, i);
       stream.PrintMentionedObjectCache(isolate);
 
