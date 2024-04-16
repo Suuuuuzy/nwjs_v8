@@ -1677,7 +1677,7 @@ int64_t LogIfTainted(IsTaintedVisitor& visitor,
       StackFrame* frame = it.frame();
       frame->Print(&stream, StackFrame::OVERVIEW, i);
       stream.Add("================details==============\n");
-      std::cout << "jianjia see LogIfTainted" << std::endl;
+
       frame->Print(&stream, StackFrame::DETAILS, i);
       stream.PrintMentionedObjectCache(isolate);
 
@@ -1706,6 +1706,9 @@ int64_t LogIfTainted(IsTaintedVisitor& visitor,
       }
 
       frames[i].setFrameHumanReadable(human_string.get());
+      if (FLAG_std_out_taint_tracking_logs) {
+        std::cout << human_string.get() << std::endl;
+      }
       traceMessages.push_back(std::move(human_string));
     }
   }

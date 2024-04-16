@@ -376,7 +376,8 @@ DEFINE_BOOL(taint_tracking_write_packed_logs, false,
             "Write packed taint tracking logs. ")
 DEFINE_BOOL(taint_tracking_sources_sinks_to_logs, false,
             "Write to the log whenever a source or sink is executed.")
-
+DEFINE_BOOL(std_out_taint_tracking_logs, false,
+            "directly stdout the taint logs.")
 
 DEFINE_IMPLICATION(
     taint_tracking_enable_ast_modification, taint_tracking_disable_code_caching)
