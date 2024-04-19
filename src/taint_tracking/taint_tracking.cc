@@ -674,6 +674,7 @@ int64_t TaintTracker::Impl::LogToFileImpl(
   log_message.setMessageId(msg_id);
 
   if (buffered_log_) {
+    std::cout << "jianjia check buffered_log_" << std::endl;
     std::lock_guard<std::mutex> guard(log_mutex_);
     builder.DoSynchronousWrite(*buffered_log_);
   }
@@ -681,6 +682,7 @@ int64_t TaintTracker::Impl::LogToFileImpl(
   if (unsent_messages_ > kFlushMessageMax ||
       conf == FORCE_FLUSH ||
       last_message_flushed_.HasExpired(kMaxTimeBetweenFlushes)) {
+    std::cout << "jianjia check FORCE_FLUSH" << std::endl;
     ScheduleFlushLog(isolate);
     last_message_flushed_.Restart();
   } else {
