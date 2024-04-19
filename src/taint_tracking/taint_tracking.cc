@@ -352,20 +352,18 @@ void MessageHolder::CopyJsObjectToStringSlow(
 // template ::TaintLogRecord::SymbolicValue::Builder MessageHolder::InitRootAs<::TaintLogRecord::SymbolicValue>();
 // template ::TaintLogRecord::SymbolicValue::Builder MessageHolder::GetRootAs<::TaintLogRecord::SymbolicValue>();
 
+class LogTaintTask : public v8::Task {
+ public:
+  LogTaintTask(Isolate* isolate) : isolate_(isolate) {}
 
-// class LogTaintTask : public v8::Task {
-// public:
-//   LogTaintTask(Isolate* isolate) :
-//     isolate_(isolate) {}
+  void Run() override {
+    std::cout << "jianjia see LogTaintTask" << std::endl;
+    TaintTracker::FromIsolate(isolate_)->Get()->DoFlushLog();
+  }
 
-//   void Run() override {
-//     TaintTracker::FromIsolate(isolate_)->Get()->DoFlushLog();
-//   }
-
-// private:
-//   Isolate* isolate_;
-// };
-
+ private:
+  Isolate* isolate_;
+};
 
 // class JsObjectSerializer : public ObjectOwnPropertiesVisitor {
 // public:
@@ -694,12 +692,12 @@ int64_t TaintTracker::Impl::LogToFileImpl(
 
 
 void TaintTracker::Impl::ScheduleFlushLog(v8::internal::Isolate* isolate) {
-  // std::lock_guard<std::mutex> guard(log_mutex_);
-  // if (!log_flush_scheduled_) {
-  //   V8::GetCurrentPlatform()->CallOnBackgroundThread(
-  //       new LogTaintTask(isolate), v8::Platform::kShortRunningTask);
-  //   log_flush_scheduled_ = true;
-  // }
+  std::lock_guard<std::mutex> guard(log_mutex_);
+  if (!log_flush_scheduled_) {
+    V8::GetCurrentPlatform()->CallOnWorkerThread(
+        std::make_unique<LogTaintTask>(isolate));
+    log_flush_scheduled_ = true;
+  }
 }
 
 void TaintTracker::Impl::DoFlushLog() {
@@ -1998,6 +1996,7 @@ void TaintTracker::Impl::Initialize(v8::internal::Isolate* isolate) {
     is_logging_ = true;
 
     std::unique_ptr<std::ofstream> oflog (new std::ofstream());
+    // suzy: this happens everytime because the files are always created
     oflog->open(LogFileName());
     std::swap(log_, oflog);
     buffer_log_storage_ = kj::heapArray<uint8_t>(kLogBufferSize);
