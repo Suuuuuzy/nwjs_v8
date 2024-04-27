@@ -112,6 +112,10 @@ BUILTIN(GlobalEval) {
       Execution::Call(isolate, function, target_global_proxy, 0, nullptr));
 }
 
+BUILTIN(GlobalTaintConstants) {
+  HandleScope scope(isolate);
+  return *tainttracking::JSTaintConstants(isolate);
+}
 
 BUILTIN(GlobalSetTaint) {
   HandleScope scope(isolate);

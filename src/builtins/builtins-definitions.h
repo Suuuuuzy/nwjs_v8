@@ -557,7 +557,7 @@ namespace internal {
                                                                                \
   /* TaintData */                                                              \
   /* CPP(GlobalPrintToTaintLog)       */                                             \
-  /* CPP(GlobalTaintConstants)     */                                                \
+  CPP(GlobalTaintConstants)                                                    \
   CPP(GlobalSetTaint)                                                          \
                                                                                \
   /* JSON */                                                                   \

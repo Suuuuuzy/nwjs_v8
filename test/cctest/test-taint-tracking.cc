@@ -1212,6 +1212,30 @@ TEST(TaintStringFromCharCodeAt) {
 }
 
 
+TEST(TaintConstants) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  v8::Local<v8::String> source = v8_str(CcTest::isolate(),
+                                        "var a = '1 + 1';"
+             "a.__setTaint__(__taintConstants__().Url);"
+             "new Uint8Array(a.__getTaint__())[0];"
+             "eval(a)"
+             );
+  TestTaintListener* listener = new TestTaintListener();
+  CHECK_EQ(listener->GetScripts().size(), 0);
+  TaintTracker::FromIsolate(
+      reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->
+    RegisterTaintListener(listener);
+  v8::Local<v8::Context> run_context = CcTest::isolate()->GetCurrentContext();
+  auto result = v8::Script::Compile(
+    run_context, source).ToLocalChecked()->Run(run_context).ToLocalChecked();
+  CHECK_EQ(listener->GetScripts().size(), 1);
+  CHECK_EQ(
+      2, result->Int32Value(
+          CcTest::isolate()->GetCurrentContext()).FromJust());
+}
+
+
 // TEST(ControlFlowLog) {
 //   FLAG_taint_tracking_enable_export_ast = true;
 //   FLAG_taint_tracking_enable_ast_modification = true;

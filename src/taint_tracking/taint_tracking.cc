@@ -62,10 +62,10 @@ namespace tainttracking {
 // const int kPointerStrSize = 64;
 // const int kBitsPerByte = 8;
 const int kStackTraceInfoSize = 4000;
-// const char kEnableHeaderLoggingName[] = "enableHeaderLogging";
-// const char kEnableBodyLoggingName[] = "enableBodyLogging";
-// const char kLoggingFilenamePrefix[] = "loggingFilenamePrefix";
-// const char kJobIdName[] = "jobId";
+const char kEnableHeaderLoggingName[] = "enableHeaderLogging";
+const char kEnableBodyLoggingName[] = "enableBodyLogging";
+const char kLoggingFilenamePrefix[] = "loggingFilenamePrefix";
+const char kJobIdName[] = "jobId";
 // const char kJsTaintProperty[] = "taintStatus";
 // const char kJsIdProperty[] = "id";
 // const InstanceCounter kMaxCounterSnapshot = 1 << 16;
@@ -2065,58 +2065,58 @@ std::string TaintTracker::Impl::LogFileName() {
 // }
 
 
-// V8_WARN_UNUSED_RESULT v8::internal::Handle<v8::internal::HeapObject>
-// JSTaintConstants(v8::internal::Isolate* isolate) {
-//   Factory* factory = isolate->factory();
-//   Handle<JSObject> ret = factory->NewJSObjectWithNullProto();
-//   MaybeHandle<Object> ignore;
-//   for (int i = TaintType::UNTAINTED; i < TaintType::MAX_TAINT_TYPE; i++) {
-//     std::string taint_string = TaintTypeToString(static_cast<TaintType>(i));
-//     Vector<const char> js_string(taint_string.data(), taint_string.size());
-//     ignore = Object::SetProperty(
-//         ret,
-//         Handle<Name>::cast(
-//             factory->NewStringFromUtf8(js_string).ToHandleChecked()),
-//         Handle<Object>::cast(factory->NewHeapNumber(i)),
-//         LanguageMode::STRICT);
-//   }
-//   ignore = Object::SetProperty(
-//       ret,
-//       Handle<Name>::cast(
-//           factory->NewStringFromAsciiChecked(kEnableHeaderLoggingName)),
-//       Handle<Object>::cast(factory->NewHeapNumber(
-//                                FLAG_taint_tracking_enable_header_logging ?
-//                                1 : 0
-//                            )),
-//       LanguageMode::STRICT);
-//   ignore = Object::SetProperty(
-//       ret,
-//       Handle<Name>::cast(
-//           factory->NewStringFromAsciiChecked(kEnableBodyLoggingName)),
-//       Handle<Object>::cast(factory->NewHeapNumber(
-//                                FLAG_taint_tracking_enable_page_logging ?
-//                                1 : 0
-//                            )),
-//       LanguageMode::STRICT);
-//   std::ostringstream log_name_base;
-//   MakeUniqueLogFileName(log_name_base);
-//   log_name_base << "_full_page_" << isolate;
-//   ignore = Object::SetProperty(
-//       ret,
-//       Handle<Name>::cast(
-//           factory->NewStringFromAsciiChecked(kLoggingFilenamePrefix)),
-//       Handle<Object>::cast(
-//           factory->NewStringFromAsciiChecked(log_name_base.str().c_str())),
-//       LanguageMode::STRICT);
-//   ignore = Object::SetProperty(
-//       ret,
-//       Handle<Name>::cast(
-//           factory->NewStringFromAsciiChecked(kJobIdName)),
-//       Handle<Object>::cast(
-//           factory->NewStringFromAsciiChecked(FLAG_taint_tracking_job_id)),
-//       LanguageMode::STRICT);
-//   return ret;
-// }
+V8_WARN_UNUSED_RESULT v8::internal::Handle<v8::internal::HeapObject>
+JSTaintConstants(v8::internal::Isolate* isolate) {
+  Factory* factory = isolate->factory();
+  Handle<JSObject> ret = factory->NewJSObjectWithNullProto();
+  MaybeHandle<Object> ignore;
+  for (int i = TaintType::UNTAINTED; i < TaintType::MAX_TAINT_TYPE; i++) {
+    std::string taint_string = TaintTypeToString(static_cast<TaintType>(i));
+    Vector<const char> js_string(taint_string.data(), taint_string.size());
+    ignore = Object::SetProperty(
+        isolate, ret,
+        Handle<Name>::cast(
+            factory->NewStringFromUtf8(js_string).ToHandleChecked()),
+        Handle<Object>::cast(factory->NewHeapNumber(i)),
+        StoreOrigin::kMaybeKeyed,
+        v8::Just(ShouldThrow::kThrowOnError));
+  }
+  ignore = Object::SetProperty(
+      isolate, ret,
+      Handle<Name>::cast(
+          factory->NewStringFromAsciiChecked(kEnableHeaderLoggingName)),
+      Handle<Object>::cast(factory->NewHeapNumber(
+          FLAG_taint_tracking_enable_header_logging ? 1 : 0)),
+      StoreOrigin::kMaybeKeyed,
+      v8::Just(ShouldThrow::kThrowOnError));
+  ignore = Object::SetProperty(
+      isolate, ret,
+      Handle<Name>::cast(
+          factory->NewStringFromAsciiChecked(kEnableBodyLoggingName)),
+      Handle<Object>::cast(factory->NewHeapNumber(
+          FLAG_taint_tracking_enable_page_logging ? 1 : 0)),
+      StoreOrigin::kMaybeKeyed,
+      v8::Just(ShouldThrow::kThrowOnError));
+  std::ostringstream log_name_base;
+  MakeUniqueLogFileName(log_name_base);
+  log_name_base << "_full_page_" << isolate;
+  ignore = Object::SetProperty(
+      isolate, ret,
+      Handle<Name>::cast(
+          factory->NewStringFromAsciiChecked(kLoggingFilenamePrefix)),
+      Handle<Object>::cast(
+          factory->NewStringFromAsciiChecked(log_name_base.str().c_str())),
+      StoreOrigin::kMaybeKeyed,
+      v8::Just(ShouldThrow::kThrowOnError));
+  ignore = Object::SetProperty(
+      isolate, ret,
+      Handle<Name>::cast(factory->NewStringFromAsciiChecked(kJobIdName)),
+      Handle<Object>::cast(
+          factory->NewStringFromAsciiChecked(FLAG_taint_tracking_job_id)),
+      StoreOrigin::kMaybeKeyed,
+      v8::Just(ShouldThrow::kThrowOnError));
+  return ret;
+}
 
 template void OnNewConcatStringCopy<String, String>(
     TaintData*, String, String);
