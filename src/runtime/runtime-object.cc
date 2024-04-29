@@ -48,7 +48,6 @@ MaybeHandle<Object> Runtime::GetObjectProperty(
 
   if (FLAG_debug_print &&(result.is_null() || !it.IsFound()) && key->IsString()) {
     // We ignore the case where key->IsSymbol()
-    std::cout << "jianjia see not found properties" << std::endl;
     HeapObject::post_undefined_value(&it, 1, "RTO");
   }
 
