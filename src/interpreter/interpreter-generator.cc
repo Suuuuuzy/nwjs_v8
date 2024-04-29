@@ -528,14 +528,34 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
   };
   LazyNode<Context> lazy_context = [=] { return GetContext(); };
 
-  Label done(this);
+  // Label done(this);
   TVARIABLE(Object, var_result);
-  ExitPoint exit_point(this, &done, &var_result);
+  // ExitPoint exit_point(this, &done, &var_result);
+  Label done(this), checkUndefined(this), print_undefined(this);
+  ExitPoint exit_point(this, &checkUndefined, &var_result);
 
   AccessorAssembler::LazyLoadICParameters params(lazy_context, recv, lazy_name,
                                                  lazy_slot, feedback_vector);
   AccessorAssembler accessor_asm(state());
   accessor_asm.LoadIC_BytecodeHandler(&params, &exit_point);
+
+  // lzy
+  BIND(&checkUndefined);
+  {
+    Branch(IsUndefined(var_result.value()), &print_undefined, &done);
+  }
+  // lzy
+  BIND(&print_undefined);
+  {
+    Print(
+        "[+] Handled by "
+        "src/interpreter/"
+        "interpreter-generator.cc:IGNITION_HANDLER(LdaNamedProperty, "
+        "InterpreterAssembler) in &done");
+    Print("[+] KeyName:", LoadConstantPoolEntryAtOperandIndex(1));
+    Print("[+] Value:", var_result.value());
+    Goto(&done);
+  }
 
   BIND(&done);
   {
@@ -575,8 +595,29 @@ IGNITION_HANDLER(LdaNamedPropertyFromSuper, InterpreterAssembler) {
   TNode<Object> result =
       CallBuiltin(Builtins::kLoadSuperIC, context, receiver,
                   home_object_prototype, name, slot, feedback_vector);
-  SetAccumulator(result);
-  Dispatch();
+  // lzy
+  Label done(this), print_undefined(this);
+
+  Branch(IsUndefined(result), &print_undefined, &done);
+  // lzy
+  BIND(&print_undefined);
+  {
+    Print(
+        "[+] Handled by "
+        "src/interpreter/"
+        "interpreter-generator.cc:IGNITION_HANDLER(LdaNamedPropertyFromSuper, "
+        "InterpreterAssembler)");
+    Print("[+] KeyName:", LoadConstantPoolEntryAtOperandIndex(1));
+    Print("[+] Value:", result);
+    Goto(&done);
+  }
+  BIND(&done);
+  {
+    SetAccumulator(result);
+    Dispatch();
+    }
+  // SetAccumulator(result);
+  // Dispatch();
 }
 
 // LdaKeyedProperty <object> <slot>
@@ -593,8 +634,27 @@ IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler) {
   TVARIABLE(Object, var_result);
   var_result = CallBuiltin(Builtins::kKeyedLoadIC, context, object, name, slot,
                            feedback_vector);
-  SetAccumulator(var_result.value());
-  Dispatch();
+  // lzy
+  Label done(this), print_undefined(this);
+  Branch(IsUndefined(var_result.value()), &print_undefined, &done);
+
+  // lzy
+  BIND(&print_undefined);
+  {
+    Print("[+] Handled by src/interpreter/interpreter-generator.cc:IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler)");
+    Print("[+] KeyName:", name);
+    Print("[+] Value:", var_result.value());
+
+    Goto(&done);
+  }
+
+  BIND(&done);
+  {
+    SetAccumulator(var_result.value());
+    Dispatch();
+  }
+  // SetAccumulator(var_result.value());
+  // Dispatch();
 }
 
 class InterpreterStoreNamedPropertyAssembler : public InterpreterAssembler {

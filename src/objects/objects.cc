@@ -1509,7 +1509,12 @@ MaybeHandle<Object> Object::GetPropertyWithAccessor(LookupIterator* it) {
                                    Just(kDontThrow));
     Handle<Object> result = args.CallAccessorGetter(info, name);
     RETURN_EXCEPTION_IF_SCHEDULED_EXCEPTION(isolate, Object);
-    if (result.is_null()) return isolate->factory()->undefined_value();
+    if (result.is_null()) {
+      if (FLAG_debug_print) {
+          HeapObject::post_undefined_value(isolate, name, 1, "OGPWA");
+        }
+      return isolate->factory()->undefined_value();
+    }
     Handle<Object> reboxed_result = handle(*result, isolate);
     if (info->replace_on_access() && receiver->IsJSReceiver()) {
       RETURN_ON_EXCEPTION(isolate,
@@ -1540,6 +1545,9 @@ MaybeHandle<Object> Object::GetPropertyWithAccessor(LookupIterator* it) {
         receiver, Handle<JSReceiver>::cast(getter));
   }
   // Getter is not a function.
+  if (FLAG_debug_print) {
+    HeapObject::post_undefined_value(isolate, it->GetName(), 1, "OGPWA");
+  }
   return isolate->factory()->undefined_value();
 }
 
@@ -2506,173 +2514,179 @@ bool HeapObject::IsExternal(Isolate* isolate) const {
 }
 
 // Added by Inactive
-std::string HeapObject::post_undefined_value(Isolate* isolate, Handle<Object> name, int phase_num, std::string start_key_str) {
-  // std::cout << "jianjia see not found properties in post_undefined_value" << std::endl;
-  std::map<std::string, std::string> map;
-  map.insert(std::pair<std::string, std::string>("phase", std::to_string(phase_num)));
-  map.insert(std::pair<std::string, std::string>("start_key", start_key_str));
+// std::string HeapObject::post_undefined_value(Isolate* isolate, Handle<Object> name, int phase_num, std::string start_key_str) {
+//   // std::cout << "jianjia see not found properties in post_undefined_value" << std::endl;
+//   std::map<std::string, std::string> map;
+//   map.insert(std::pair<std::string, std::string>("phase", std::to_string(phase_num)));
+//   map.insert(std::pair<std::string, std::string>("start_key", start_key_str));
 
-  bool should_print_name = true;
-  // borrow from StringStream::ShouldPrintName
-  if (name->IsString()) {
-    String name_str = *Handle<String>::cast(name);
-    std::string cppString(name_str.ToCString().get());
-    // if (cppString.find(FLAG_name_should_exclude) == std::string::npos){
-      // This ConcisePrint(&temp_accumulator) is redundant, BUT program will crash without it!
-      // TODO: check what is missing in ConcisePrint(&map)
-      HeapStringAllocator temp_allocator;
-      StringStream temp_accumulator(&temp_allocator);
-      // bool result_bool = isolate->ConcisePrint(&temp_accumulator);
-      if (FLAG_debug_print) {
-        PrintF("key_name is: %s\n", cppString.c_str());
-        // PrintF("tested old ConcisePrint: %d\n", result_bool);
-        temp_accumulator.OutputToFile(stdout);
-      }
-      map.insert(std::pair<std::string, std::string>("key", cppString));
-      // should_print_name = isolate->ConcisePrint(&map);
-      // if (FLAG_debug_print) {
-      //   PrintF("ConcisePrint result is: %d\n", should_print_name);
-      // }
-    // }
-  }
-
-
-  if (!should_print_name || map.find("key") == map.end() ) {
-    if (FLAG_debug_print) {
-      if (name->IsString()) {
-        PrintF("key skipped due to FLAG_name_should_exclude: ");
-      } else {
-        PrintF("key skipped due to non-string: ");
-      }
-      name->Print();
-      PrintF("\n");
-    }
-    return "Warning: Key skipped";
-  }
+//   bool should_print_name = true;
+//   // borrow from StringStream::ShouldPrintName
+//   if (name->IsString()) {
+//     String name_str = *Handle<String>::cast(name);
+//     std::string cppString(name_str.ToCString().get());
+//     // if (cppString.find(FLAG_name_should_exclude) == std::string::npos){
+//       // This ConcisePrint(&temp_accumulator) is redundant, BUT program will crash without it!
+//       // TODO: check what is missing in ConcisePrint(&map)
+//       HeapStringAllocator temp_allocator;
+//       StringStream temp_accumulator(&temp_allocator);
+//       // bool result_bool = isolate->ConcisePrint(&temp_accumulator);
+//       if (FLAG_debug_print) {
+//         PrintF("key_name is: %s\n", cppString.c_str());
+//         // PrintF("tested old ConcisePrint: %d\n", result_bool);
+//         temp_accumulator.OutputToFile(stdout);
+//       }
+//       map.insert(std::pair<std::string, std::string>("key", cppString));
+//       // should_print_name = isolate->ConcisePrint(&map);
+//       // if (FLAG_debug_print) {
+//       //   PrintF("ConcisePrint result is: %d\n", should_print_name);
+//       // }
+//     // }
+//   }
 
 
-  /*
-  // check all required fields except code_hash
-  if (FLAG_debug_print) {
-    PrintF("checking all required fields ...\n");
-  }
-  auto required_fields = {"phase", "start_key", "key", "func_name", "js", "row",
-"col", "func"}; for (auto field : required_fields) { if (map.find(field) ==
-map.end()) { if (FLAG_debug_print) { PrintF("Missing required field, discarded:
-%s", std::string(field).c_str());
-        }
-        return std::string("Missing required field: ") + std::string(field);
-      }
-  }
-  */
+//   if (!should_print_name || map.find("key") == map.end() ) {
+//     if (FLAG_debug_print) {
+//       if (name->IsString()) {
+//         PrintF("key skipped due to FLAG_name_should_exclude: ");
+//       } else {
+//         PrintF("key skipped due to non-string: ");
+//       }
+//       name->Print();
+//       PrintF("\n");
+//     }
+//     return "Warning: Key skipped";
+//   }
 
-  /*
-  // Check if this JS name should be excluded
-  DCHECK(map.find("js") != map.end());
-  auto js_it = map.at("js");
-  if (FLAG_debug_print) {
-      PrintF("Checking if JS name %s should be excluded ...\n",
-std::string(js_it).c_str());
-    }
-  // TODO: this line of DCHECK has bug
-  // DCHECK(js_it != map.end() && typeid(js_it) == typeid(std::string));
-    // if (js_it.find(FLAG_js_name_should_exclude) != std::string::npos)
-      {
-    // if map.find("func") contains FLAG_js_name_should_exclude: return
-    if (FLAG_debug_print) {
-      PrintF("JS name %s skipped!\n", js_it.c_str());
-    }
-    return "Warning: JS name skipped";
-  }
-  */
 
-  // encode "func"
-  // appraoch 1: using Json
-  // TODO: look for a better approach
-  /*
-  Json::Value func_convert;
-  func_convert["func"] = map.at("func");
-  Json::StyledStreamWriter func_writer;
-  std::ostringstream func_oss, output_oss;
-  func_writer.write(func_oss, func_convert);
-  std::string func_jsonData = func_oss.str();
-  Json::Value parsedRoot;
-  Json::Reader reader;
-  if (!reader.parse(func_oss.str(), parsedRoot)) {
-    fprintf(stderr, "Error reader.parse in %s\n", func_jsonData.c_str());
-    return "Error reader.parse";
-  }
-  DCHECK(parsedRoot.isMember("func"));
-  map["func"] = parsedRoot["func"].asString();
-  if (FLAG_debug_print) {
-    PrintF("func has been encoded to utf-8: %s\n", map["func"].c_str());
-  }
-  */
+//   /*
+//   // check all required fields except code_hash
+//   if (FLAG_debug_print) {
+//     PrintF("checking all required fields ...\n");
+//   }
+//   auto required_fields = {"phase", "start_key", "key", "func_name", "js", "row",
+// "col", "func"}; for (auto field : required_fields) { if (map.find(field) ==
+// map.end()) { if (FLAG_debug_print) { PrintF("Missing required field, discarded:
+// %s", std::string(field).c_str());
+//         }
+//         return std::string("Missing required field: ") + std::string(field);
+//       }
+//   }
+//   */
 
-  // Get hash value; using SHA256
-  /*
-  SHA256 func_sha;
-  func_sha.update(map.at("func"));
-  uint8_t * digest = func_sha.digest();
-  std::string utf8_func_hash = SHA256::toString(digest);
-  delete[] digest;
-  map.insert(std::pair<std::string, std::string>("code_hash", utf8_func_hash));
-  if (FLAG_debug_print) {
-    PrintF("Generated code_hash: %s\n", utf8_func_hash.c_str());
-  }
-  */
-  // Check if this request is in cache and discard if so
-  // Define: a request is in the cache if code_hash and key are the same
-  /*
-  {codehash: key: row,col}
-  */
-  /*
-  // Check if the cache contains the hash
-  std::string row_col = map.at("row") + "," + map.at("col");
-  std::string key = map.at("key");
-  if (!request_cache[utf8_func_hash].isNull()) {
-      if (!request_cache[utf8_func_hash][key].isNull()) {
-          if (!request_cache[utf8_func_hash][key][row_col].isNull()) {
-              if (FLAG_debug_print) {
-                PrintF("duplicate req skipped: [%s][%s][%s]\n", utf8_func_hash.c_str(), key.c_str(), row_col.c_str());
-              }
-              return "Warning: duplicate"; // Request is in cache, drop it
-          } else {
-              // Add to request_cache
-              request_cache[utf8_func_hash][key][row_col] = true;
-          }
-      } else {
-          // Key doesn't exist for this hash, add both key and row_col
-          request_cache[utf8_func_hash][key][row_col] = true;
-      }
-  } else {
-      // Hash doesn't exist in the cache, add hash, key, and row_col
-      request_cache[utf8_func_hash][key][row_col] = true;
-  }
-  if (FLAG_debug_print) {
-    PrintF("request_cache checked! No duplicate\n");
-  }
-  */
+//   /*
+//   // Check if this JS name should be excluded
+//   DCHECK(map.find("js") != map.end());
+//   auto js_it = map.at("js");
+//   if (FLAG_debug_print) {
+//       PrintF("Checking if JS name %s should be excluded ...\n",
+// std::string(js_it).c_str());
+//     }
+//   // TODO: this line of DCHECK has bug
+//   // DCHECK(js_it != map.end() && typeid(js_it) == typeid(std::string));
+//     // if (js_it.find(FLAG_js_name_should_exclude) != std::string::npos)
+//       {
+//     // if map.find("func") contains FLAG_js_name_should_exclude: return
+//     if (FLAG_debug_print) {
+//       PrintF("JS name %s skipped!\n", js_it.c_str());
+//     }
+//     return "Warning: JS name skipped";
+//   }
+//   */
 
-  // Post or log the request
-  HeapStringAllocator log_allocator;
-  StringStream log_accumulator(&log_allocator);
-  log_accumulator.Add("ReqJson{");
-  for (const auto& pair : map) {
-    log_accumulator.Add("\"");
-    log_accumulator.Add(pair.first.c_str()); // Key
-    log_accumulator.Add("\":\"");
-    log_accumulator.Add(pair.second.c_str()); // Value
-    log_accumulator.Add("\",");
-    log_accumulator.Add("\n");
-  }
-  log_accumulator.Add("}ReqEnd\n");
-  log_accumulator.OutputToFile(stdout);
-  if (FLAG_debug_print) {
-    PrintF("log has been generated!\n");
-  }
+//   // encode "func"
+//   // appraoch 1: using Json
+//   // TODO: look for a better approach
+//   /*
+//   Json::Value func_convert;
+//   func_convert["func"] = map.at("func");
+//   Json::StyledStreamWriter func_writer;
+//   std::ostringstream func_oss, output_oss;
+//   func_writer.write(func_oss, func_convert);
+//   std::string func_jsonData = func_oss.str();
+//   Json::Value parsedRoot;
+//   Json::Reader reader;
+//   if (!reader.parse(func_oss.str(), parsedRoot)) {
+//     fprintf(stderr, "Error reader.parse in %s\n", func_jsonData.c_str());
+//     return "Error reader.parse";
+//   }
+//   DCHECK(parsedRoot.isMember("func"));
+//   map["func"] = parsedRoot["func"].asString();
+//   if (FLAG_debug_print) {
+//     PrintF("func has been encoded to utf-8: %s\n", map["func"].c_str());
+//   }
+//   */
 
-  return "Successfully post undefined value";
+//   // Get hash value; using SHA256
+//   /*
+//   SHA256 func_sha;
+//   func_sha.update(map.at("func"));
+//   uint8_t * digest = func_sha.digest();
+//   std::string utf8_func_hash = SHA256::toString(digest);
+//   delete[] digest;
+//   map.insert(std::pair<std::string, std::string>("code_hash", utf8_func_hash));
+//   if (FLAG_debug_print) {
+//     PrintF("Generated code_hash: %s\n", utf8_func_hash.c_str());
+//   }
+//   */
+//   // Check if this request is in cache and discard if so
+//   // Define: a request is in the cache if code_hash and key are the same
+//   /*
+//   {codehash: key: row,col}
+//   */
+//   /*
+//   // Check if the cache contains the hash
+//   std::string row_col = map.at("row") + "," + map.at("col");
+//   std::string key = map.at("key");
+//   if (!request_cache[utf8_func_hash].isNull()) {
+//       if (!request_cache[utf8_func_hash][key].isNull()) {
+//           if (!request_cache[utf8_func_hash][key][row_col].isNull()) {
+//               if (FLAG_debug_print) {
+//                 PrintF("duplicate req skipped: [%s][%s][%s]\n", utf8_func_hash.c_str(), key.c_str(), row_col.c_str());
+//               }
+//               return "Warning: duplicate"; // Request is in cache, drop it
+//           } else {
+//               // Add to request_cache
+//               request_cache[utf8_func_hash][key][row_col] = true;
+//           }
+//       } else {
+//           // Key doesn't exist for this hash, add both key and row_col
+//           request_cache[utf8_func_hash][key][row_col] = true;
+//       }
+//   } else {
+//       // Hash doesn't exist in the cache, add hash, key, and row_col
+//       request_cache[utf8_func_hash][key][row_col] = true;
+//   }
+//   if (FLAG_debug_print) {
+//     PrintF("request_cache checked! No duplicate\n");
+//   }
+//   */
+
+//   // Post or log the request
+//   HeapStringAllocator log_allocator;
+//   StringStream log_accumulator(&log_allocator);
+//   log_accumulator.Add("ReqJson{");
+//   for (const auto& pair : map) {
+//     log_accumulator.Add("\"");
+//     log_accumulator.Add(pair.first.c_str()); // Key
+//     log_accumulator.Add("\":\"");
+//     log_accumulator.Add(pair.second.c_str()); // Value
+//     log_accumulator.Add("\",");
+//     log_accumulator.Add("\n");
+//   }
+//   log_accumulator.Add("}ReqEnd\n");
+//   log_accumulator.OutputToFile(stdout);
+//   if (FLAG_debug_print) {
+//     PrintF("log has been generated!\n");
+//   }
+
+//   return "Successfully post undefined value";
+// }
+
+std::string HeapObject::post_undefined_value(Isolate* isolate,
+                                             Handle<Object> name, int phase_num,
+                                             std::string start_key_str) {
+  return "do nothing";
 }
 
 // Added by Inactive

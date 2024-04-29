@@ -710,6 +710,9 @@ MaybeHandle<JSReceiver> GetSuperHolder(Isolate* isolate,
                                   ? MessageTemplate::kNonObjectPropertyLoad
                                   : MessageTemplate::kNonObjectPropertyStore;
     Handle<Name> name = key->GetName(isolate);
+    if (FLAG_debug_print) {
+      HeapObject::post_undefined_value(isolate, name, 1, "GSH");
+    }
     THROW_NEW_ERROR(isolate, NewTypeError(message, name, proto), JSReceiver);
   }
   return Handle<JSReceiver>::cast(proto);

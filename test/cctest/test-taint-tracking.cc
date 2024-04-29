@@ -1239,8 +1239,8 @@ TEST(UndefinedProperty) {
   TestCase test_case;
   v8::HandleScope scope(CcTest::isolate());
   v8::Local<v8::String> source = v8_str(CcTest::isolate(),
-            "var jianjiaoption = {};"
-            "var b = jianjiaoption.jianjia;"
+                                        "var jianjiaoption = {};"
+                                        "jianjiaoption['gg'];"
              );
   TestTaintListener* listener = new TestTaintListener();
   CHECK_EQ(listener->GetScripts().size(), 0);

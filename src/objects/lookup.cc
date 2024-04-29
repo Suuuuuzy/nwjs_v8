@@ -1000,7 +1000,7 @@ Handle<Object> LookupIterator::GetDataValue(
     AllocationPolicy allocation_policy) const {
   DCHECK_EQ(DATA, state_);
   Handle<Object> value = FetchValue(allocation_policy);
-  std::cout << "jianjia see GetDataValue " << value << std::endl;
+  // std::cout << "jianjia see GetDataValue " << value << std::endl;
   return value;
 }
 
