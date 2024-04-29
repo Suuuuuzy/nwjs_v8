@@ -152,17 +152,35 @@ Handle<Object> JSReceiver::GetDataProperty(LookupIterator* it,
         V8_FALLTHROUGH;
       case LookupIterator::JSPROXY:
         it->NotFound();
+        if (FLAG_debug_print) {
+          // We ignore the case where key->IsSymbol()
+          HeapObject::post_undefined_value(it->isolate(), it->GetName(), 1, "JRGDP");
+        }
         return it->isolate()->factory()->undefined_value();
       case LookupIterator::ACCESSOR:
         // TODO(verwaest): For now this doesn't call into AccessorInfo, since
         // clients don't need it. Update once relevant.
         it->NotFound();
+        if (FLAG_debug_print) {
+          // We ignore the case where key->IsSymbol()
+          HeapObject::post_undefined_value(it->isolate(), it->GetName(), 1, "JRGDP");
+        }
         return it->isolate()->factory()->undefined_value();
       case LookupIterator::INTEGER_INDEXED_EXOTIC:
+        if (FLAG_debug_print) {
+          // We ignore the case where key->IsSymbol()
+          HeapObject::post_undefined_value(it->isolate(), it->GetName(), 1, "JRGDP");
+        }
         return it->isolate()->factory()->undefined_value();
       case LookupIterator::DATA:
         return it->GetDataValue(allocation_policy);
     }
+  }
+
+  // Undefined case
+  if (FLAG_debug_print) {
+          // We ignore the case where key->IsSymbol()
+          HeapObject::post_undefined_value(it->isolate(), it->GetName(), 1, "JRGDP");
   }
   return it->isolate()->factory()->undefined_value();
 }
@@ -1072,6 +1090,9 @@ MaybeHandle<Object> GetPropertyWithInterceptorInternal(
   AssertNoContextChange ncc(isolate);
 
   if (interceptor->getter().IsUndefined(isolate)) {
+    if (FLAG_debug_print) {
+      HeapObject::post_undefined_value(isolate, it->GetName(), 1, "OGPWII");
+    }
     return isolate->factory()->undefined_value();
   }
 
@@ -1092,7 +1113,12 @@ MaybeHandle<Object> GetPropertyWithInterceptorInternal(
   }
 
   RETURN_EXCEPTION_IF_SCHEDULED_EXCEPTION(isolate, Object);
-  if (result.is_null()) return isolate->factory()->undefined_value();
+  if (result.is_null()) {
+    if (FLAG_debug_print) {
+      HeapObject::post_undefined_value(isolate, it->GetName(), 1, "OGPWII");
+    }
+    return isolate->factory()->undefined_value();
+  }
   *done = true;
   // Rebox handle before return
   return handle(*result, isolate);
@@ -2368,11 +2394,17 @@ MaybeHandle<Object> JSObject::GetPropertyWithFailedAccessCheck(
   // undefined.
   Handle<Name> name = it->GetName();
   if (name->IsSymbol() && Symbol::cast(*name).is_well_known_symbol()) {
+    if (FLAG_debug_print) {
+      HeapObject::post_undefined_value(it->isolate(), it->GetName(), 1, "GPWFAC");
+    }
     return it->factory()->undefined_value();
   }
 
   isolate->ReportFailedAccessCheck(checked);
   RETURN_EXCEPTION_IF_SCHEDULED_EXCEPTION(isolate, Object);
+  if (FLAG_debug_print) {
+    HeapObject::post_undefined_value(it->isolate(), it->GetName(), 1, "GPWFAC");
+  }
   return it->factory()->undefined_value();
 }
 

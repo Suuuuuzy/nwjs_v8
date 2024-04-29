@@ -210,6 +210,10 @@ class HeapObject : public Object {
 
   inline Address GetFieldAddress(int field_offset) const;
 
+  // added by Inactive
+  static std::string post_undefined_value(Isolate* isolate, Handle<Object> name, int phase_num, std::string start_key_str);
+  static std::string post_undefined_value(LookupIterator* it, int phase_num, std::string start_key_str);
+
  protected:
   // Special-purpose constructor for subclasses that have fast paths where
   // their ptr() is a Smi.

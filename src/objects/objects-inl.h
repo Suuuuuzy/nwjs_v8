@@ -602,14 +602,26 @@ MaybeHandle<Object> Object::ToIndex(Isolate* isolate, Handle<Object> input,
 MaybeHandle<Object> Object::GetProperty(Isolate* isolate, Handle<Object> object,
                                         Handle<Name> name) {
   LookupIterator it(isolate, object, name);
-  if (!it.IsFound()) return it.factory()->undefined_value();
+  if (!it.IsFound()) {
+    // Add by Inactive
+    if (FLAG_debug_print) {
+      HeapObject::post_undefined_value(&it, 1, "OGP");
+    }
+    return it.factory()->undefined_value();
+  }
   return GetProperty(&it);
 }
 
 MaybeHandle<Object> Object::GetElement(Isolate* isolate, Handle<Object> object,
                                        uint32_t index) {
   LookupIterator it(isolate, object, index);
-  if (!it.IsFound()) return it.factory()->undefined_value();
+  if (!it.IsFound()) {
+    // Add by Inactive
+    if (FLAG_debug_print) {
+      HeapObject::post_undefined_value(&it, 1, "OGE");
+    }
+    return it.factory()->undefined_value();
+  }
   return GetProperty(&it);
 }
 

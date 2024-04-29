@@ -71,7 +71,13 @@ MaybeHandle<Object> JSReceiver::GetProperty(Isolate* isolate,
                                             Handle<JSReceiver> receiver,
                                             Handle<Name> name) {
   LookupIterator it(isolate, receiver, name, receiver);
-  if (!it.IsFound()) return it.factory()->undefined_value();
+  if (!it.IsFound()) {
+    // Add by Inactive
+    if (FLAG_debug_print) {
+      HeapObject::post_undefined_value(&it, 1, "JRG");
+    }
+    return it.factory()->undefined_value();
+  }
   return Object::GetProperty(&it);
 }
 
@@ -79,7 +85,13 @@ MaybeHandle<Object> JSReceiver::GetElement(Isolate* isolate,
                                            Handle<JSReceiver> receiver,
                                            uint32_t index) {
   LookupIterator it(isolate, receiver, index, receiver);
-  if (!it.IsFound()) return it.factory()->undefined_value();
+  if (!it.IsFound()) {
+    // Add by Inactive
+    if (FLAG_debug_print) {
+      HeapObject::post_undefined_value(&it, 1, "JRGE");
+    }
+    return it.factory()->undefined_value();
+  }
   return Object::GetProperty(&it);
 }
 
@@ -87,7 +99,13 @@ Handle<Object> JSReceiver::GetDataProperty(Handle<JSReceiver> object,
                                            Handle<Name> name) {
   LookupIterator it(object->GetIsolate(), object, name, object,
                     LookupIterator::PROTOTYPE_CHAIN_SKIP_INTERCEPTOR);
-  if (!it.IsFound()) return it.factory()->undefined_value();
+  if (!it.IsFound()) {
+     // Add by Inactive
+    if (FLAG_debug_print) {
+      HeapObject::post_undefined_value(&it, 1, "JRGDP");
+    }
+    return it.factory()->undefined_value();
+  }
   return GetDataProperty(&it);
 }
 

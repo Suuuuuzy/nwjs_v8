@@ -45,6 +45,13 @@ MaybeHandle<Object> Runtime::GetObjectProperty(
       LookupIterator(isolate, receiver, lookup_key, lookup_start_object);
 
   MaybeHandle<Object> result = Object::GetProperty(&it);
+
+  if (FLAG_debug_print &&(result.is_null() || !it.IsFound()) && key->IsString()) {
+    // We ignore the case where key->IsSymbol()
+    std::cout << "jianjia see not found properties" << std::endl;
+    HeapObject::post_undefined_value(&it, 1, "RTO");
+  }
+
   if (is_found) *is_found = it.IsFound();
 
   if (!it.IsFound() && key->IsSymbol() &&
