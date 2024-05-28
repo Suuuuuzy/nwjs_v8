@@ -195,8 +195,8 @@ class TaintTracker::Impl {
   friend class TaintTracker;
 
 public:
-
-  void Initialize(v8::internal::Isolate* isolate);
+ void Initialize(v8::internal::Isolate* isolate);
+ void ResetLog(v8::internal::Isolate* isolate, v8::internal::Handle<v8::internal::SeqOneByteString> newname);
 
   InstanceCounter NewInstance();
   int CountFullPage();
@@ -251,6 +251,7 @@ private:
   void RegisterTaintListener(TaintListener* listener);
   void Trigger(const TaintInstanceInfo& info, v8::internal::Isolate* isolate);
   static std::string LogFileName();
+  static std::string LogFileNameNew(const char* dest);
 
   // InstanceCounter symbolic_elem_counter_;
 

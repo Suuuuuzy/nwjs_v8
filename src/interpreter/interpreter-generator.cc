@@ -547,13 +547,15 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
   // lzy
   BIND(&print_undefined);
   {
-    Print(
-        "[+] Handled by "
-        "src/interpreter/"
-        "interpreter-generator.cc:IGNITION_HANDLER(LdaNamedProperty, "
-        "InterpreterAssembler) in &done");
-    Print("[+] KeyName:", LoadConstantPoolEntryAtOperandIndex(1));
-    Print("[+] Value:", var_result.value());
+    if (FLAG_print_undefined_properties){
+      Print(
+          "[+] Handled by "
+          "src/interpreter/"
+          "interpreter-generator.cc:IGNITION_HANDLER(LdaNamedProperty, "
+          "InterpreterAssembler) in &done");
+      Print("[+] KeyName:", LoadConstantPoolEntryAtOperandIndex(1));
+      Print("[+] Value:", var_result.value());
+    }
     Goto(&done);
   }
 
@@ -568,6 +570,8 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
 //
 // Calls the GetProperty builtin for <object> and the name at
 // constant pool entry <name_index>.
+// jianjia: we may need to hook this one to get undefined properties as well
+// didn't do because I didn't find case that will lead to this bytecode
 IGNITION_HANDLER(LdaNamedPropertyNoFeedback, InterpreterAssembler) {
   TNode<Object> object = LoadRegisterAtOperandIndex(0);
   TNode<Name> name = CAST(LoadConstantPoolEntryAtOperandIndex(1));
@@ -602,13 +606,15 @@ IGNITION_HANDLER(LdaNamedPropertyFromSuper, InterpreterAssembler) {
   // lzy
   BIND(&print_undefined);
   {
-    Print(
-        "[+] Handled by "
-        "src/interpreter/"
-        "interpreter-generator.cc:IGNITION_HANDLER(LdaNamedPropertyFromSuper, "
-        "InterpreterAssembler)");
-    Print("[+] KeyName:", LoadConstantPoolEntryAtOperandIndex(1));
-    Print("[+] Value:", result);
+    if (FLAG_print_undefined_properties){
+      Print(
+          "[+] Handled by "
+          "src/interpreter/"
+          "interpreter-generator.cc:IGNITION_HANDLER(LdaNamedPropertyFromSuper, "
+          "InterpreterAssembler)");
+      Print("[+] KeyName:", LoadConstantPoolEntryAtOperandIndex(1));
+      Print("[+] Value:", result);
+    }
     Goto(&done);
   }
   BIND(&done);
@@ -641,10 +647,11 @@ IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler) {
   // lzy
   BIND(&print_undefined);
   {
-    Print("[+] Handled by src/interpreter/interpreter-generator.cc:IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler)");
-    Print("[+] KeyName:", name);
-    Print("[+] Value:", var_result.value());
-
+    if (FLAG_print_undefined_properties){
+      Print("[+] Handled by src/interpreter/interpreter-generator.cc:IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler)");
+      Print("[+] KeyName:", name);
+      Print("[+] Value:", var_result.value());
+    }
     Goto(&done);
   }
 

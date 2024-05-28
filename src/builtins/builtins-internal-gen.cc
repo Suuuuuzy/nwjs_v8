@@ -979,6 +979,7 @@ void Builtins::Generate_TailCallOptimizedCodeSlot(MacroAssembler* masm) {
 #endif
 
 // ES6 [[Get]] operation.
+// jianjia: we may need to hook this one to get undefined properties as well
 TF_BUILTIN(GetProperty, CodeStubAssembler) {
   auto object = Parameter<Object>(Descriptor::kObject);
   auto key = Parameter<Object>(Descriptor::kKey);

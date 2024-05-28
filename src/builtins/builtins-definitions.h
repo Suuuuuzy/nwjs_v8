@@ -559,7 +559,7 @@ namespace internal {
   /* CPP(GlobalPrintToTaintLog)       */                                             \
   CPP(GlobalTaintConstants)                                                    \
   CPP(GlobalSetTaint)                                                          \
-                                                                               \
+  CPP(GlobalSetLog)                                                            \
   /* JSON */                                                                   \
   CPP(JsonParse)                                                               \
   CPP(JsonStringify)                                                           \

@@ -210,6 +210,7 @@ public:
   ~TaintTracker();
 
   void Initialize(v8::internal::Isolate* isolate);
+  void ResetLog(v8::internal::Isolate* isolate, v8::internal::Handle<v8::internal::SeqOneByteString> newname);
 
   void RegisterTaintListener(TaintListener* listener);
   bool IsRewriteAstEnabled();

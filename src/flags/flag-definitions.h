@@ -345,7 +345,8 @@ DEFINE_STRING(taint_log_file, "/home/suzy/temp/new_taint_log_file/log1",
 DEFINE_BOOL(inactive_conseq_test_enable, true,
             "Enable output of inactive consequences of pp test")
 DEFINE_BOOL(debug_print, true, "Debugging mode and should print details. ")
-
+DEFINE_BOOL(print_undefined_properties, false,
+            "Print undefined properties")
 DEFINE_STRING(taint_tracking_job_id, "NO_JOB_ID",
               "Job identifier. Opaque identifier for identifying output. ")
 DEFINE_INT(taint_tracking_heart_beat_millis, 5000,

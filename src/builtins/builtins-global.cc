@@ -128,5 +128,23 @@ BUILTIN(GlobalSetTaint) {
   return *(isolate->factory()->undefined_value());
 }
 
+BUILTIN(GlobalSetLog) {
+  HandleScope scope(isolate);
+  // uint32_t taint_value;
+  // FLAG_taint_log_file = Object::ToString(isolate, args.atOrUndefined(isolate,
+  // 1)) FLAG_taint_log_file = args.atOrUndefined(isolate, 1);
+  Handle<SeqOneByteString> string;
+  ASSIGN_RETURN_FAILURE_ON_EXCEPTION(
+      isolate, string,
+      Object::ToString(isolate, args.atOrUndefined(isolate, 1)));
+  tainttracking::TaintTracker::FromIsolate(isolate)->ResetLog(isolate, string);
+  // TaintTracker::FromIsolate(isolate)
+    // tainttracking::SetTaint(
+    //     args.atOrUndefined(isolate, 1),
+    //     static_cast<tainttracking::TaintType>(taint_value));
+  return *(isolate->factory()->undefined_value());
+}
+
+
 }  // namespace internal
 }  // namespace v8

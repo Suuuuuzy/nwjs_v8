@@ -2002,6 +2002,7 @@ void TaintTracker::Impl::Initialize(v8::internal::Isolate* isolate) {
                             buffer_log_storage_));
   }
 
+
   HandleScope scope(isolate);
   // if (EnableConcolic()) {
   //   Exec().Initialize();
@@ -2013,6 +2014,47 @@ void TaintTracker::Impl::Initialize(v8::internal::Isolate* isolate) {
     Handle<ObjectHashTable>::cast(
         isolate->global_handles()->Create(*tmp.location()));
 }
+
+
+
+void TaintTracker::ResetLog(v8::internal::Isolate* isolate, Handle<SeqOneByteString> newname) {
+  Get()->ResetLog(isolate, newname);
+}
+
+void TaintTracker::Impl::ResetLog(v8::internal::Isolate* isolate, Handle<SeqOneByteString> newname) {
+  std::cout<< "jianjia reset log" << std::endl;
+  DisallowGarbageCollection no_gc;
+  uint8_t* dest = newname->GetChars(no_gc);
+  const char* log_dest = reinterpret_cast<const char*>(dest);
+  if (strlen(log_dest) != 0) {
+    std::lock_guard<std::mutex> guard(log_mutex_);
+    is_logging_ = true;
+
+    std::unique_ptr<std::ofstream> oflog (new std::ofstream());
+    // suzy: this happens everytime because the files are always created
+    oflog->open(LogFileNameNew(log_dest));
+    std::swap(log_, oflog);
+    buffer_log_storage_ = kj::heapArray<uint8_t>(kLogBufferSize);
+    kj_log_.reset(new ::kj::std::StdOutputStream(*log_));
+    buffered_log_.reset(new ::kj::BufferedOutputStreamWrapper(
+                            *kj_log_,
+                            buffer_log_storage_));
+  }
+
+
+  HandleScope scope(isolate);
+  // if (EnableConcolic()) {
+  //   Exec().Initialize();
+  // }
+
+  static const int INITIAL_SIZE = 10;
+  Handle<Object> tmp = ObjectHashTable::New(isolate, INITIAL_SIZE);
+  cross_origin_message_table_ =
+    Handle<ObjectHashTable>::cast(
+        isolate->global_handles()->Create(*tmp.location()));
+}
+
+
 
 TaintTracker::Impl::~Impl() {
   if (is_logging_) {
@@ -2048,10 +2090,24 @@ void MakeUniqueLogFileName(std::ostringstream& base) {
        << static_cast<int64_t>(v8::base::OS::TimeCurrentMillis());
 }
 
+void MakeUniqueLogFileNameNew(std::ostringstream& base, const char* dest) {
+  base << dest << "_"
+       << v8::base::OS::GetCurrentProcessId() << "_"
+       << static_cast<int64_t>(v8::base::OS::TimeCurrentMillis());
+}
+
 std::string TaintTracker::Impl::LogFileName() {
   std::lock_guard<std::mutex> lock(isolate_counter_mutex_);
   std::ostringstream log_fname;
   MakeUniqueLogFileName(log_fname);
+  log_fname << "_" << (isolate_counter_++);
+  return log_fname.str();
+}
+
+std::string TaintTracker::Impl::LogFileNameNew(const char* dest) {
+  std::lock_guard<std::mutex> lock(isolate_counter_mutex_);
+  std::ostringstream log_fname;
+  MakeUniqueLogFileNameNew(log_fname, dest);
   log_fname << "_" << (isolate_counter_++);
   return log_fname.str();
 }
