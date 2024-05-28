@@ -133,11 +133,15 @@ BUILTIN(GlobalSetLog) {
   // uint32_t taint_value;
   // FLAG_taint_log_file = Object::ToString(isolate, args.atOrUndefined(isolate,
   // 1)) FLAG_taint_log_file = args.atOrUndefined(isolate, 1);
-  Handle<SeqOneByteString> string;
+  Handle<String> subject;
   ASSIGN_RETURN_FAILURE_ON_EXCEPTION(
-      isolate, string,
+      isolate, subject,
       Object::ToString(isolate, args.atOrUndefined(isolate, 1)));
-  tainttracking::TaintTracker::FromIsolate(isolate)->ResetLog(isolate, string);
+  subject = String::Flatten(isolate, subject);
+  if (subject->IsSeqOneByteString()) {
+    Handle<SeqOneByteString> newname =  Handle<SeqOneByteString>::cast(subject);
+    tainttracking::TaintTracker::FromIsolate(isolate)->ResetLog(isolate, newname);
+  }
   // TaintTracker::FromIsolate(isolate)
     // tainttracking::SetTaint(
     //     args.atOrUndefined(isolate, 1),

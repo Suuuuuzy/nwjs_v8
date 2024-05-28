@@ -2022,7 +2022,15 @@ void TaintTracker::ResetLog(v8::internal::Isolate* isolate, Handle<SeqOneByteStr
 }
 
 void TaintTracker::Impl::ResetLog(v8::internal::Isolate* isolate, Handle<SeqOneByteString> newname) {
-  std::cout<< "jianjia reset log" << std::endl;
+    message_counter_=0;
+    log_flush_scheduled_=false;
+    // has_heartbeat_=false,
+    unsent_messages_= 0;
+    // ,exec_(isolate)
+    // versioner_(new ObjectVersioner(isolate))
+    // symbolic_elem_counter_ = enable_serializer ? 1 : kMaxCounterSnapshot;
+    last_message_flushed_.Start();
+
   DisallowGarbageCollection no_gc;
   uint8_t* dest = newname->GetChars(no_gc);
   const char* log_dest = reinterpret_cast<const char*>(dest);
@@ -2032,7 +2040,8 @@ void TaintTracker::Impl::ResetLog(v8::internal::Isolate* isolate, Handle<SeqOneB
 
     std::unique_ptr<std::ofstream> oflog (new std::ofstream());
     // suzy: this happens everytime because the files are always created
-    oflog->open(LogFileNameNew(log_dest));
+    std::string log_new_name = LogFileNameNew(log_dest);
+    oflog->open(log_new_name);
     std::swap(log_, oflog);
     buffer_log_storage_ = kj::heapArray<uint8_t>(kLogBufferSize);
     kj_log_.reset(new ::kj::std::StdOutputStream(*log_));
