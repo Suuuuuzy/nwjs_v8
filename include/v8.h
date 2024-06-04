@@ -3351,9 +3351,13 @@ class V8_EXPORT String : public Name {
     MULTIPLE_TAINTS = 18,       // Used when combining multiple bytes with
                                 // different taints.
     MESSAGE_ORIGIN = 19,
-
+    // added by jianjia
+    INPUT_BOX = 20,
+    FORM_SUBMIT = 21,
+    ON_LAUNCH = 22,
+    SENS_WECHAT_API = 23,
     // This must be less than the value of URL_ENCODED
-    MAX_TAINT_TYPE = 20,
+    MAX_TAINT_TYPE = 24,
 
     // Encoding types
     URL_ENCODED = 32,            // 1 << 5

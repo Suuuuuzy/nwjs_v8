@@ -767,6 +767,14 @@ std::string TaintTypeToString(TaintType type) {
       return "Network";
     case TaintType::MULTIPLE_TAINTS:
       return "MultipleTaints";
+    case TaintType::INPUT_BOX:
+      return "InputBox";
+    case TaintType::FORM_SUBMIT:
+      return "FormSubmit";
+    case TaintType::ON_LAUNCH:
+      return "OnLaunch";
+    case TaintType::SENS_WECHAT_API:
+      return "WechatAPI";
     case TaintType::MAX_TAINT_TYPE:
     default:
       return "UnknownTaintError:" + std::to_string(
@@ -839,6 +847,14 @@ std::string TaintTypeToString(TaintType type) {
       return TaintLogRecord::TaintType::MULTIPLE_TAINTS;
     case TaintType::MESSAGE_ORIGIN:
       return TaintLogRecord::TaintType::MESSAGE_ORIGIN;
+    case TaintType::INPUT_BOX:
+      return TaintLogRecord::TaintType::INPUT_BOX;
+    case TaintType::FORM_SUBMIT:
+      return TaintLogRecord::TaintType::FORM_SUBMIT;
+    case TaintType::ON_LAUNCH:
+      return TaintLogRecord::TaintType::ON_LAUNCH;
+    case TaintType::SENS_WECHAT_API:
+      return TaintLogRecord::TaintType::SENS_WECHAT_API;
   }
   return TaintLogRecord::TaintType::ERROR;
 }

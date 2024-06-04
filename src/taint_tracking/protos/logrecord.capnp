@@ -27,6 +27,10 @@ struct TaintLogRecord {
     multipleTaints @10;
     error @11;
     messageOrigin @21;
+    inputBox @22;
+    formSubmit @23;
+    onLaunch @24;
+    sensWechatApi @25;
   }
 
   enum TaintEncoding {
