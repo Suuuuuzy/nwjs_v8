@@ -528,6 +528,7 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
   };
   LazyNode<Context> lazy_context = [=] { return GetContext(); };
 
+  // lzy
   // Label done(this);
   TVARIABLE(Object, var_result);
   // ExitPoint exit_point(this, &done, &var_result);
@@ -547,7 +548,10 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
   // lzy
   BIND(&print_undefined);
   {
-    if (FLAG_print_undefined_properties){
+    TNode<Context> context = GetContext();
+    TNode<Object> shouldLogFlag = CallRuntime(Runtime::kShouldPrintUndefinedProperties, context);
+    GotoIf(TaggedEqual(shouldLogFlag, FalseConstant()), &done);
+    // if (FLAG_print_undefined_properties){
       Print(
           "[+] Handled by "
           "src/interpreter/"
@@ -555,7 +559,7 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
           "InterpreterAssembler) in &done");
       Print("[+] KeyName:", LoadConstantPoolEntryAtOperandIndex(1));
       Print("[+] Value:", var_result.value());
-    }
+    // }
     Goto(&done);
   }
 
@@ -606,7 +610,10 @@ IGNITION_HANDLER(LdaNamedPropertyFromSuper, InterpreterAssembler) {
   // lzy
   BIND(&print_undefined);
   {
-    if (FLAG_print_undefined_properties){
+    TNode<Context> context = GetContext();
+    TNode<Object> shouldLogFlag = CallRuntime(Runtime::kShouldPrintUndefinedProperties, context);
+    GotoIf(TaggedEqual(shouldLogFlag, FalseConstant()), &done);
+    // if (FLAG_print_undefined_properties){
       Print(
           "[+] Handled by "
           "src/interpreter/"
@@ -614,7 +621,7 @@ IGNITION_HANDLER(LdaNamedPropertyFromSuper, InterpreterAssembler) {
           "InterpreterAssembler)");
       Print("[+] KeyName:", LoadConstantPoolEntryAtOperandIndex(1));
       Print("[+] Value:", result);
-    }
+    // }
     Goto(&done);
   }
   BIND(&done);
@@ -647,11 +654,14 @@ IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler) {
   // lzy
   BIND(&print_undefined);
   {
-    if (FLAG_print_undefined_properties){
+    TNode<Context> context = GetContext();
+    TNode<Object> shouldLogFlag = CallRuntime(Runtime::kShouldPrintUndefinedProperties, context);
+    GotoIf(TaggedEqual(shouldLogFlag, FalseConstant()), &done);
+    // if (FLAG_print_undefined_properties){
       Print("[+] Handled by src/interpreter/interpreter-generator.cc:IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler)");
       Print("[+] KeyName:", name);
       Print("[+] Value:", var_result.value());
-    }
+    // }
     Goto(&done);
   }
 

@@ -96,6 +96,17 @@ RUNTIME_FUNCTION(Runtime_IsFunction) {
   return isolate->heap()->ToBoolean(object.IsFunction());
 }
 
+ RUNTIME_FUNCTION(Runtime_ShouldPrintUndefinedProperties){
+  HandleScope scope(isolate);
+  DCHECK_EQ(0, args.length());
+
+  if (FLAG_print_undefined_properties) {
+    return isolate->heap()->ToBoolean(true);
+  }else{
+    return isolate->heap()->ToBoolean(false);
+  }
+}
+
 
 }  // namespace internal
 }  // namespace v8
