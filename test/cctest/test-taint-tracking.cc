@@ -569,6 +569,31 @@ TEST(OnBeforeCompileGetSetTransitiveTaintByteArray) {
       2, result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
 }
 
+TEST(OnBeforeCompileGetSetTransitiveTaintByteArrayJianjia) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  v8::Local<v8::String> source =
+      v8_str(CcTest::isolate(),
+             "var e = '{$_api_root}'; "
+             "e.__setTaint__(1);"
+             "var navigation_bar_color = e + 'default/navigation-bar-color';"
+             "var c = navigation_bar_color.__getTaint__(); "
+            //  "navigation_bar_color.__checkTaint__(navigation_bar_color[0]);"
+             "new Uint8Array(c)[0]; "
+             "new Uint8Array(c)[100]; "
+            );
+  TestTaintListener* listener = new TestTaintListener();
+  CHECK_EQ(listener->GetScripts().size(), 0);
+  TaintTracker::FromIsolate(reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->RegisterTaintListener(listener);
+  v8::Local<v8::Context> context = CcTest::isolate()->GetCurrentContext();
+  auto result = v8::Script::Compile(
+    context, source).ToLocalChecked()->Run(context).ToLocalChecked();
+  CHECK_EQ(listener->GetScripts().size(), 0);
+  CHECK_EQ(
+      1, result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
+}
+
+
 TEST(OnBeforeCompileGetSetSliceTaintByteArray) {
   TestCase test_case;
   v8::HandleScope scope(CcTest::isolate());

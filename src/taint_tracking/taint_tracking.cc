@@ -1903,6 +1903,7 @@ Handle<Object> JSCheckTaintMaybeLog(Isolate* isolate,
 V8_WARN_UNUSED_RESULT v8::internal::Handle<v8::internal::JSArrayBuffer>
 JSGetTaintStatus(v8::internal::Handle<v8::internal::String> str,
                  v8::internal::Isolate* isolate) {
+  DisallowHeapAllocation no_gc;
   int len = str->length();
   auto backing_store = BackingStore::Allocate(
       isolate, len, SharedFlag::kNotShared, InitializedFlag::kUninitialized);
