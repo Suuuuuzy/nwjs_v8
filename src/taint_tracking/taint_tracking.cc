@@ -1903,17 +1903,29 @@ Handle<Object> JSCheckTaintMaybeLog(Isolate* isolate,
 V8_WARN_UNUSED_RESULT v8::internal::Handle<v8::internal::JSArrayBuffer>
 JSGetTaintStatus(v8::internal::Handle<v8::internal::String> str,
                  v8::internal::Isolate* isolate) {
-  DisallowHeapAllocation no_gc;
   int len = str->length();
-  auto backing_store = BackingStore::Allocate(
-      isolate, len, SharedFlag::kNotShared, InitializedFlag::kUninitialized);
-  Handle<JSArrayBuffer> answer = isolate->factory()->NewJSArrayBuffer(std::move(backing_store));
+  // Handle<JSArrayBuffer> answer = v8::ArrayBuffer::New(isolate, len);
+  // auto backing_store = BackingStore::Allocate(
+  //     isolate, len, SharedFlag::kNotShared, InitializedFlag::kZeroInitialized);
+  // Handle<JSArrayBuffer> answer = isolate->factory()->NewJSArrayBuffer(std::move(backing_store));
   // DisallowHeapAllocation no_gc;
   // JSArrayBuffer::SetupAllocatingData(
   //     answer, isolate, len, false, SharedFlag::kNotShared);
+
+  v8::internal::MaybeHandle<v8::internal::JSArrayBuffer> answer =
+      isolate->factory()->NewJSArrayBufferAndBackingStore(
+          len, i::InitializedFlag::kZeroInitialized);
+
+  v8::internal::Handle<v8::internal::JSArrayBuffer> array_buffer;
+  if (!answer.ToHandle(&array_buffer)) {
+    // TODO(jbroman): It may be useful in the future to provide a MaybeLocal
+    // version that throws an exception or otherwise does not crash.
+    v8::internal::FatalProcessOutOfMemory(isolate, "v8::ArrayBuffer::New");
+  }
+
   FlattenTaintData(
-      *str, reinterpret_cast<TaintData*>(answer->GetBackingStore()->buffer_start()), 0, len);
-  return answer;
+      *str, reinterpret_cast<TaintData*>(array_buffer->GetBackingStore()->buffer_start()), 0, len);
+  return array_buffer;
 }
 
 // void JSTaintLog(v8::internal::Handle<v8::internal::String> str,

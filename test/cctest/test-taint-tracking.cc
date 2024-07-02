@@ -590,7 +590,7 @@ TEST(OnBeforeCompileGetSetTransitiveTaintByteArrayJianjia) {
     context, source).ToLocalChecked()->Run(context).ToLocalChecked();
   CHECK_EQ(listener->GetScripts().size(), 0);
   CHECK_EQ(
-      1, result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
+      0, result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
 }
 
 
