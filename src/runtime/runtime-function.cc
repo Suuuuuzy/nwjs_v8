@@ -96,7 +96,7 @@ RUNTIME_FUNCTION(Runtime_IsFunction) {
   return isolate->heap()->ToBoolean(object.IsFunction());
 }
 
- RUNTIME_FUNCTION(Runtime_ShouldPrintUndefinedProperties){
+RUNTIME_FUNCTION(Runtime_ShouldPrintUndefinedProperties){
   HandleScope scope(isolate);
   DCHECK_EQ(0, args.length());
 

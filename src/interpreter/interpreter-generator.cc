@@ -529,10 +529,13 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
   LazyNode<Context> lazy_context = [=] { return GetContext(); };
 
   // lzy
-  // Label done(this);
   TVARIABLE(Object, var_result);
+  // yjj start
+  TVARIABLE(Object, fakekey_result);
+  // yjj end
+
   // ExitPoint exit_point(this, &done, &var_result);
-  Label done(this), checkUndefined(this), print_undefined(this);
+  Label done(this), checkUndefined(this), print_undefined(this), add_taint_value(this); //, check_fake_value(this);
   ExitPoint exit_point(this, &checkUndefined, &var_result);
 
   AccessorAssembler::LazyLoadICParameters params(lazy_context, recv, lazy_name,
@@ -551,17 +554,33 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
     TNode<Context> context = GetContext();
     TNode<Object> shouldLogFlag = CallRuntime(Runtime::kShouldPrintUndefinedProperties, context);
     GotoIf(TaggedEqual(shouldLogFlag, FalseConstant()), &done);
-    // if (FLAG_print_undefined_properties){
-      Print(
-          "[+] Handled by "
-          "src/interpreter/"
-          "interpreter-generator.cc:IGNITION_HANDLER(LdaNamedProperty, "
-          "InterpreterAssembler) in &done");
-      Print("[+] KeyName:", LoadConstantPoolEntryAtOperandIndex(1));
-      Print("[+] Value:", var_result.value());
-    // }
+    Print(
+        "[+] Handled by "
+        "src/interpreter/"
+        "interpreter-generator.cc:IGNITION_HANDLER(LdaNamedProperty, "
+        "InterpreterAssembler) in &done");
+    Print("[+] KeyName:", LoadConstantPoolEntryAtOperandIndex(1));
+    Print("[+] Value:", var_result.value());
+    Print("[+] Object", recv);
+    // yjj start
+    TNode<String> fakeKey = StringConstant("fakeKey");
+    TNode<TaggedIndex> fake_slot = BytecodeOperandIdxTaggedIndex(2);
+    fakekey_result = CallBuiltin(Builtins::kKeyedLoadIC, context, recv,
+                                  fakeKey, fake_slot, feedback_vector);
+    Print("[+] FakeKey Value:", fakekey_result.value());
+    Branch(IsUndefined(fakekey_result.value()), &done, &add_taint_value);
+    // yjj end
+    // Goto(&done);
+  }
+
+  // yjj start
+  BIND(&add_taint_value);
+  {
+    // var_result = StringConstant("taintedValue"); // var_result should not be a constant
+    var_result = fakekey_result; // just use the fakekey_result
     Goto(&done);
   }
+  // yjj end
 
   BIND(&done);
   {
@@ -604,33 +623,51 @@ IGNITION_HANDLER(LdaNamedPropertyFromSuper, InterpreterAssembler) {
       CallBuiltin(Builtins::kLoadSuperIC, context, receiver,
                   home_object_prototype, name, slot, feedback_vector);
   // lzy
-  Label done(this), print_undefined(this);
+  Label done(this), print_undefined(this); //, add_taint_value(this);
+  // yjj start
+  // TNode<Object> fakekey_result;
+  // yjj end
 
   Branch(IsUndefined(result), &print_undefined, &done);
   // lzy
   BIND(&print_undefined);
   {
-    TNode<Context> context = GetContext();
+    // TNode<Context> context = GetContext();
     TNode<Object> shouldLogFlag = CallRuntime(Runtime::kShouldPrintUndefinedProperties, context);
     GotoIf(TaggedEqual(shouldLogFlag, FalseConstant()), &done);
-    // if (FLAG_print_undefined_properties){
-      Print(
-          "[+] Handled by "
-          "src/interpreter/"
-          "interpreter-generator.cc:IGNITION_HANDLER(LdaNamedPropertyFromSuper, "
-          "InterpreterAssembler)");
-      Print("[+] KeyName:", LoadConstantPoolEntryAtOperandIndex(1));
-      Print("[+] Value:", result);
-    // }
+    Print(
+        "[+] Handled by "
+        "src/interpreter/"
+        "interpreter-generator.cc:IGNITION_HANDLER(LdaNamedPropertyFromSuper, "
+        "InterpreterAssembler)");
+    Print("[+] KeyName:", LoadConstantPoolEntryAtOperandIndex(1));
+    Print("[+] Value:", result);
+    Print("[+] Object", receiver);
+    // yjj start
+    // yjj: I didn't find a js case that runs LdaNamedPropertyFromSuper
+    // TNode<String> fakeKey = StringConstant("fakeKey");
+    // fakekey_result = CallBuiltin(Builtins::kLoadSuperIC, context, receiver,
+    //             home_object_prototype, fakeKey, slot, feedback_vector);
+    // Print("[+] FakeKey Value:", fakekey_result);
+    // GotoIf(IsUndefined(fakekey_result), &done);
+    // result = fakekey_result; // just use the fakekey_result
+    // Goto(&done);
+    // Branch(IsUndefined(fakekey_result), &done, &add_taint_value);
+      // yjj end
     Goto(&done);
   }
+
+  // BIND(&add_taint_value);
+  // {
+  //   result = fakekey_result; // just use the fakekey_result
+  //   Goto(&done);
+  // }
+
   BIND(&done);
   {
     SetAccumulator(result);
     Dispatch();
-    }
-  // SetAccumulator(result);
-  // Dispatch();
+  }
 }
 
 // LdaKeyedProperty <object> <slot>
@@ -648,8 +685,12 @@ IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler) {
   var_result = CallBuiltin(Builtins::kKeyedLoadIC, context, object, name, slot,
                            feedback_vector);
   // lzy
-  Label done(this), print_undefined(this);
+  Label done(this), print_undefined(this), add_taint_value(this);
   Branch(IsUndefined(var_result.value()), &print_undefined, &done);
+
+  // yjj start
+  TVARIABLE(Object, fakekey_result);
+  // yjj end
 
   // lzy
   BIND(&print_undefined);
@@ -661,17 +702,30 @@ IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler) {
       Print("[+] Handled by src/interpreter/interpreter-generator.cc:IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler)");
       Print("[+] KeyName:", name);
       Print("[+] Value:", var_result.value());
-    // }
+      Print("[+] Object", object);
+      // yjj start
+      TNode<String> fakeKey = StringConstant("fakeKey");
+      fakekey_result = CallBuiltin(Builtins::kKeyedLoadIC, context, object,
+                                   fakeKey, slot, feedback_vector);
+      Print("[+] FakeKey Value:", fakekey_result.value());
+      Branch(IsUndefined(fakekey_result.value()), &done, &add_taint_value);
+      // yjj end
+  }
+
+  // yjj start
+  BIND(&add_taint_value);
+  {
+    // var_result = StringConstant("taintedValue"); // var_result should not be a constant
+    var_result = fakekey_result; // just use the fakekey_result
     Goto(&done);
   }
+  // yjj end
 
   BIND(&done);
   {
     SetAccumulator(var_result.value());
     Dispatch();
   }
-  // SetAccumulator(var_result.value());
-  // Dispatch();
 }
 
 class InterpreterStoreNamedPropertyAssembler : public InterpreterAssembler {

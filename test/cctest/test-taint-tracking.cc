@@ -1261,11 +1261,12 @@ TEST(TaintConstants) {
 }
 
 TEST(UndefinedProperty) {
+  i::FLAG_print_undefined_properties = true;
   TestCase test_case;
   v8::HandleScope scope(CcTest::isolate());
   v8::Local<v8::String> source = v8_str(CcTest::isolate(),
                                         "var jianjiaoption = {};"
-                                        "jianjiaoption['gg'];"
+                                        "eval(jianjiaoption['gg']);"
              );
   TestTaintListener* listener = new TestTaintListener();
   CHECK_EQ(listener->GetScripts().size(), 0);
@@ -1280,6 +1281,7 @@ TEST(UndefinedProperty) {
       0, result->Int32Value(
           CcTest::isolate()->GetCurrentContext()).FromJust());
 }
+
 
 
 // TEST(ControlFlowLog) {
