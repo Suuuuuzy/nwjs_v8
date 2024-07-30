@@ -510,7 +510,7 @@ IGNITION_HANDLER(StaLookupSlot, InterpreterAssembler) {
 }
 
 // LdaNamedProperty <object> <name_index> <slot>
-//
+// jianjia gay start from here
 // Calls the LoadIC at FeedBackVector slot <slot> for <object> and the name at
 // constant pool entry <name_index>.
 IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
@@ -535,7 +535,7 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
   // yjj end
 
   // ExitPoint exit_point(this, &done, &var_result);
-  Label done(this), checkUndefined(this), print_undefined(this), add_taint_value(this); //, check_fake_value(this);
+  Label done(this), checkUndefined(this), print_undefined(this), add_taint_value(this), check_recv_value(this); //, check_fake_value(this);
   ExitPoint exit_point(this, &checkUndefined, &var_result);
 
   AccessorAssembler::LazyLoadICParameters params(lazy_context, recv, lazy_name,
@@ -563,21 +563,63 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
     Print("[+] Value:", var_result.value());
     Print("[+] Object", recv);
     // yjj start
+    // check the type of recv
+    TNode<String> typeofRecv = Typeof(recv);
+    Print("[+] Object type", typeofRecv);
+    TNode<String> typeStringConstant = StringConstant("string");
+    GotoIf(TaggedEqual(typeofRecv, typeStringConstant), &check_recv_value);
+    // from this on, will be the case: recv is an object, if it is not object, go to &done directly
+    TNode<String> typeObjectConstant = StringConstant("object");
+    GotoIf(TaggedNotEqual(typeofRecv, typeObjectConstant), &done);
     TNode<String> fakeKey = StringConstant("fakeKey");
     TNode<TaggedIndex> fake_slot = BytecodeOperandIdxTaggedIndex(2);
+    // this is to see whether the receiver has a property {"fakeKey": "fakeValue"}
     fakekey_result = CallBuiltin(Builtins::kKeyedLoadIC, context, recv,
                                   fakeKey, fake_slot, feedback_vector);
     Print("[+] FakeKey Value:", fakekey_result.value());
+    // if not, go to done, if yes, also return fakeValue
     Branch(IsUndefined(fakekey_result.value()), &done, &add_taint_value);
     // yjj end
     // Goto(&done);
   }
 
   // yjj start
+  // from this on, will be the case: recv is a string
+  BIND(&check_recv_value);
+  {
+    // check if recv == "fakeValue"
+    TNode<String> fakeValue = StringConstant("fakeValue");
+    GotoIf(TaggedNotEqual(fakeValue, recv), &done);
+    Print("[+] Recv equals to \"fakeValue\"");
+    var_result = recv;
+    // yjj: change recv from string to object start
+    // "fakeValue" -> { "fakeKey": "fakeValue", "fag": "fakeValue" }
+    // Callable ic = Builtins::CallableFor(isolate(), Builtins::kStoreIC);
+    // TNode<Context> context = GetContext();
+    // TNode<Name> name = CAST(LoadConstantPoolEntryAtOperandIndex(1));
+    // TNode<TaggedIndex> slot = BytecodeOperandIdxTaggedIndex(2);
+    // TNode<String> fakeKey = StringConstant("fakeKey");
+    // var_result = CallStub(ic, context, recv, fakeKey, fakeValue, slot,
+    //                       feedback_vector);
+    // var_result = CallStub(ic, context, recv, name, fakeValue, slot,
+    //                       feedback_vector);
+    // yjj: change recv from string to object end
+    Goto(&done);
+  }
+  // yjj end
+
+  // yjj start
   BIND(&add_taint_value);
   {
-    // var_result = StringConstant("taintedValue"); // var_result should not be a constant
-    var_result = fakekey_result; // just use the fakekey_result
+    // yjj: add one property start
+    Callable ic = Builtins::CallableFor(isolate(), Builtins::kStoreIC);
+    TNode<Context> context = GetContext();
+    TNode<Name> name = CAST(LoadConstantPoolEntryAtOperandIndex(1));
+    TNode<TaggedIndex> slot = BytecodeOperandIdxTaggedIndex(2);
+    var_result = CallStub(ic, context, recv, name, fakekey_result.value(), slot,
+                          feedback_vector);
+    // yjj: add one property end
+    // var_result = fakekey_result; // just use the fakekey_result
     Goto(&done);
   }
   // yjj end
@@ -742,6 +784,13 @@ class InterpreterStoreNamedPropertyAssembler : public InterpreterAssembler {
     TNode<TaggedIndex> slot = BytecodeOperandIdxTaggedIndex(2);
     TNode<HeapObject> maybe_vector = LoadFeedbackVector();
     TNode<Context> context = GetContext();
+
+    // yjj start
+    Print("[+] Handled by StaNamedProperty");
+    Print("[+] object:", object);
+    Print("[+] name:", name);
+    Print("[+] value:", value);
+    // yjj end
 
     TVARIABLE(Object, var_result);
     var_result = CallStub(ic, context, object, name, value, slot, maybe_vector);
