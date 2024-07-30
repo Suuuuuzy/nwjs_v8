@@ -76,68 +76,64 @@
 
 
 // === multiple layers of property access of an object, we assume it to be a string
-// var gay = "fakeValue";
+// var happy = "fakeValue";
 
 // // normally it will output undefined,
 // // but if typeof (a === "string" && a == "fakeValue")
-// // -> change a to an object: gay = { "fakeKey": "fakeValue", "fag": "fakeValue" }
+// // -> change a to an object: happy = { "fakeKey": "fakeValue", "foo": "fakeValue" }
 // // this will output: fakeValue
-// console.log(gay.fag); // recv type is string
-// console.log(JSON.stringify(gay));
-
-// // this will output: fakeValue
-// // because it will check if gay has a fakeKey and the value is fakeValue
-// // gay = { "fakeKey": "fakeValue", "fag": "fakeValue" }
-// console.log(gay.cuck);
-// console.log(JSON.stringify(gay));
+// console.log(happy.foo); // recv type is string
+// console.log(JSON.stringify(happy));
 
 // // this will output: fakeValue
-// // because it will check if gay.fag is string "fakeValue"
-// console.log(gay.fag.c);
-// console.log(JSON.stringify(gay));
+// // because it will check if happy has a fakeKey and the value is fakeValue
+// // happy = { "fakeKey": "fakeValue", "foo": "fakeValue" }
+// console.log(happy.cuck);
+// console.log(JSON.stringify(happy));
 
-// var gay = "fakeValue";
-// // step1: gay = { "fakeKey": "fakeValue", "les": "fakeValue" }
-// // step2: gay = { "fakeKey": "fakeValue", "les": {"slut":"fakeValue", "fakeKey":"fakeValue"} }
-// console.log(gay.les.slut);
-// console.log(JSON.stringify(gay));
+// // this will output: fakeValue
+// // because it will check if happy.foo is string "fakeValue"
+// console.log(happy.foo.c);
+// console.log(JSON.stringify(happy));
 
-// this should output: {"fakeKey":"fakeValue","fag":"fakeValue"}
-// no, because we don't really change gay, we change the return value of its property access instead
-// console.log(JSON.stringify(gay));
+// var happy = "fakeValue";
+// // step1: happy = { "fakeKey": "fakeValue", "nice": "fakeValue" }
+// // step2: happy = { "fakeKey": "fakeValue", "nice": {"suzy":"fakeValue", "fakeKey":"fakeValue"} }
+// console.log(happy.nice.suzy);
+// console.log(JSON.stringify(happy));
 
-// again the since a.fag is string and a.fag == "fakeValue", we change a.fag to an object
-// now a = { "fakeKey": "fakeValue", "fag": "fakeValue" }
+// this should output: {"fakeKey":"fakeValue","foo":"fakeValue"}
+// no, because we don't really change happy, we change the return value of its property access instead
+// console.log(JSON.stringify(happy));
+
+// again the since a.foo is string and a.foo == "fakeValue", we change a.foo to an object
+// now a = { "fakeKey": "fakeValue", "foo": "fakeValue" }
 // this will output: fakeValue
-// console.log(gay.fag.c);
+// console.log(happy.foo.c);
+
+// we can not do multiple layer in this way
+// var options = { 'fakeKey': 'fakeValue' };
+// // {'fakeKey': 'fakeValue', 'foo': 'fakeValue'};
+// console.log(options.foo); // recv type is object
+// console.log(options.foo.c);
+// console.log(options.suzy); // recv type is object
+// console.log(JSON.stringify(options));
+// drawback: we don't know if it's an array or number
+
 
 // we can not do multiple layer in this way
 var options = { 'fakeKey': 'fakeValue' };
-// {'fakeKey': 'fakeValue', 'fag': 'fakeValue'};
-console.log(options.fag); // recv type is object
-console.log(options.fag.c);
-console.log(options.slut); // recv type is object
+// {'fakeKey': 'fakeValue', 'foo': 'fakeValue'};
+var keyname = "foo";
+console.log(options[keyname]); // recv type is object
+var secKeyname = "c";
+console.log(options[keyname][secKeyname]);
+var anotherKeyname = "suzy";
+console.log(options[anotherKeyname]); // recv type is object
 console.log(JSON.stringify(options));
 // drawback: we don't know if it's an array or number
 
-// var a = wx.getStorageSync("wxapp");
-// wx.request({
-//     url: "https://api.weixin.qq.com/sns/jscode2session",
-//     data: {
-//         appid: a.args.app_id,
-//         secret: a.args.app_secret,
-//         js_code: o.code,
-//         grant_type: "authorization_code"
-//     },
-//     method: "GET",
-//     header: {
-//         "content-type": "application/json"
-//     },
-//     success: function(o) {
-//         t.deciyption(o.data.session_key, e.detail.encryptedData, e.detail.iv);
-//     },
-//     fail: function(e) {
-//         console.log("err", e);
-//     }
-// });
+
+
+
 // ==============

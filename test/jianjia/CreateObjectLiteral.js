@@ -1,7 +1,7 @@
-var gay = "fakeValue";
-// gay = { "fakeKey": "fakeValue"};
-// gay.fag = "fakeValue";
-// console.log(JSON.stringify(gay));
-console.log(gay.fag);
-console.log(gay.fag.c);
-console.log(JSON.stringify(gay));
+// var happy = "fakeValue";
+var happy = { "fakeKey": "fakeValue"};
+// happy.nice = "fakeValue";
+// console.log(JSON.stringify(happy));
+console.log(happy.nice);
+console.log(happy.nice.c);
+console.log(JSON.stringify(happy));

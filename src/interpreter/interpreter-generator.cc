@@ -510,7 +510,7 @@ IGNITION_HANDLER(StaLookupSlot, InterpreterAssembler) {
 }
 
 // LdaNamedProperty <object> <name_index> <slot>
-// jianjia gay start from here
+// jianjia happy start from here
 // Calls the LoadIC at FeedBackVector slot <slot> for <object> and the name at
 // constant pool entry <name_index>.
 IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
@@ -786,10 +786,10 @@ class InterpreterStoreNamedPropertyAssembler : public InterpreterAssembler {
     TNode<Context> context = GetContext();
 
     // yjj start
-    Print("[+] Handled by StaNamedProperty");
-    Print("[+] object:", object);
-    Print("[+] name:", name);
-    Print("[+] value:", value);
+    // Print("[+] Handled by StaNamedProperty");
+    // Print("[+] object:", object);
+    // Print("[+] name:", name);
+    // Print("[+] value:", value);
     // yjj end
 
     TVARIABLE(Object, var_result);
