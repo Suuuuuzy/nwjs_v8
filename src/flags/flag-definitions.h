@@ -349,6 +349,10 @@ DEFINE_BOOL(print_undefined_properties, false,
             "Enable print undefined properties")
 DEFINE_STRING(taint_tracking_job_id, "NO_JOB_ID",
               "Job identifier. Opaque identifier for identifying output. ")
+DEFINE_STRING(undefined_property_fakeKey_string, "fakeKey",
+              "FakeKey string, to decide whether to add property.")
+DEFINE_STRING(undefined_property_fakeValue_string, "fakeValue",
+              "FakeValue string, to decide whether to reutrn fakeValue.")
 DEFINE_INT(taint_tracking_heart_beat_millis, 5000,
            "Number of milliseconds to write a heart beat to the log")
 DEFINE_BOOL(taint_tracking_enable_header_logging, false,

@@ -571,7 +571,7 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
     // from this on, will be the case: recv is an object, if it is not object, go to &done directly
     TNode<String> typeObjectConstant = StringConstant("object");
     GotoIf(TaggedNotEqual(typeofRecv, typeObjectConstant), &done);
-    TNode<String> fakeKey = StringConstant("fakeKey");
+    TNode<Object> fakeKey = CallRuntime(Runtime::kGetFakeKey, context);
     TNode<TaggedIndex> fake_slot = BytecodeOperandIdxTaggedIndex(2);
     // this is to see whether the receiver has a property {"fakeKey": "fakeValue"}
     fakekey_result = CallBuiltin(Builtins::kKeyedLoadIC, context, recv,
@@ -588,9 +588,10 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
   BIND(&check_recv_value);
   {
     // check if recv == "fakeValue"
-    TNode<String> fakeValue = StringConstant("fakeValue");
+    TNode<Context> context = GetContext();
+    TNode<Object> fakeValue = CallRuntime(Runtime::kGetFakeValue, context);
     GotoIf(TaggedNotEqual(fakeValue, recv), &done);
-    Print("[+] Recv equals to \"fakeValue\"");
+    Print("[+] Recv equals to: ", fakeValue);
     var_result = recv;
     // yjj: change recv from string to object start
     // "fakeValue" -> { "fakeKey": "fakeValue", "fag": "fakeValue" }
@@ -746,7 +747,8 @@ IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler) {
       Print("[+] Value:", var_result.value());
       Print("[+] Object", object);
       // yjj start
-      TNode<String> fakeKey = StringConstant("fakeKey");
+      // TNode<String> fakeKey = StringConstant("fakeKey");
+      TNode<Object> fakeKey = CallRuntime(Runtime::kGetFakeKey, context);
       fakekey_result = CallBuiltin(Builtins::kKeyedLoadIC, context, object,
                                    fakeKey, slot, feedback_vector);
       Print("[+] FakeKey Value:", fakekey_result.value());

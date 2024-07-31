@@ -1282,6 +1282,30 @@ TEST(UndefinedProperty) {
           CcTest::isolate()->GetCurrentContext()).FromJust());
 }
 
+TEST(setTaintFakeValue) {
+  i::FLAG_print_undefined_properties = true;
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  v8::Local<v8::String> source = v8_str(CcTest::isolate(),
+                                        "var options = 'fakeValue';"
+                                        "options.__setTaint__(1);"
+                                        "eval(1);"
+             );
+  TestTaintListener* listener = new TestTaintListener();
+  CHECK_EQ(listener->GetScripts().size(), 0);
+  TaintTracker::FromIsolate(
+      reinterpret_cast<v8::internal::Isolate*>(CcTest::isolate()))->
+    RegisterTaintListener(listener);
+  v8::Local<v8::Context> run_context = CcTest::isolate()->GetCurrentContext();
+  auto result = v8::Script::Compile(
+    run_context, source).ToLocalChecked()->Run(run_context).ToLocalChecked();
+  CHECK_EQ(listener->GetScripts().size(), 0);
+  CHECK_EQ(
+      0, result->Int32Value(
+          CcTest::isolate()->GetCurrentContext()).FromJust());
+}
+
+
 
 
 // TEST(ControlFlowLog) {

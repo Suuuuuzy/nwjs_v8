@@ -107,6 +107,24 @@ RUNTIME_FUNCTION(Runtime_ShouldPrintUndefinedProperties){
   }
 }
 
+// add these two to pass fakeKey and fakeValue from runtime flags
+RUNTIME_FUNCTION(Runtime_GetFakeKey){
+  HandleScope scope(isolate);
+  DCHECK_EQ(0, args.length());
+
+  return *Handle<Object>::cast(
+          isolate->factory()->NewStringFromAsciiChecked(FLAG_undefined_property_fakeKey_string));
+}
+
+RUNTIME_FUNCTION(Runtime_GetFakeValue){
+  HandleScope scope(isolate);
+  DCHECK_EQ(0, args.length());
+
+  return *Handle<Object>::cast(
+          isolate->factory()->NewStringFromAsciiChecked(FLAG_undefined_property_fakeValue_string));
+}
+
+
 
 }  // namespace internal
 }  // namespace v8

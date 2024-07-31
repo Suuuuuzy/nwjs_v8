@@ -122,18 +122,25 @@
 
 
 // we can not do multiple layer in this way
-var options = { 'fakeKey': 'fakeValue' };
-// {'fakeKey': 'fakeValue', 'foo': 'fakeValue'};
-var keyname = "foo";
-console.log(options[keyname]); // recv type is object
-var secKeyname = "c";
-console.log(options[keyname][secKeyname]);
-var anotherKeyname = "suzy";
-console.log(options[anotherKeyname]); // recv type is object
-console.log(JSON.stringify(options));
+// var options = { 'fakeKey': 'fakeValue' };
+// // {'fakeKey': 'fakeValue', 'foo': 'fakeValue'};
+// var keyname = "foo";
+// console.log(options[keyname]); // recv type is object
+// var secKeyname = "c";
+// console.log(options[keyname][secKeyname]);
+// var anotherKeyname = "suzy";
+// console.log(options[anotherKeyname]); // recv type is object
+// console.log(JSON.stringify(options));
 // drawback: we don't know if it's an array or number
 
-
-
-
+// var options = 'testkey';
+var options = { 'testkey': 'testvalue' };
+// __setTaint__(options, __taintConstants__()['OnLaunch']);
+// __setTaint__(options, 1);
+__setTaint__(options, 1);
+// console.log(new Uint8Array(options.__getTaint__(1))[0]);
+%DebugPrint(options);
+console.log(options.a)
+console.log(JSON.stringify(options))
+console.log(new Uint8Array(options.a.__getTaint__(1))[0]);
 // ==============

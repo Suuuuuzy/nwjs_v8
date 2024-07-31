@@ -178,7 +178,9 @@ namespace internal {
   F(FunctionGetSourceCode, 1, 1)           \
   F(FunctionIsAPIFunction, 1, 1)           \
   F(IsFunction, 1, 1)                      \
-  F(ShouldPrintUndefinedProperties, 0, 1)
+  F(ShouldPrintUndefinedProperties, 0, 1)  \
+  F(GetFakeKey, 0, 1)                      \
+  F(GetFakeValue, 0, 1)                    \
 
 #define FOR_EACH_INTRINSIC_GENERATOR(F, I)    \
   I(AsyncFunctionAwaitCaught, 2, 1)           \
