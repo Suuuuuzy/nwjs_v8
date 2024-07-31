@@ -133,21 +133,26 @@
 // console.log(JSON.stringify(options));
 // drawback: we don't know if it's an array or number
 
-var options = { 'fakeKey': 'fakeValue' }; // { 'testkey': 'testvalue' } can be seen as an empty object
-// __setTaint__(options, __taintConstants__()['OnLaunch']);
-// __setTaint__(options, 1);
-__setTaint__(options, 3);
-// console.log(new Uint8Array(options.__getTaint__(1))[0]);
-%DebugPrint(options);
-console.log(options.a)
-// now: options = {"testkey":"testvalue","a":"testvalue"}
-// expect: options = { 'testkey': 'testvalue', 'a':{'testkey': 'testvalue'}};
-console.log(JSON.stringify(options))
-console.log(new Uint8Array(options.a.fakeKey.__getTaint__(1))[0]);
-console.log(options.a.b)
-// options = { 'testkey': 'testvalue', 'a':{'testkey': 'testvalue', 'b':{'testkey': 'testvalue'}}};
-console.log(JSON.stringify(options))
-console.log(new Uint8Array(options.a.b.fakeKey.__getTaint__(1))[0]);
+// var options = { 'fakeKey': 'fakeValue' }; // { 'testkey': 'testvalue' } can be seen as an empty object
+// // Object.defineProperty(options, 'fakeKey', {
+// //   enumerable: false
+// // });
+// // __setTaint__(options, __taintConstants__()['OnLaunch']);
+// // __setTaint__(options, 1);
+// __setTaint__(options, 3);
+// // console.log(new Uint8Array(options.__getTaint__(1))[0]);
+// %DebugPrint(options);
+// console.log(options.a)
+// // now: options = {"testkey":"testvalue","a":"testvalue"}
+// // expect: options = { 'testkey': 'testvalue', 'a':{'testkey': 'testvalue'}};
+// console.log(JSON.stringify(options))
+// console.log(new Uint8Array(options.a.fakeKey.__getTaint__(1))[0]);
+// console.log(options.a.b)
+// // options = { 'testkey': 'testvalue', 'a':{'testkey': 'testvalue', 'b':{'testkey': 'testvalue'}}};
+// console.log(JSON.stringify(options))
+// console.log(new Uint8Array(options.a.b.fakeKey.__getTaint__(1))[0]);
+// console.log(Object.keys(options)); // Output: [] (empty array)
+// console.log(Object.keys(options.a));
 // ==============
 
 
@@ -156,3 +161,26 @@ console.log(new Uint8Array(options.a.b.fakeKey.__getTaint__(1))[0]);
 // console.log(new Uint8Array(options.__getTaint__(1))[0]);
 // console.log(options.a)
 // console.log(options.a.b)
+
+// ldakeyedproperty
+var options = { 'fakeKey': 'fakeValue' }; // { 'testkey': 'testvalue' } can be seen as an empty object
+// Object.defineProperty(options, 'fakeKey', {
+//   enumerable: false
+// });
+// __setTaint__(options, __taintConstants__()['OnLaunch']);
+// __setTaint__(options, 1);
+__setTaint__(options, 3);
+// console.log(new Uint8Array(options.__getTaint__(1))[0]);
+% DebugPrint(options);
+var keyName = 'a';
+console.log(options[keyName])
+// now: options = {"testkey":"testvalue","a":"testvalue"}
+// expect: options = { 'testkey': 'testvalue', 'a':{'testkey': 'testvalue'}};
+console.log(JSON.stringify(options))
+console.log(new Uint8Array(options[keyName].fakeKey.__getTaint__(1))[0]);
+console.log(options[keyName].b)
+// options = { 'testkey': 'testvalue', 'a':{'testkey': 'testvalue', 'b':{'testkey': 'testvalue'}}};
+console.log(JSON.stringify(options))
+console.log(new Uint8Array(options[keyName].b.fakeKey.__getTaint__(1))[0]);
+console.log(Object.keys(options)); // Output: [] (empty array)
+console.log(Object.keys(options[keyName]));

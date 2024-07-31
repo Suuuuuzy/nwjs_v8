@@ -736,6 +736,7 @@ IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler) {
   TNode<TaggedIndex> slot = BytecodeOperandIdxTaggedIndex(1);
   TNode<HeapObject> feedback_vector = LoadFeedbackVector();
   TNode<Context> context = GetContext();
+  TNode<Object> fakeKey;
 
   TVARIABLE(Object, var_result);
   var_result = CallBuiltin(Builtins::kKeyedLoadIC, context, object, name, slot,
@@ -761,7 +762,7 @@ IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler) {
       Print("[+] Object", object);
       // yjj start
       // TNode<String> fakeKey = StringConstant("fakeKey");
-      TNode<Object> fakeKey = CallRuntime(Runtime::kGetFakeKey, context);
+      fakeKey = CallRuntime(Runtime::kGetFakeKey, context);
       fakekey_result = CallBuiltin(Builtins::kKeyedLoadIC, context, object,
                                    fakeKey, slot, feedback_vector);
       Print("[+] FakeKey Value:", fakekey_result.value());
@@ -772,8 +773,24 @@ IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler) {
   // yjj start
   BIND(&add_taint_value);
   {
+    // yjj: add one property start
+    // the added property should be: {'testkey': 'testvalue'}
+    Callable ic = Builtins::CallableFor(isolate(), Builtins::kStoreIC);
+    // TNode<Context> context = GetContext();
+    // TNode<Name> name = CAST(LoadConstantPoolEntryAtOperandIndex(1));
+    // TNode<TaggedIndex> slot = BytecodeOperandIdxTaggedIndex(2);
+    // fakekey_result.value() should be replaced with an object
+    // create an empty object
+    ConstructorBuiltinsAssembler constructor_assembler(state());
+    TNode<JSObject> added_property =
+        constructor_assembler.CreateEmptyObjectLiteral(context);
+    var_result = CallStub(ic, context, added_property, fakeKey, fakekey_result.value(), slot,
+                          feedback_vector);
+    var_result = CallStub(ic, context, object, name, added_property, slot,
+                          feedback_vector);
+    // yjj: add one property end
     // var_result = StringConstant("taintedValue"); // var_result should not be a constant
-    var_result = fakekey_result; // just use the fakekey_result
+    // var_result = fakekey_result; // just use the fakekey_result
     Goto(&done);
   }
   // yjj end
