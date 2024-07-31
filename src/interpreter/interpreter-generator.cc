@@ -532,6 +532,8 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
   TVARIABLE(Object, var_result);
   // yjj start
   TVARIABLE(Object, fakekey_result);
+  TNode<Object> fakeKey;
+  TNode<Object> fakeValue;
   // yjj end
 
   // ExitPoint exit_point(this, &done, &var_result);
@@ -571,7 +573,7 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
     // from this on, will be the case: recv is an object, if it is not object, go to &done directly
     TNode<String> typeObjectConstant = StringConstant("object");
     GotoIf(TaggedNotEqual(typeofRecv, typeObjectConstant), &done);
-    TNode<Object> fakeKey = CallRuntime(Runtime::kGetFakeKey, context);
+    fakeKey = CallRuntime(Runtime::kGetFakeKey, context);
     TNode<TaggedIndex> fake_slot = BytecodeOperandIdxTaggedIndex(2);
     // this is to see whether the receiver has a property {"fakeKey": "fakeValue"}
     fakekey_result = CallBuiltin(Builtins::kKeyedLoadIC, context, recv,
@@ -589,11 +591,14 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
   {
     // check if recv == "fakeValue"
     TNode<Context> context = GetContext();
-    TNode<Object> fakeValue = CallRuntime(Runtime::kGetFakeValue, context);
+    // TNode<String> fakeValue = StringConstant("fakeValue");
+    fakeValue =
+        CallRuntime(Runtime::kGetFakeValue, context);
+    Print("[+] Debugprint fakeValue: ", fakeValue);
     GotoIf(TaggedNotEqual(fakeValue, recv), &done);
     Print("[+] Recv equals to: ", fakeValue);
     var_result = recv;
-    // yjj: change recv from string to object start
+    // yjj: change recv from string to object start (does not work)
     // "fakeValue" -> { "fakeKey": "fakeValue", "fag": "fakeValue" }
     // Callable ic = Builtins::CallableFor(isolate(), Builtins::kStoreIC);
     // TNode<Context> context = GetContext();
@@ -613,11 +618,19 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
   BIND(&add_taint_value);
   {
     // yjj: add one property start
+    // the added property should be: {'testkey': 'testvalue'}
     Callable ic = Builtins::CallableFor(isolate(), Builtins::kStoreIC);
     TNode<Context> context = GetContext();
     TNode<Name> name = CAST(LoadConstantPoolEntryAtOperandIndex(1));
     TNode<TaggedIndex> slot = BytecodeOperandIdxTaggedIndex(2);
-    var_result = CallStub(ic, context, recv, name, fakekey_result.value(), slot,
+    // fakekey_result.value() should be replaced with an object
+    // create an empty object
+    ConstructorBuiltinsAssembler constructor_assembler(state());
+    TNode<JSObject> added_property =
+        constructor_assembler.CreateEmptyObjectLiteral(context);
+    var_result = CallStub(ic, context, added_property, fakeKey, fakekey_result.value(), slot,
+                          feedback_vector);
+    var_result = CallStub(ic, context, recv, name, added_property, slot,
                           feedback_vector);
     // yjj: add one property end
     // var_result = fakekey_result; // just use the fakekey_result
@@ -648,6 +661,7 @@ IGNITION_HANDLER(LdaNamedPropertyNoFeedback, InterpreterAssembler) {
   Dispatch();
 }
 
+// yjj: I didn't find a js case that runs LdaNamedPropertyFromSuper
 // LdaNamedPropertyFromSuper <receiver> <name_index> <slot>
 //
 // Calls the LoadSuperIC at FeedBackVector slot <slot> for <receiver>, home
@@ -687,7 +701,6 @@ IGNITION_HANDLER(LdaNamedPropertyFromSuper, InterpreterAssembler) {
     Print("[+] Value:", result);
     Print("[+] Object", receiver);
     // yjj start
-    // yjj: I didn't find a js case that runs LdaNamedPropertyFromSuper
     // TNode<String> fakeKey = StringConstant("fakeKey");
     // fakekey_result = CallBuiltin(Builtins::kLoadSuperIC, context, receiver,
     //             home_object_prototype, fakeKey, slot, feedback_vector);
