@@ -133,6 +133,7 @@
 // console.log(JSON.stringify(options));
 // drawback: we don't know if it's an array or number
 
+/*
 var options = {}; // { 'testkey': 'testvalue' } can be seen as an empty object
 Object.defineProperty(options, 'fakeKey', {
   value: 'fakeValue',
@@ -153,6 +154,7 @@ console.log(new Uint8Array(options.a.b.fakeKey.__getTaint__(1))[0]);
 console.log(Object.keys(options)); // Output: [] (empty array)
 console.log(Object.keys(options.a));
 // ==============
+*/
 
 // then, in js if we want to check if an object is tainted, we need to check
 checkTaintObjectProperties = function (obj, prefix = '') {
@@ -186,34 +188,28 @@ checkTaintObjectProperties = function (obj, prefix = '') {
     }
   }
 }
+
+// ======== mulitple layers with LdaKeyedProperty
+var options = {}; // { 'testkey': 'testvalue' } can be seen as an empty object
+Object.defineProperty(options, 'fakeKey', {
+  value: 'fakeValue',
+  enumerable: false
+});
+__setTaint__(options, __taintConstants__()['OnLaunch']);
+// console.log(new Uint8Array(options.__getTaint__(1))[0]);
+var keyName = 'akey';
+console.log(options[keyName])
+// now: options = {"testkey":"testvalue","a":"testvalue"}
+// expect: options = { 'testkey': 'testvalue', 'a':{'testkey': 'testvalue'}};
+console.log(JSON.stringify(options))
+console.log(new Uint8Array(options[keyName].fakeKey.__getTaint__(1))[0]);
+console.log(options[keyName].b)
+// options = { 'testkey': 'testvalue', 'a':{'testkey': 'testvalue', 'b':{'testkey': 'testvalue'}}};
+console.log(JSON.stringify(options))
+console.log(new Uint8Array(options[keyName].b.fakeKey.__getTaint__(1))[0]);
+console.log(Object.keys(options)); // Output: [] (empty array)
+console.log(Object.keys(options[keyName]));
+
 checkTaintObjectProperties(options);
 
-// var options = 'testvalue';
-// __setTaint__(options, 3);
-// console.log(new Uint8Array(options.__getTaint__(1))[0]);
-// console.log(options.a)
-// console.log(options.a.b)
-
-// ldakeyedproperty
-// var options = {}; // { 'testkey': 'testvalue' } can be seen as an empty object
-// Object.defineProperty(options, 'fakeKey', {
-//   value: 'fakeValue',
-//   enumerable: false
-// });
-// __setTaint__(options, __taintConstants__()['OnLaunch']);
-// __setTaint__(options, 1);
-// __setTaint__(options, 3);
-// // console.log(new Uint8Array(options.__getTaint__(1))[0]);
-// %DebugPrint(options);
-// var keyName = 'a';
-// console.log(options[keyName])
-// // now: options = {"testkey":"testvalue","a":"testvalue"}
-// // expect: options = { 'testkey': 'testvalue', 'a':{'testkey': 'testvalue'}};
-// console.log(JSON.stringify(options))
-// console.log(new Uint8Array(options[keyName].fakeKey.__getTaint__(1))[0]);
-// console.log(options[keyName].b)
-// // options = { 'testkey': 'testvalue', 'a':{'testkey': 'testvalue', 'b':{'testkey': 'testvalue'}}};
-// console.log(JSON.stringify(options))
-// console.log(new Uint8Array(options[keyName].b.fakeKey.__getTaint__(1))[0]);
-// console.log(Object.keys(options)); // Output: [] (empty array)
-// console.log(Object.keys(options[keyName]));
+// ===========

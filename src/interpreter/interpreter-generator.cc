@@ -791,16 +791,28 @@ IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler) {
     // yjj: add one property start
     // the added property should be: {'testkey': 'testvalue'}
     Callable ic = Builtins::CallableFor(isolate(), Builtins::kStoreIC);
-    // TNode<Context> context = GetContext();
-    // TNode<Name> name = CAST(LoadConstantPoolEntryAtOperandIndex(1));
-    // TNode<TaggedIndex> slot = BytecodeOperandIdxTaggedIndex(2);
-    // fakekey_result.value() should be replaced with an object
     // create an empty object
     ConstructorBuiltinsAssembler constructor_assembler(state());
+    TNode<JSObject> attributes =
+        constructor_assembler.CreateEmptyObjectLiteral(context);
+    // attributes;
+    /* { value: 'fakeValue',
+        enumerable : false
+        }  // This makes the property non-enumerable
+    */
+    TNode<String> valueKey = StringConstant("value");
+    TNode<String> enumerableKey = StringConstant("enumerable");
+    CallStub(ic, context, attributes, valueKey, fakekey_result.value(), slot,
+             feedback_vector);
+    TNode<Object> FakePropertiesEnumerableFlag = CallRuntime(Runtime::kFakePropertiesEnumerable, context);
+    CallStub(ic, context, attributes, enumerableKey,
+             FakePropertiesEnumerableFlag, slot, feedback_vector);
+    // here is to set the fakeKey property to be not enumerable
     TNode<JSObject> added_property =
         constructor_assembler.CreateEmptyObjectLiteral(context);
-    CallStub(ic, context, added_property, fakeKey, fakekey_result.value(), slot,
-                          feedback_vector);
+    CallRuntime(Runtime::kObjectDefinePropertyJianjia, context, added_property,
+                fakeKey, attributes);
+    // hook up the added_property
     var_result = CallStub(ic, context, object, name, added_property, slot,
                           feedback_vector);
     // yjj: add one property end
