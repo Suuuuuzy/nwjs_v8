@@ -124,6 +124,20 @@ RUNTIME_FUNCTION(Runtime_GetFakeValue){
           isolate->factory()->NewStringFromAsciiChecked(FLAG_undefined_property_fakeValue_string));
 }
 
+RUNTIME_FUNCTION(Runtime_ObjectDefinePropertyJianjia){
+  HandleScope scope(isolate);
+  DCHECK_EQ(3, args.length());
+  CONVERT_ARG_HANDLE_CHECKED(Object, target, 0);
+  CONVERT_ARG_HANDLE_CHECKED(Object, key, 1);
+  CONVERT_ARG_HANDLE_CHECKED(Object, attributes, 2);
+
+  return JSReceiver::DefineProperty(isolate, target, key, attributes);
+
+  // return *Handle<Object>::cast(
+  //         isolate->factory()->NewStringFromAsciiChecked(FLAG_undefined_property_fakeValue_string));
+}
+
+
 
 
 }  // namespace internal

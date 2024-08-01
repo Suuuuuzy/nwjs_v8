@@ -181,6 +181,7 @@ namespace internal {
   F(ShouldPrintUndefinedProperties, 0, 1)  \
   F(GetFakeKey, 0, 1)                      \
   F(GetFakeValue, 0, 1)                    \
+  F(ObjectDefinePropertyJianjia, 3, 1)     \
 
 #define FOR_EACH_INTRINSIC_GENERATOR(F, I)    \
   I(AsyncFunctionAwaitCaught, 2, 1)           \
