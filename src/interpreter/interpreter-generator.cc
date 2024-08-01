@@ -634,8 +634,10 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
     */
     TNode<String> valueKey = StringConstant("value");
     TNode<String> enumerableKey = StringConstant("enumerable");
-    CallStub(ic, context, attributes, valueKey, fakekey_result.value(), slot, feedback_vector);
-    CallStub(ic, context, attributes, enumerableKey, FalseConstant(), slot,
+    CallStub(ic, context, attributes, valueKey, fakekey_result.value(), slot,
+             feedback_vector);
+    TNode<Object> FakePropertiesEnumerableFlag = CallRuntime(Runtime::kFakePropertiesEnumerable, context);
+    CallStub(ic, context, attributes, enumerableKey, FakePropertiesEnumerableFlag, slot,
              feedback_vector);
     // here is to set the fakeKey property to be not enumerable
     TNode<JSObject> added_property =

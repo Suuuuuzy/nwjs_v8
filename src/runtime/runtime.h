@@ -179,6 +179,7 @@ namespace internal {
   F(FunctionIsAPIFunction, 1, 1)           \
   F(IsFunction, 1, 1)                      \
   F(ShouldPrintUndefinedProperties, 0, 1)  \
+  F(FakePropertiesEnumerable, 0, 1)        \
   F(GetFakeKey, 0, 1)                      \
   F(GetFakeValue, 0, 1)                    \
   F(ObjectDefinePropertyJianjia, 3, 1)     \

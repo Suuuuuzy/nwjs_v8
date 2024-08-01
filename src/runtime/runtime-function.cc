@@ -107,6 +107,18 @@ RUNTIME_FUNCTION(Runtime_ShouldPrintUndefinedProperties){
   }
 }
 
+RUNTIME_FUNCTION(Runtime_FakePropertiesEnumerable){
+  HandleScope scope(isolate);
+  DCHECK_EQ(0, args.length());
+
+  if (FLAG_fake_properties_enumerable) {
+    return isolate->heap()->ToBoolean(true);
+  }else{
+    return isolate->heap()->ToBoolean(false);
+  }
+}
+
+
 // add these two to pass fakeKey and fakeValue from runtime flags
 RUNTIME_FUNCTION(Runtime_GetFakeKey){
   HandleScope scope(isolate);
