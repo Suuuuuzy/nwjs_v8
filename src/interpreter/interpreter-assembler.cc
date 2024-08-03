@@ -1584,6 +1584,36 @@ void InterpreterAssembler::ToNumberOrNumeric(Object::Conversion mode) {
   Dispatch();
 }
 
+
+// TNode<BoolT> InterpreterAssembler::IsfromChrome(TNode<String> filename_or_url, TNode<Context> context) {
+//   TNode<Smi> name_length = LoadStringLengthAsSmi(filename_or_url);
+
+//   Label return_false(this), retrun_true(this), compare_prefix(this), end(this);
+//   TVARIABLE(BoolT, result);
+//   Branch(SmiGreaterThanOrEqual(name_length, SmiConstant(9)), &compare_prefix, &return_false);
+
+//   BIND(&compare_prefix);
+//   {
+//     TNode<String> prefix_name = CAST(CallBuiltin(Builtin::kSubString, context, filename_or_url, SmiConstant(0), SmiConstant(9)));
+//     BranchIfStringEqual(prefix_name, StringConstant("chrome://"), &retrun_true, &return_false);
+//   }
+
+//   BIND(&retrun_true);
+//   {
+//     result = BoolConstant(true);
+//     Goto(&end);
+//   }
+
+//   BIND(&return_false);
+//   {
+//     result = BoolConstant(false);
+//     Goto(&end);
+//   }
+
+//   BIND(&end);
+//   return result.value();
+// }
+
 }  // namespace interpreter
 }  // namespace internal
 }  // namespace v8

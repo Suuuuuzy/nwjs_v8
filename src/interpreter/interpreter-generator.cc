@@ -532,12 +532,12 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
   TVARIABLE(Object, var_result);
   // yjj start
   TVARIABLE(Object, fakekey_result);
-  TNode<Object> fakeKey;
-  TNode<Object> fakeValue;
+  TNode<String> fakeKey;
+  TNode<String> runtimeFakeValue;
   // yjj end
 
   // ExitPoint exit_point(this, &done, &var_result);
-  Label done(this), checkUndefined(this), print_undefined(this), add_taint_value(this), check_recv_value(this); //, check_fake_value(this);
+  Label done(this), checkUndefined(this), print_undefined(this), add_taint_value(this), check_recv_value(this), var_result_fakevalue(this); //, check_fake_value(this);
   ExitPoint exit_point(this, &checkUndefined, &var_result);
 
   AccessorAssembler::LazyLoadICParameters params(lazy_context, recv, lazy_name,
@@ -573,7 +573,7 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
     // from this on, will be the case: recv is an object, if it is not object, go to &done directly
     TNode<String> typeObjectConstant = StringConstant("object");
     GotoIf(TaggedNotEqual(typeofRecv, typeObjectConstant), &done);
-    fakeKey = CallRuntime(Runtime::kGetFakeKey, context);
+    fakeKey = CAST(CallRuntime(Runtime::kGetFakeKey, context));
     TNode<TaggedIndex> fake_slot = BytecodeOperandIdxTaggedIndex(2);
     // this is to see whether the receiver has a property {"fakeKey": "fakeValue"}
     fakekey_result = CallBuiltin(Builtins::kKeyedLoadIC, context, recv,
@@ -591,13 +591,15 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
   {
     // check if recv == "fakeValue"
     TNode<Context> context = GetContext();
-    // TNode<String> fakeValue = StringConstant("fakeValue");
-    fakeValue =
-        CallRuntime(Runtime::kGetFakeValue, context);
-    Print("[+] Debugprint fakeValue: ", fakeValue);
-    GotoIf(TaggedNotEqual(fakeValue, recv), &done);
-    Print("[+] Recv equals to: ", fakeValue);
-    var_result = recv;
+    // TNode<String> fakeValueString = StringConstant("fakeValue");
+    runtimeFakeValue = CAST(CallRuntime(Runtime::kGetFakeValue, context));
+    // TNode<String> fakeValueString = CAST(fakeValue);
+    Print("[+] runtimeFakeValue: ", runtimeFakeValue); // is it because of the "???
+    // Print("[+] fakeValueString: ", fakeValueString);
+    // Print("[+] FakeValueString: ", fakeValueString);
+    // Label return_false(this), retrun_true(this);
+    // GotoIf(TaggedNotEqual(fakeValueString, recv), &done);
+    BranchIfStringEqual(CAST(recv), runtimeFakeValue, &var_result_fakevalue, &done);
     // yjj: change recv from string to object start (does not work)
     // "fakeValue" -> { "fakeKey": "fakeValue", "fag": "fakeValue" }
     // Callable ic = Builtins::CallableFor(isolate(), Builtins::kStoreIC);
@@ -610,6 +612,14 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
     // var_result = CallStub(ic, context, recv, name, fakeValue, slot,
     //                       feedback_vector);
     // yjj: change recv from string to object end
+  }
+  // yjj end
+
+  // yjj start
+  BIND(&var_result_fakevalue);
+  {
+    Print("[+] Equals to fakeValue", recv);
+    var_result = recv;
     Goto(&done);
   }
   // yjj end

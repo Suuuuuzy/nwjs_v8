@@ -12946,6 +12946,43 @@ TNode<Oddball> CodeStubAssembler::StrictEqual(
   return result.value();
 }
 
+// yjj: add BranchIfStringEqual from newer version
+void CodeStubAssembler::BranchIfStringEqual(TNode<String> lhs,
+                                            TNode<IntPtrT> lhs_length,
+                                            TNode<String> rhs,
+                                            TNode<IntPtrT> rhs_length,
+                                            Label* if_true, Label* if_false,
+                                            TVariable<Oddball>* result) {
+  // Callers must handle the case where {lhs} and {rhs} refer to the same
+  // String object.
+  // CSA_DCHECK(this, TaggedNotEqual(lhs, rhs));
+
+  Label length_equal(this), length_not_equal(this);
+  Branch(IntPtrEqual(lhs_length, rhs_length), &length_equal, &length_not_equal);
+
+  TVARIABLE(Oddball, value);
+
+  BIND(&length_not_equal);
+  {
+    if (result != nullptr) *result = FalseConstant();
+    Goto(if_false);
+  }
+
+  BIND(&length_equal);
+  {
+    value = CAST(CallBuiltin(
+        Builtins::kStringEqual, NoContextConstant(), lhs, rhs));
+    if (result != nullptr) {
+      *result = value;
+    }
+    if (if_true == if_false) {
+      Goto(if_true);
+    } else {
+      Branch(TaggedEqual(value.value(), TrueConstant()), if_true, if_false);
+    }
+  }
+}
+
 // ECMA#sec-samevalue
 // This algorithm differs from the Strict Equality Comparison Algorithm in its
 // treatment of signed zeroes and NaNs.

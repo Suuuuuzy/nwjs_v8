@@ -1,8 +1,3 @@
-// var dad = {};
-// __addProperty__(dad);
-// console.log(dad['son']);
-// "1"
-
 // ======== single layer with LdaKeyedProperty
 // function onLoad(options) {
 //   var keyname = "foo";
