@@ -532,7 +532,7 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
   TVARIABLE(Object, var_result);
   // yjj start
   TVARIABLE(Object, fakekey_result);
-  TNode<String> fakeKey;
+  TNode<String> runtimeFakeKey;
   TNode<String> runtimeFakeValue;
   // yjj end
 
@@ -573,11 +573,12 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
     // from this on, will be the case: recv is an object, if it is not object, go to &done directly
     TNode<String> typeObjectConstant = StringConstant("object");
     GotoIf(TaggedNotEqual(typeofRecv, typeObjectConstant), &done);
-    fakeKey = CAST(CallRuntime(Runtime::kGetFakeKey, context));
+    // runtimeFakeKey = CAST(CallRuntime(Runtime::kGetFakeKey, context));
+    runtimeFakeKey = StringConstant("testkey");
     TNode<TaggedIndex> fake_slot = BytecodeOperandIdxTaggedIndex(2);
     // this is to see whether the receiver has a property {"fakeKey": "fakeValue"}
     fakekey_result = CallBuiltin(Builtins::kKeyedLoadIC, context, recv,
-                                  fakeKey, fake_slot, feedback_vector);
+                                  runtimeFakeKey, fake_slot, feedback_vector);
     Print("[+] FakeKey Value:", fakekey_result.value());
     // if not, go to done, if yes, also return fakeValue
     Branch(IsUndefined(fakekey_result.value()), &done, &add_taint_value);
@@ -592,14 +593,13 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
     // check if recv == "fakeValue"
     TNode<Context> context = GetContext();
     // TNode<String> fakeValueString = StringConstant("fakeValue");
-    runtimeFakeValue = CAST(CallRuntime(Runtime::kGetFakeValue, context));
-    // TNode<String> fakeValueString = CAST(fakeValue);
-    Print("[+] runtimeFakeValue: ", runtimeFakeValue); // is it because of the "???
-    // Print("[+] fakeValueString: ", fakeValueString);
-    // Print("[+] FakeValueString: ", fakeValueString);
-    // Label return_false(this), retrun_true(this);
-    // GotoIf(TaggedNotEqual(fakeValueString, recv), &done);
-    BranchIfStringEqual(CAST(recv), runtimeFakeValue, &var_result_fakevalue, &done);
+    // get the runtimeFakeValue might be time consuming
+    // runtimeFakeValue = CAST(CallRuntime(Runtime::kGetFakeValue, context));
+    runtimeFakeValue = StringConstant("testvalue");
+    Print("[+] runtimeFakeValue: ", runtimeFakeValue);
+    TNode<String> prefix_name = CAST(CallBuiltin(Builtins::kSubString, context,
+                                                 (recv), SmiConstant(0), SmiConstant(9)));
+    BranchIfStringEqual(prefix_name, runtimeFakeValue, &var_result_fakevalue, &done);
     // yjj: change recv from string to object start (does not work)
     // "fakeValue" -> { "fakeKey": "fakeValue", "fag": "fakeValue" }
     // Callable ic = Builtins::CallableFor(isolate(), Builtins::kStoreIC);
@@ -653,7 +653,7 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
     TNode<JSObject> added_property =
         constructor_assembler.CreateEmptyObjectLiteral(context);
     CallRuntime(Runtime::kObjectDefinePropertyJianjia, context, added_property,
-                fakeKey, attributes);
+                runtimeFakeKey, attributes);
     // hook up the added_property
     var_result = CallStub(ic, context, recv, name, added_property, slot,
                           feedback_vector);
