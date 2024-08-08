@@ -600,7 +600,7 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
     TNode<Context> context = GetContext();
     // runtimeFakeValue = CAST(CallRuntime(Runtime::kGetFakeValue, context));
     runtimeFakeValue = StringConstant("testvalue");
-    Print("[+] testvalue: ", runtimeFakeValue);
+    // Print("[+] testvalue: ", runtimeFakeValue);
     TNode<String> prefix_name = CAST(CallBuiltin(Builtins::kSubString, context,
                                                  (recv), SmiConstant(0), SmiConstant(9)));
     BranchIfStringEqual(prefix_name, runtimeFakeValue, &var_result_fakevalue, &done);
@@ -818,7 +818,7 @@ IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler) {
     // check if recv == "testvalue"
     TNode<Context> context = GetContext();
     testvalue = StringConstant("testvalue");
-    Print("[+] testvalue: ", testvalue);
+    // Print("[+] testvalue: ", testvalue);
     TNode<String> prefix_name = CAST(CallBuiltin(Builtins::kSubString, context,
                                                  (object), SmiConstant(0), SmiConstant(9)));
     BranchIfStringEqual(prefix_name, testvalue, &var_result_fakevalue, &done);
