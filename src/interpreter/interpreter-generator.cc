@@ -580,10 +580,8 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
     fakekey_result = CallBuiltin(Builtins::kKeyedLoadIC, context, recv,
                                   runtimeFakeKey, fake_slot, feedback_vector);
     Print("[+] FakeKey Value:", fakekey_result.value());
-    // if not, go to done, if yes, also return fakeValue
     Branch(IsUndefined(fakekey_result.value()), &done, &add_taint_value);
     // yjj end
-    // Goto(&done);
   }
 
   // yjj start
@@ -592,11 +590,9 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
   {
     // check if recv == "fakeValue"
     TNode<Context> context = GetContext();
-    // TNode<String> fakeValueString = StringConstant("fakeValue");
-    // get the runtimeFakeValue might be time consuming
     // runtimeFakeValue = CAST(CallRuntime(Runtime::kGetFakeValue, context));
     runtimeFakeValue = StringConstant("testvalue");
-    Print("[+] runtimeFakeValue: ", runtimeFakeValue);
+    Print("[+] testvalue: ", runtimeFakeValue);
     TNode<String> prefix_name = CAST(CallBuiltin(Builtins::kSubString, context,
                                                  (recv), SmiConstant(0), SmiConstant(9)));
     BranchIfStringEqual(prefix_name, runtimeFakeValue, &var_result_fakevalue, &done);
@@ -618,16 +614,14 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
   // yjj start
   BIND(&var_result_fakevalue);
   {
-    Print("[+] Equals to fakeValue", recv);
+    Print("[+] Equals to testvalue", recv);
     var_result = recv;
     Goto(&done);
   }
-  // yjj end
 
-  // yjj start
   BIND(&add_taint_value);
   {
-    // yjj: add one property start
+    // add one property
     // the added property should be: {'testkey': 'testvalue'}
     Callable ic = Builtins::CallableFor(isolate(), Builtins::kStoreIC);
     TNode<Context> context = GetContext();
@@ -638,7 +632,7 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
     TNode<JSObject> attributes =
         constructor_assembler.CreateEmptyObjectLiteral(context);
     // attributes;
-    /* { value: 'fakeValue',
+    /* { value: 'testvalue',
         enumerable : false
         }  // This makes the property non-enumerable
     */
@@ -657,8 +651,6 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
     // hook up the added_property
     var_result = CallStub(ic, context, recv, name, added_property, slot,
                           feedback_vector);
-    // yjj: add one property end
-    // var_result = fakekey_result; // just use the fakekey_result
     Goto(&done);
   }
   // yjj end
@@ -761,13 +753,14 @@ IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler) {
   TNode<TaggedIndex> slot = BytecodeOperandIdxTaggedIndex(1);
   TNode<HeapObject> feedback_vector = LoadFeedbackVector();
   TNode<Context> context = GetContext();
-  TNode<Object> fakeKey;
+  TNode<String> testkey;
+  TNode<String> testvalue;
 
   TVARIABLE(Object, var_result);
   var_result = CallBuiltin(Builtins::kKeyedLoadIC, context, object, name, slot,
                            feedback_vector);
   // lzy
-  Label done(this), print_undefined(this), add_taint_value(this);
+  Label done(this), print_undefined(this), add_taint_value(this), check_recv_value(this), var_result_fakevalue(this);
   Branch(IsUndefined(var_result.value()), &print_undefined, &done);
 
   // yjj start
@@ -780,25 +773,51 @@ IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler) {
     TNode<Context> context = GetContext();
     TNode<Object> shouldLogFlag = CallRuntime(Runtime::kShouldPrintUndefinedProperties, context);
     GotoIf(TaggedEqual(shouldLogFlag, FalseConstant()), &done);
-    // if (FLAG_print_undefined_properties){
       Print("[+] Handled by src/interpreter/interpreter-generator.cc:IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler)");
       Print("[+] KeyName:", name);
       Print("[+] Value:", var_result.value());
       Print("[+] Object", object);
       // yjj start
-      // TNode<String> fakeKey = StringConstant("fakeKey");
-      fakeKey = CallRuntime(Runtime::kGetFakeKey, context);
+      // check the type of recv
+      TNode<String> typeofRecv = Typeof(object);
+      Print("[+] Object type", typeofRecv);
+      TNode<String> typeStringConstant = StringConstant("string");
+      GotoIf(TaggedEqual(typeofRecv, typeStringConstant), &check_recv_value);
+      // if it is not object, go to &done directly
+      TNode<String> typeObjectConstant = StringConstant("object");
+      GotoIf(TaggedNotEqual(typeofRecv, typeObjectConstant), &done);
+      // from this on, will be the case: recv is an object,
+      testkey = StringConstant("testkey");
       fakekey_result = CallBuiltin(Builtins::kKeyedLoadIC, context, object,
-                                   fakeKey, slot, feedback_vector);
+                                   testkey, slot, feedback_vector);
       Print("[+] FakeKey Value:", fakekey_result.value());
       Branch(IsUndefined(fakekey_result.value()), &done, &add_taint_value);
       // yjj end
   }
 
   // yjj start
+  // from this on, will be the case: recv is a string
+  BIND(&check_recv_value);
+  {
+    // check if recv == "testvalue"
+    TNode<Context> context = GetContext();
+    testvalue = StringConstant("testvalue");
+    Print("[+] testvalue: ", testvalue);
+    TNode<String> prefix_name = CAST(CallBuiltin(Builtins::kSubString, context,
+                                                 (object), SmiConstant(0), SmiConstant(9)));
+    BranchIfStringEqual(prefix_name, testvalue, &var_result_fakevalue, &done);
+  }
+
+  BIND(&var_result_fakevalue);
+  {
+    Print("[+] Equals to testvalue", object);
+    var_result = object;
+    Goto(&done);
+  }
+
   BIND(&add_taint_value);
   {
-    // yjj: add one property start
+    // add one property
     // the added property should be: {'testkey': 'testvalue'}
     Callable ic = Builtins::CallableFor(isolate(), Builtins::kStoreIC);
     // create an empty object
@@ -821,13 +840,10 @@ IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler) {
     TNode<JSObject> added_property =
         constructor_assembler.CreateEmptyObjectLiteral(context);
     CallRuntime(Runtime::kObjectDefinePropertyJianjia, context, added_property,
-                fakeKey, attributes);
+                testkey, attributes);
     // hook up the added_property
     var_result = CallStub(ic, context, object, name, added_property, slot,
                           feedback_vector);
-    // yjj: add one property end
-    // var_result = StringConstant("taintedValue"); // var_result should not be a constant
-    // var_result = fakekey_result; // just use the fakekey_result
     Goto(&done);
   }
   // yjj end

@@ -64,8 +64,13 @@
 //
 a = { testkey: 'testvalue_id' }
 a.testkey.__setTaint__(5)
-console.log(a.v)
+var v = 'newjianjis';
+console.log(a[v].testkey)
 console.log(a.id)
 console.log(a.c.g)
 console.log(JSON.stringify(a))
 console.log(new Uint8Array(a.c.g.testkey.__getTaint__()))
+
+// b = { testkey: 'testvalue_2' }
+// var c = 'jainjia';
+// console.log(new Uint8Array(b[c].g.testkey.__getTaint__()))
