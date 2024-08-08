@@ -347,6 +347,8 @@ DEFINE_BOOL(inactive_conseq_test_enable, true,
 DEFINE_BOOL(debug_print, false, "Enable debugging mode and should print details. ")
 DEFINE_BOOL(print_undefined_properties, false,
             "Enable print undefined properties")
+DEFINE_BOOL(generate_undefined_properties, false,
+            "Enable generate undefined properties")
 DEFINE_BOOL(fake_properties_enumerable, false,
             "The fake properties are enumerable or not, false means not enumerable")
 DEFINE_STRING(taint_tracking_job_id, "NO_JOB_ID",

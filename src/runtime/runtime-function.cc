@@ -107,6 +107,18 @@ RUNTIME_FUNCTION(Runtime_ShouldPrintUndefinedProperties){
   }
 }
 
+RUNTIME_FUNCTION(Runtime_ShouldGenerateProperties){
+  HandleScope scope(isolate);
+  DCHECK_EQ(0, args.length());
+
+  if (FLAG_generate_undefined_properties) {
+    return isolate->heap()->ToBoolean(true);
+  }else{
+    return isolate->heap()->ToBoolean(false);
+  }
+}
+
+
 RUNTIME_FUNCTION(Runtime_FakePropertiesEnumerable){
   HandleScope scope(isolate);
   DCHECK_EQ(0, args.length());

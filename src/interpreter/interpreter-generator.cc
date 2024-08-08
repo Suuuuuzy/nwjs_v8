@@ -537,7 +537,7 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
   // yjj end
 
   // ExitPoint exit_point(this, &done, &var_result);
-  Label done(this), checkUndefined(this), print_undefined(this), add_taint_value(this), check_recv_value(this), var_result_fakevalue(this); //, check_fake_value(this);
+  Label done(this), checkUndefined(this), print_undefined(this), add_taint_value(this), check_recv_value(this), var_result_fakevalue(this), generate_undefined(this); //, check_fake_value(this);
   ExitPoint exit_point(this, &checkUndefined, &var_result);
 
   AccessorAssembler::LazyLoadICParameters params(lazy_context, recv, lazy_name,
@@ -555,7 +555,7 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
   {
     TNode<Context> context = GetContext();
     TNode<Object> shouldLogFlag = CallRuntime(Runtime::kShouldPrintUndefinedProperties, context);
-    GotoIf(TaggedEqual(shouldLogFlag, FalseConstant()), &done);
+    GotoIf(TaggedEqual(shouldLogFlag, FalseConstant()), &generate_undefined);
     Print(
         "[+] Handled by "
         "src/interpreter/"
@@ -564,10 +564,18 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
     Print("[+] KeyName:", LoadConstantPoolEntryAtOperandIndex(1));
     Print("[+] Value:", var_result.value());
     Print("[+] Object", recv);
+    Goto(&generate_undefined);
+  }
+
+  BIND(&generate_undefined);
+  {
+    TNode<Context> context = GetContext();
+    TNode<Object> shouldGenFlag = CallRuntime(Runtime::kShouldGenerateProperties, context);
+    GotoIf(TaggedEqual(shouldGenFlag, FalseConstant()), &done);
     // yjj start
     // check the type of recv
     TNode<String> typeofRecv = Typeof(recv);
-    Print("[+] Object type", typeofRecv);
+    // Print("[+] Object type", typeofRecv);
     TNode<String> typeStringConstant = StringConstant("string");
     GotoIf(TaggedEqual(typeofRecv, typeStringConstant), &check_recv_value);
     // from this on, will be the case: recv is an object, if it is not object, go to &done directly
@@ -579,7 +587,7 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
     // this is to see whether the receiver has a property {"fakeKey": "fakeValue"}
     fakekey_result = CallBuiltin(Builtins::kKeyedLoadIC, context, recv,
                                   runtimeFakeKey, fake_slot, feedback_vector);
-    Print("[+] FakeKey Value:", fakekey_result.value());
+    // Print("[+] FakeKey Value:", fakekey_result.value());
     Branch(IsUndefined(fakekey_result.value()), &done, &add_taint_value);
     // yjj end
   }
@@ -760,7 +768,7 @@ IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler) {
   var_result = CallBuiltin(Builtins::kKeyedLoadIC, context, object, name, slot,
                            feedback_vector);
   // lzy
-  Label done(this), print_undefined(this), add_taint_value(this), check_recv_value(this), var_result_fakevalue(this);
+  Label done(this), print_undefined(this), add_taint_value(this), check_recv_value(this), var_result_fakevalue(this), generate_undefined(this);
   Branch(IsUndefined(var_result.value()), &print_undefined, &done);
 
   // yjj start
@@ -772,27 +780,35 @@ IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler) {
   {
     TNode<Context> context = GetContext();
     TNode<Object> shouldLogFlag = CallRuntime(Runtime::kShouldPrintUndefinedProperties, context);
-    GotoIf(TaggedEqual(shouldLogFlag, FalseConstant()), &done);
-      Print("[+] Handled by src/interpreter/interpreter-generator.cc:IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler)");
-      Print("[+] KeyName:", name);
-      Print("[+] Value:", var_result.value());
-      Print("[+] Object", object);
-      // yjj start
-      // check the type of recv
-      TNode<String> typeofRecv = Typeof(object);
-      Print("[+] Object type", typeofRecv);
-      TNode<String> typeStringConstant = StringConstant("string");
-      GotoIf(TaggedEqual(typeofRecv, typeStringConstant), &check_recv_value);
-      // if it is not object, go to &done directly
-      TNode<String> typeObjectConstant = StringConstant("object");
-      GotoIf(TaggedNotEqual(typeofRecv, typeObjectConstant), &done);
-      // from this on, will be the case: recv is an object,
-      testkey = StringConstant("testkey");
-      fakekey_result = CallBuiltin(Builtins::kKeyedLoadIC, context, object,
-                                   testkey, slot, feedback_vector);
-      Print("[+] FakeKey Value:", fakekey_result.value());
-      Branch(IsUndefined(fakekey_result.value()), &done, &add_taint_value);
-      // yjj end
+    GotoIf(TaggedEqual(shouldLogFlag, FalseConstant()), &generate_undefined);
+    Print("[+] Handled by src/interpreter/interpreter-generator.cc:IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler)");
+    Print("[+] KeyName:", name);
+    Print("[+] Value:", var_result.value());
+    Print("[+] Object", object);
+    Goto(&generate_undefined);
+  }
+
+  BIND(&generate_undefined);
+  {
+    TNode<Context> context = GetContext();
+    TNode<Object> shouldGenFlag = CallRuntime(Runtime::kShouldGenerateProperties, context);
+    GotoIf(TaggedEqual(shouldGenFlag, FalseConstant()), &done);
+    // yjj start
+    // check the type of recv
+    TNode<String> typeofRecv = Typeof(object);
+    // Print("[+] Object type", typeofRecv);
+    TNode<String> typeStringConstant = StringConstant("string");
+    GotoIf(TaggedEqual(typeofRecv, typeStringConstant), &check_recv_value);
+    // if it is not object, go to &done directly
+    TNode<String> typeObjectConstant = StringConstant("object");
+    GotoIf(TaggedNotEqual(typeofRecv, typeObjectConstant), &done);
+    // from this on, will be the case: recv is an object,
+    testkey = StringConstant("testkey");
+    fakekey_result = CallBuiltin(Builtins::kKeyedLoadIC, context, object,
+                                  testkey, slot, feedback_vector);
+    // Print("[+] FakeKey Value:", fakekey_result.value());
+    Branch(IsUndefined(fakekey_result.value()), &done, &add_taint_value);
+    // yjj end
   }
 
   // yjj start
