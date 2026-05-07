@@ -2446,6 +2446,29 @@ template void OnGenericOperation<SeqOneByteString>(
     SymbolicType, SeqOneByteString);
 template void OnGenericOperation<SeqTwoByteString>(
     SymbolicType, SeqTwoByteString);
+// [Minnie] Encoding/decoding taint redistribution (paper Fig. 4
+// ENCODING / DECODING rules, Table VIII). Handles reversible byte-
+// level transformations where every byte carries its history via the
+// 3 encoding bits. Currently covers URI / URI component / escape
+// encode/decode pairs because those are implemented inside V8 via
+// src/strings/uri.cc.
+//
+// atob / btoa (base64), TextEncoder.encode, TextDecoder.decode, and
+// wx.base64ToArrayBuffer / wx.arrayBufferToBase64 are NOT handled
+// here because they live outside V8:
+//   - atob / btoa: provided by the nwjs host, not V8 - they straddle
+//     String<->String at a 3:4 byte ratio, so full taint redistribution
+//     would need the host to call into tainttracking:: at byte
+//     granularity. We do not patch nwjs for this; instead a JS-level
+//     WeakMap-based helper in package.nw/js/extensions/plugin/
+//     appservice/index.js carries source-string taint across the
+//     round-trip (see minnie_stashBufferTaint / minnie_restoreBufferTaint).
+//   - TextEncoder / TextDecoder: provided by node's `util`; same
+//     constraints as atob/btoa.
+//   - wx.base64ToArrayBuffer / wx.arrayBufferToBase64: these yield
+//     an ArrayBuffer, which V8 does not shadow; the JS-side helper is
+//     the practical workaround. A future patch can add proper
+//     byte-level tracking by hooking ArrayBuffer reads / writes.
 template <class T>
 void OnGenericOperation(SymbolicType type, T source) {
   // if (FLAG_taint_tracking_enable_symbolic) {
