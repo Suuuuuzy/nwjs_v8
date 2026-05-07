@@ -128,6 +128,20 @@ BUILTIN(GlobalSetTaint) {
   return *(isolate->factory()->undefined_value());
 }
 
+// [Minnie] Global __setSymbol__(s) - equivalent to
+// s.__setSymbol__() but callable on values that the user may not
+// want to mutate through the prototype chain (e.g. freshly
+// constructed mock response bodies where the caller just wants a
+// fresh symbolic byte array).
+BUILTIN(GlobalSetSymbol) {
+  HandleScope scope(isolate);
+  Handle<Object> arg = args.atOrUndefined(isolate, 1);
+  if (arg->IsString()) {
+    tainttracking::SetSymbolicString(Handle<String>::cast(arg));
+  }
+  return *(isolate->factory()->undefined_value());
+}
+
 BUILTIN(GlobalSetLog) {
   HandleScope scope(isolate);
   // uint32_t taint_value;

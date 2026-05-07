@@ -560,6 +560,7 @@ namespace internal {
   CPP(GlobalTaintConstants)                                                    \
   CPP(GlobalSetTaint)                                                          \
   CPP(GlobalSetLog)                                                            \
+  CPP(GlobalSetSymbol)                                                         \
   /* JSON */                                                                   \
   CPP(JsonParse)                                                               \
   CPP(JsonStringify)                                                           \
@@ -1153,6 +1154,7 @@ namespace internal {
   CPP(V8BreakIteratorSupportedLocalesOf)                               \
   CPP(StringPrototypeSetTaint)                                         \
   CPP(StringPrototypeGetTaint)                                         \
+  CPP(StringPrototypeSetSymbol)                                        \
   CPP(StringPrototypeCheckTaint)
 #else
 #define BUILTIN_LIST_INTL(CPP, TFJ, TFS)      \
@@ -1168,6 +1170,7 @@ namespace internal {
   CPP(StringPrototypeToUpperCase)             \
   CPP(StringPrototypeSetTaint)                \
   CPP(StringPrototypeGetTaint)                \
+  CPP(StringPrototypeSetSymbol)               \
 //   CPP(StringPrototypeCheckTaint)
 #endif  // V8_INTL_SUPPORT
 

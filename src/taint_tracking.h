@@ -337,6 +337,12 @@ void SetTaint(v8::internal::Handle<v8::internal::Object> str,
 
 void SetTaintString(v8::internal::Handle<v8::internal::String> str,
                     TaintType type);
+
+// [Minnie] Paper III-D: set the SYMBOLIC_MASK bit on every shadow
+// byte of `str`. The taint type on each byte is preserved. Called
+// from the builtins for __setSymbol__ and from the UI exerciser via
+// app.evaluate.
+void SetSymbolicString(v8::internal::Handle<v8::internal::String> str);
 // void LogInitializeNavigate(v8::internal::Handle<v8::internal::String> url);
 void LogDispose(v8::internal::Isolate* isolate);
 

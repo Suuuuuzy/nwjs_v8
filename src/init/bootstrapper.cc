@@ -2157,6 +2157,12 @@ void Genesis::InitializeGlobal(Handle<JSGlobalObject> global_object,
                           Builtins::kStringPrototypeGetTaint, 0, true);
     SimpleInstallFunction(isolate_, prototype, "__checkTaint__",
                           Builtins::kStringPrototypeCheckTaint, 1, true);
+    // [Minnie] Paper III-D: mark every byte of this string as a
+    // symbolic-execution candidate. The concolic engine reads the
+    // SYMBOLIC_MASK bit when deciding whether to fork on a branch
+    // that depends on this value.
+    SimpleInstallFunction(isolate_, prototype, "__setSymbol__",
+                          Builtins::kStringPrototypeSetSymbol, 0, true);
 
     InstallFunctionAtSymbol(
         isolate_, prototype, factory->iterator_symbol(), "[Symbol.iterator]",
@@ -4761,6 +4767,10 @@ bool Genesis::InstallABunchOfRandomThings() {
                         Builtins::kGlobalSetTaint, 2, false);
   SimpleInstallFunction(isolate(), global_object, "__setLog__",
                         Builtins::kGlobalSetLog, 1, false);
+  // [Minnie] Global variant of __setSymbol__(s) so callers can mark
+  // symbolic without needing the value on a prototype chain.
+  SimpleInstallFunction(isolate(), global_object, "__setSymbol__",
+                        Builtins::kGlobalSetSymbol, 1, false);
 
   // Install Global.isFinite
   InstallFunctionWithBuiltinId(isolate(), global_object, "isFinite",

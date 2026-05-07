@@ -530,6 +530,18 @@ BUILTIN(StringPrototypeCheckTaint) {
                    0));
 }
 
+// [Minnie] String.prototype.__setSymbol__()
+// Mark every shadow byte of the receiver string with SYMBOLIC_MASK
+// (bit 7). The concolic engine consults this bit when deciding which
+// branches to fork on. No-op on unflatted / external / uninstrumented
+// strings; returns undefined.
+BUILTIN(StringPrototypeSetSymbol) {
+  HandleScope scope(isolate);
+  TO_THIS_STRING(string, "String.prototype.__setSymbol__");
+  tainttracking::SetSymbolicString(string);
+  return *(isolate->factory()->undefined_value());
+}
+
 
 }  // namespace internal
 }  // namespace v8

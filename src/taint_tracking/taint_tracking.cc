@@ -1357,6 +1357,35 @@ private:
   TaintType type_;
 };
 
+// [Minnie] Visitor that OR's the SYMBOLIC_MASK bit into every shadow
+// byte of a string, preserving taint type and encoding bits. Used by
+// SetSymbolicString (paper III-D __setSymbol__).
+class SymbolicOrVisitor : public TaintVisitor {
+public:
+  SymbolicOrVisitor() : TaintVisitor(true) {}
+
+  void Visit(const uint8_t* visitee,
+             TaintData* taint_data,
+             int offset,
+             int size) override {
+    VisitInline(taint_data, offset, size);
+  }
+  void Visit(const uint16_t* visitee,
+             TaintData* taint_data,
+             int offset,
+             int size) override {
+    VisitInline(taint_data, offset, size);
+  }
+
+private:
+  inline void VisitInline(TaintData* taint_data, int offset, int size) {
+    TaintData* p = taint_data + offset;
+    for (int i = 0; i < size; i++) {
+      p[i] = static_cast<TaintData>(p[i] | TaintType::SYMBOLIC_MASK);
+    }
+  }
+};
+
 template <class T>
 TaintType GetTaintStatus(T object, int idx) {
   TaintData output;
@@ -1449,6 +1478,16 @@ void SetTaintString(Handle<String> str, TaintType type) {
     CopyIn(*str, type, 0, str->length());
   }
   LogSetTaintString(str, type);
+}
+
+// [Minnie] Mark every shadow byte of `str` symbolic, preserving
+// existing taint type + encoding bits. The concolic engine reads the
+// SYMBOLIC_MASK bit while stepping through TestEqual / JumpIfTrue
+// bytecodes to decide whether to enqueue a path fork (paper III-D).
+void SetSymbolicString(Handle<String> str) {
+  DisallowHeapAllocation no_gc;
+  SymbolicOrVisitor visitor;
+  visitor.run(*str, 0, str->length());
 }
 
 void JSSetTaintBuffer(
