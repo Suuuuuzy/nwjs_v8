@@ -3201,7 +3201,7 @@ class V8_EXPORT String : public Name {
       internal::kApiSystemPointerSize == 4 ? (1 << 28) - 16 : (1 << 29) - 24;
   // 8 + 4 + 4
   // 16 + 4 + 4
-  // jianjia
+  // minnie
   // static constexpr int kMaxLength =
   //     internal::kApiSystemPointerSize == 4 ? (1 << 28) - 18 : (1 << 29) - 26;
 

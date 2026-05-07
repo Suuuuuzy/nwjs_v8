@@ -510,7 +510,7 @@ IGNITION_HANDLER(StaLookupSlot, InterpreterAssembler) {
 }
 
 // LdaNamedProperty <object> <name_index> <slot>
-// jianjia happy start from here
+// minnie happy start from here
 // Calls the LoadIC at FeedBackVector slot <slot> for <object> and the name at
 // constant pool entry <name_index>.
 IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
@@ -530,11 +530,11 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
 
   // lzy
   TVARIABLE(Object, var_result);
-  // yjj start
+  // dev start
   TVARIABLE(Object, fakekey_result);
   TNode<String> runtimeFakeKey;
   TNode<String> runtimeFakeValue;
-  // yjj end
+  // dev end
 
   // ExitPoint exit_point(this, &done, &var_result);
   Label done(this), checkUndefined(this), print_undefined(this), add_taint_value(this), check_recv_value(this), var_result_fakevalue(this), generate_undefined(this); //, check_fake_value(this);
@@ -572,7 +572,7 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
     TNode<Context> context = GetContext();
     TNode<Object> shouldGenFlag = CallRuntime(Runtime::kShouldGenerateProperties, context);
     GotoIf(TaggedEqual(shouldGenFlag, FalseConstant()), &done);
-    // yjj start
+    // dev start
     // check the type of recv
     TNode<String> typeofRecv = Typeof(recv);
     // Print("[+] Object type", typeofRecv);
@@ -589,10 +589,10 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
                                   runtimeFakeKey, fake_slot, feedback_vector);
     // Print("[+] FakeKey Value:", fakekey_result.value());
     Branch(IsUndefined(fakekey_result.value()), &done, &add_taint_value);
-    // yjj end
+    // dev end
   }
 
-  // yjj start
+  // dev start
   // from this on, will be the case: recv is a string
   BIND(&check_recv_value);
   {
@@ -604,7 +604,7 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
     TNode<String> prefix_name = CAST(CallBuiltin(Builtins::kSubString, context,
                                                  (recv), SmiConstant(0), SmiConstant(9)));
     BranchIfStringEqual(prefix_name, runtimeFakeValue, &var_result_fakevalue, &done);
-    // yjj: change recv from string to object start (does not work)
+    // dev: change recv from string to object start (does not work)
     // "fakeValue" -> { "fakeKey": "fakeValue", "fag": "fakeValue" }
     // Callable ic = Builtins::CallableFor(isolate(), Builtins::kStoreIC);
     // TNode<Context> context = GetContext();
@@ -615,11 +615,11 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
     //                       feedback_vector);
     // var_result = CallStub(ic, context, recv, name, fakeValue, slot,
     //                       feedback_vector);
-    // yjj: change recv from string to object end
+    // dev: change recv from string to object end
   }
-  // yjj end
+  // dev end
 
-  // yjj start
+  // dev start
   BIND(&var_result_fakevalue);
   {
     Print("[+] Equals to testvalue", recv);
@@ -654,14 +654,14 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
     // here is to set the fakeKey property to be not enumerable
     TNode<JSObject> added_property =
         constructor_assembler.CreateEmptyObjectLiteral(context);
-    CallRuntime(Runtime::kObjectDefinePropertyJianjia, context, added_property,
+    CallRuntime(Runtime::kObjectDefinePropertyMinnie, context, added_property,
                 runtimeFakeKey, attributes);
     // hook up the added_property
     var_result = CallStub(ic, context, recv, name, added_property, slot,
                           feedback_vector);
     Goto(&done);
   }
-  // yjj end
+  // dev end
 
   BIND(&done);
   {
@@ -674,7 +674,7 @@ IGNITION_HANDLER(LdaNamedProperty, InterpreterAssembler) {
 //
 // Calls the GetProperty builtin for <object> and the name at
 // constant pool entry <name_index>.
-// jianjia: we may need to hook this one to get undefined properties as well
+// minnie: we may need to hook this one to get undefined properties as well
 // didn't do because I didn't find case that will lead to this bytecode
 IGNITION_HANDLER(LdaNamedPropertyNoFeedback, InterpreterAssembler) {
   TNode<Object> object = LoadRegisterAtOperandIndex(0);
@@ -686,7 +686,7 @@ IGNITION_HANDLER(LdaNamedPropertyNoFeedback, InterpreterAssembler) {
   Dispatch();
 }
 
-// yjj: I didn't find a js case that runs LdaNamedPropertyFromSuper
+// dev: I didn't find a js case that runs LdaNamedPropertyFromSuper
 // LdaNamedPropertyFromSuper <receiver> <name_index> <slot>
 //
 // Calls the LoadSuperIC at FeedBackVector slot <slot> for <receiver>, home
@@ -706,9 +706,9 @@ IGNITION_HANDLER(LdaNamedPropertyFromSuper, InterpreterAssembler) {
                   home_object_prototype, name, slot, feedback_vector);
   // lzy
   Label done(this), print_undefined(this); //, add_taint_value(this);
-  // yjj start
+  // dev start
   // TNode<Object> fakekey_result;
-  // yjj end
+  // dev end
 
   Branch(IsUndefined(result), &print_undefined, &done);
   // lzy
@@ -725,7 +725,7 @@ IGNITION_HANDLER(LdaNamedPropertyFromSuper, InterpreterAssembler) {
     Print("[+] KeyName:", LoadConstantPoolEntryAtOperandIndex(1));
     Print("[+] Value:", result);
     Print("[+] Object", receiver);
-    // yjj start
+    // dev start
     // TNode<String> fakeKey = StringConstant("fakeKey");
     // fakekey_result = CallBuiltin(Builtins::kLoadSuperIC, context, receiver,
     //             home_object_prototype, fakeKey, slot, feedback_vector);
@@ -734,7 +734,7 @@ IGNITION_HANDLER(LdaNamedPropertyFromSuper, InterpreterAssembler) {
     // result = fakekey_result; // just use the fakekey_result
     // Goto(&done);
     // Branch(IsUndefined(fakekey_result), &done, &add_taint_value);
-      // yjj end
+      // dev end
     Goto(&done);
   }
 
@@ -771,9 +771,9 @@ IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler) {
   Label done(this), print_undefined(this), add_taint_value(this), check_recv_value(this), var_result_fakevalue(this), generate_undefined(this);
   Branch(IsUndefined(var_result.value()), &print_undefined, &done);
 
-  // yjj start
+  // dev start
   TVARIABLE(Object, fakekey_result);
-  // yjj end
+  // dev end
 
   // lzy
   BIND(&print_undefined);
@@ -793,7 +793,7 @@ IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler) {
     TNode<Context> context = GetContext();
     TNode<Object> shouldGenFlag = CallRuntime(Runtime::kShouldGenerateProperties, context);
     GotoIf(TaggedEqual(shouldGenFlag, FalseConstant()), &done);
-    // yjj start
+    // dev start
     // check the type of recv
     TNode<String> typeofRecv = Typeof(object);
     // Print("[+] Object type", typeofRecv);
@@ -808,10 +808,10 @@ IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler) {
                                   testkey, slot, feedback_vector);
     // Print("[+] FakeKey Value:", fakekey_result.value());
     Branch(IsUndefined(fakekey_result.value()), &done, &add_taint_value);
-    // yjj end
+    // dev end
   }
 
-  // yjj start
+  // dev start
   // from this on, will be the case: recv is a string
   BIND(&check_recv_value);
   {
@@ -855,14 +855,14 @@ IGNITION_HANDLER(LdaKeyedProperty, InterpreterAssembler) {
     // here is to set the fakeKey property to be not enumerable
     TNode<JSObject> added_property =
         constructor_assembler.CreateEmptyObjectLiteral(context);
-    CallRuntime(Runtime::kObjectDefinePropertyJianjia, context, added_property,
+    CallRuntime(Runtime::kObjectDefinePropertyMinnie, context, added_property,
                 testkey, attributes);
     // hook up the added_property
     var_result = CallStub(ic, context, object, name, added_property, slot,
                           feedback_vector);
     Goto(&done);
   }
-  // yjj end
+  // dev end
 
   BIND(&done);
   {
@@ -886,12 +886,12 @@ class InterpreterStoreNamedPropertyAssembler : public InterpreterAssembler {
     TNode<HeapObject> maybe_vector = LoadFeedbackVector();
     TNode<Context> context = GetContext();
 
-    // yjj start
+    // dev start
     // Print("[+] Handled by StaNamedProperty");
     // Print("[+] object:", object);
     // Print("[+] name:", name);
     // Print("[+] value:", value);
-    // yjj end
+    // dev end
 
     TVARIABLE(Object, var_result);
     var_result = CallStub(ic, context, object, name, value, slot, maybe_vector);

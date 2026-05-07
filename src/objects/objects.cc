@@ -2515,7 +2515,7 @@ bool HeapObject::IsExternal(Isolate* isolate) const {
 
 // Added by Inactive
 // std::string HeapObject::post_undefined_value(Isolate* isolate, Handle<Object> name, int phase_num, std::string start_key_str) {
-//   // std::cout << "jianjia see not found properties in post_undefined_value" << std::endl;
+//   // std::cout << "minnie see not found properties in post_undefined_value" << std::endl;
 //   std::map<std::string, std::string> map;
 //   map.insert(std::pair<std::string, std::string>("phase", std::to_string(phase_num)));
 //   map.insert(std::pair<std::string, std::string>("start_key", start_key_str));
@@ -4883,7 +4883,7 @@ void WriteFixedArrayToFlat(FixedArray fixed_array, int length, String separator,
       sink += string_length;
       taintDest += string_length;
 
-      // std::cout  << "jianjia see sep 2 "<< string << std::endl;
+      // std::cout  << "minnie see sep 2 "<< string << std::endl;
 
       // Next string element, needs at least one separator preceding it.
       num_separators = 1;
@@ -4927,7 +4927,7 @@ Address JSArray::ArrayJoinConcatToSequentialString(Isolate* isolate,
                           dest.length(),
                           SeqTwoByteString::cast(dest).GetTaintChars(no_gc));
   }
-  // std::cout  << "jianjia see sep "<< separator << dest << std::endl;
+  // std::cout  << "minnie see sep "<< separator << dest << std::endl;
   return dest.ptr();
 }
 

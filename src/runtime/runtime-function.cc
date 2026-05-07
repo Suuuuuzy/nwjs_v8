@@ -149,7 +149,7 @@ RUNTIME_FUNCTION(Runtime_GetFakeValue){
           isolate->factory()->NewStringFromAsciiChecked(FLAG_undefined_property_fakeValue_string));
 }
 
-RUNTIME_FUNCTION(Runtime_ObjectDefinePropertyJianjia){
+RUNTIME_FUNCTION(Runtime_ObjectDefinePropertyMinnie){
   HandleScope scope(isolate);
   DCHECK_EQ(3, args.length());
   CONVERT_ARG_HANDLE_CHECKED(Object, target, 0);

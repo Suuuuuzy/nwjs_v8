@@ -2081,7 +2081,7 @@ StackFrame::TaintStackFrameInfo JavaScriptFrame::InfoForTaintLog() {
   auto isolate = shared.GetIsolate();
   answer.shared_info = Handle<SharedFunctionInfo>(shared, isolate);
   if (script_obj.IsScript()) {
-  // jianjia: here we need to update, but leave it for now.
+  // minnie: here we need to update, but leave it for now.
   //   Script script = Script::cast(script_obj);
   //   answer.script = Handle<Script>(script, isolate);
 
@@ -2118,7 +2118,7 @@ StackFrame::TaintStackFrameInfo JavaScriptFrame::InfoForTaintLog() {
 void JavaScriptFrame::Print(StringStream* accumulator, PrintMode mode,
                             int index) const {
   Handle<SharedFunctionInfo> shared = handle(function().shared(), isolate());
-  // jianjia commmenting this for now, in case futher problems happen, check this
+  // minnie commmenting this for now, in case futher problems happen, check this
   // SharedFunctionInfo::EnsureSourcePositionsAvailable(isolate(), shared);
 
   DisallowGarbageCollection no_gc;

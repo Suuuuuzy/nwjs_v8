@@ -860,7 +860,7 @@ TF_BUILTIN(StringFromCharCode, StringBuiltinsAssembler) {
     CopyStringCharacters(one_byte_result, two_byte_result, zero, zero,
                          var_max_index.value(), String::ONE_BYTE_ENCODING,
                          String::TWO_BYTE_ENCODING);
-    // Jianjia: here we should also implement the copy of the taints of the characters
+    // Minnie: here we should also implement the copy of the taints of the characters
     // CopyStringCharacters(one_byte_result, two_byte_result, zero, zero,
     //                      var_max_index.value(), String::ONE_BYTE_ENCODING,
     //                      String::TWO_BYTE_ENCODING);

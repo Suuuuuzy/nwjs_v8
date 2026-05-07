@@ -183,7 +183,7 @@ namespace internal {
   F(FakePropertiesEnumerable, 0, 1)        \
   F(GetFakeKey, 0, 1)                      \
   F(GetFakeValue, 0, 1)                    \
-  F(ObjectDefinePropertyJianjia, 3, 1)     \
+  F(ObjectDefinePropertyMinnie, 3, 1)     \
   F(ConcolicQueryFork, 3, 1)               \
 
 #define FOR_EACH_INTRINSIC_GENERATOR(F, I)    \

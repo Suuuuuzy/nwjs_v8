@@ -128,7 +128,7 @@ inline void CheckTaintError(TaintType type, String object,
 #ifdef DEBUG
   if (!IsValidTaintType(type)) {
     // Isolate* isolate = object.GetIsolate();
-    // jianjia: ignore FATAL error for now.
+    // minnie: ignore FATAL error for now.
     v8::internal::Isolate* isolate = v8::internal::Isolate::Current();
     std::unique_ptr<char[]> strval = object.ToCString();
     char stack_trace [kStackTraceInfoSize];
@@ -1134,7 +1134,7 @@ template <> void TaintVisitor::VisitIntoStringTemplate<String>(
     VisitIntoStringTemplate(
         SeqTwoByteString::cast(source), from_offset, from_len);
   } else {
-    // std::cout << "jianjia see shape " << shape.type() << std::endl;
+    // std::cout << "minnie see shape " << shape.type() << std::endl;
     // if (shape.IsThin()) {
     // std::cout << "This is a thin string" << std::endl;
     // } else if (shape.IsInternalized()) {
@@ -1840,15 +1840,15 @@ public:
   bool VisitKeyValue(Handle<String> key, Handle<Object> value, bool visitKey = true) override {
     DisallowHeapAllocation no_gc;
     // if (key->IsInternalizedString()){
-    //   std::cout << "jianjia key IsInternalizedString " << std::endl;
+    //   std::cout << "minnie key IsInternalizedString " << std::endl;
     // }
     if (value->IsString()) {
       Handle<String> value_as_string = Handle<String>::cast(value);
       // if (value_as_string->IsInternalizedString()){
-      //   std::cout << "jianjia value IsInternalizedString " << std::endl;
+      //   std::cout << "minnie value IsInternalizedString " << std::endl;
       // }
       // if (IsReadOnlyHeapObject(*value_as_string)){
-      //   std::cout << "jianjia value read only " <<  std::endl;
+      //   std::cout << "minnie value read only " <<  std::endl;
       // }
       CopyIn(*value_as_string, type_, 0, value_as_string->length());
     }

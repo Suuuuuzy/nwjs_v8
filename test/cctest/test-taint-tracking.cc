@@ -420,7 +420,7 @@ TEST(OnBeforeCompileGetSetTaintByteArray) {
       2, result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
 }
 
-TEST(RecursiveTaintObjectSimpleJianjia) {
+TEST(RecursiveTaintObjectSimple) {
   TestCase test_case;
   v8::HandleScope scope(CcTest::isolate());
   v8::Local<v8::String> source = v8_str(CcTest::isolate(),
@@ -528,7 +528,7 @@ TEST(RecursiveTaintObjectArray) {
 }
 
 
-TEST(TaintIndexSimpleJianjia) {
+TEST(TaintIndexSimple) {
   TestCase test_case;
   v8::HandleScope scope(CcTest::isolate());
   v8::Local<v8::String> source = v8_str(CcTest::isolate(),
@@ -573,7 +573,7 @@ TEST(OnBeforeCompileGetSetTransitiveTaintByteArray) {
       2, result->Int32Value(CcTest::isolate()->GetCurrentContext()).FromJust());
 }
 
-TEST(OnBeforeCompileGetSetTransitiveTaintByteArrayJianjia) {
+TEST(OnBeforeCompileGetSetTransitiveTaintByteArray) {
   TestCase test_case;
   v8::HandleScope scope(CcTest::isolate());
   v8::Local<v8::String> source =
@@ -1273,8 +1273,8 @@ TEST(UndefinedProperty) {
   TestCase test_case;
   v8::HandleScope scope(CcTest::isolate());
   v8::Local<v8::String> source = v8_str(CcTest::isolate(),
-                                        "var jianjiaoption = {};"
-                                        "eval(jianjiaoption['gg']);"
+                                        "var minnieoption = {};"
+                                        "eval(minnieoption['gg']);"
              );
   TestTaintListener* listener = new TestTaintListener();
   CHECK_EQ(listener->GetScripts().size(), 0);

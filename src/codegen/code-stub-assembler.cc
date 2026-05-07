@@ -12946,7 +12946,7 @@ TNode<Oddball> CodeStubAssembler::StrictEqual(
   return result.value();
 }
 
-// yjj: add BranchIfStringEqual from newer version
+// dev: add BranchIfStringEqual from newer version
 void CodeStubAssembler::BranchIfStringEqual(TNode<String> lhs,
                                             TNode<IntPtrT> lhs_length,
                                             TNode<String> rhs,
