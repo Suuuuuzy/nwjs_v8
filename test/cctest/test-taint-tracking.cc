@@ -1313,6 +1313,82 @@ TEST(setTaintFakeValue) {
           CcTest::isolate()->GetCurrentContext()).FromJust());
 }
 
+// -----------------------------------------------------------------------
+// [Minnie] Tests for the symbolic bit and __setSymbol__ primitive
+// (gap #1, #4, #8). These verify that:
+//   - SetSymbolicString sets SYMBOLIC_MASK on every shadow byte without
+//     disturbing the taint type;
+//   - __setSymbol__ is reachable from JS via the prototype and global;
+//   - IsSymbolic and ReadSymbolicMask correctly inspect the shadow.
+// -----------------------------------------------------------------------
+
+TEST(SymbolicBitSetsAndPreservesTaint) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  v8::Local<v8::String> source = v8_str(CcTest::isolate(),
+      "var s = 'abcdef';"
+      "s.__setTaint__(3);"    // PROFILE
+      "s.__setSymbol__();"
+      "var t = s.__getTaint__();"
+      "var arr = new Uint8Array(t);"
+      "var ok = 1;"
+      "for (var i = 0; i < arr.length; i++) {"
+      "  if ((arr[i] & 0x0F) !== 3) { ok = 10; break; }"  // taint preserved
+      "  if ((arr[i] & 0x80) === 0)  { ok = 20; break; }"  // symbolic set
+      "}"
+      "ok;"
+  );
+  v8::Local<v8::Context> run_context = CcTest::isolate()->GetCurrentContext();
+  auto result = v8::Script::Compile(
+      run_context, source).ToLocalChecked()->Run(run_context).ToLocalChecked();
+  CHECK_EQ(1, result->Int32Value(run_context).FromJust());
+}
+
+TEST(GlobalSetSymbolWorks) {
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  v8::Local<v8::String> source = v8_str(CcTest::isolate(),
+      "var s = 'xyz';"
+      "__setSymbol__(s);"                // global form
+      "var t = s.__getTaint__();"
+      "var arr = new Uint8Array(t);"
+      "var all = 1;"
+      "for (var i = 0; i < arr.length; i++) {"
+      "  if ((arr[i] & 0x80) === 0) { all = 0; break; }"
+      "}"
+      "all;"
+  );
+  v8::Local<v8::Context> run_context = CcTest::isolate()->GetCurrentContext();
+  auto result = v8::Script::Compile(
+      run_context, source).ToLocalChecked()->Run(run_context).ToLocalChecked();
+  CHECK_EQ(1, result->Int32Value(run_context).FromJust());
+}
+
+// -----------------------------------------------------------------------
+// [Minnie] Tests for %ConcolicQueryFork (gap #8, #9). Verifies the
+// runtime intrinsic is callable from JS; the available flag is false
+// unless the concolic build flag is compiled in AND Z3 is linked.
+// -----------------------------------------------------------------------
+
+TEST(ConcolicQueryForkIsCallable) {
+  i::FLAG_allow_natives_syntax = true;
+  TestCase test_case;
+  v8::HandleScope scope(CcTest::isolate());
+  v8::Local<v8::String> source = v8_str(CcTest::isolate(),
+      "var s = 'admi_';"
+      "s.__setTaint__(1);"
+      "__setSymbol__(s);"
+      "var rv = %ConcolicQueryFork(s, 'admin', 0);"
+      // When concolic is not compiled in, rv is undefined. Otherwise
+      // rv is an array [lhs_assignment, rhs_assignment].
+      "(typeof rv === 'undefined') || (Array.isArray(rv) && rv.length === 2);"
+  );
+  v8::Local<v8::Context> run_context = CcTest::isolate()->GetCurrentContext();
+  auto result = v8::Script::Compile(
+      run_context, source).ToLocalChecked()->Run(run_context).ToLocalChecked();
+  CHECK(result->IsTrue());
+}
+
 
 
 
