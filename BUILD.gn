@@ -497,9 +497,21 @@ config("internal_config_base") {
 
   # Used to link with the capnp library for taint tracking code
   libs = [ "capnp", "kj" ]
+  lib_dirs = []
   if (!(v8_capnp_include_dir == "")) {
-    lib_dirs = [ "$v8_capnp_include_dir/lib" ]
+    lib_dirs += [ "$v8_capnp_include_dir/lib" ]
     include_dirs += [ "$v8_capnp_include_dir/include" ]
+  }
+
+  # [Minnie] Link libz3 for the concolic engine (gap #7/#8). Uses the
+  # same declare-args pattern as capnp: if v8_z3_include_dir is set,
+  # point the linker at that prefix; otherwise rely on system libz3.
+  if (v8_taint_tracking_include_concolic) {
+    libs += [ "z3" ]
+    if (!(v8_z3_include_dir == "")) {
+      lib_dirs += [ "$v8_z3_include_dir/lib" ]
+      include_dirs += [ "$v8_z3_include_dir/include" ]
+    }
   }
 
 }
@@ -3098,6 +3110,9 @@ v8_header_set("v8_internal_headers") {
     "src/strings/uri.h",
     "src/taint_tracking.h",
     "src/taint_tracking-inl.h",
+    "src/taint_tracking/ast_serialization.h",
+    "src/taint_tracking/symbolic_state.h",
+    "src/taint_tracking/object_versioner.h",
     # "src/taint_tracking/taint_tracking.cc",
     "src/taint_tracking/log_listener.h",
     # "$target_gen_dir/logrecord.capnp.c++",
@@ -5584,6 +5599,7 @@ if (is_component_build) {
     testonly = true
 
     sources = [ "src/utils/v8dll-main.cc" ]
+    sources += [ "src/taint_tracking/taint_tracking.cc" ]
 
     public_deps = [
       ":cppgc_base_for_testing",

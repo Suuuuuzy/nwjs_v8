@@ -96,6 +96,13 @@ declare_args() {
   # Sets -DV8_TAINT_TRACKING_INCLUDE_CONCOLIC for setting up a concolic
   # execution build
   v8_taint_tracking_include_concolic = false
+
+  # [Minnie] Adds z3 path to the build for concolic execution. If set,
+  # $v8_z3_include_dir/include and $v8_z3_include_dir/lib are added to
+  # the include and library search paths, and libz3 is linked. If
+  # empty, the concolic engine falls back to a stub that does not
+  # emit SMT queries.
+  v8_z3_include_dir = ""
 }
 
 if (v8_use_external_startup_data == "") {
