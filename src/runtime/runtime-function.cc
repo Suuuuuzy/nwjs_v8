@@ -9,6 +9,7 @@
 #include "src/heap/heap-inl.h"  // For ToBoolean. TODO(jkummerow): Drop.
 #include "src/logging/counters.h"
 #include "src/runtime/runtime-utils.h"
+#include "src/taint_tracking/symbolic_state.h"
 
 namespace v8 {
 namespace internal {
@@ -162,7 +163,40 @@ RUNTIME_FUNCTION(Runtime_ObjectDefinePropertyJianjia){
 }
 
 
-
+// [Minnie] Exposed concolic entry point (paper III-D). Callable from
+// JS as %ConcolicQueryFork(lhs, rhs, op) where op is a number:
+//   0 = equality, 1 = prefix, 2 = contains.
+// Returns either undefined (nothing to fork / solver unsat / concolic
+// support not compiled in) or an array [lhs_assignment, rhs_assignment]
+// of concrete strings that would flip the branch.
+//
+// The bytecode-level hooks in the interpreter (which will call into
+// this function automatically for TestEqual / JumpIfTrue) land as a
+// follow-up patch; for now tests and the exerciser can invoke this
+// through the %ConcolicQueryFork runtime intrinsic.
+RUNTIME_FUNCTION(Runtime_ConcolicQueryFork) {
+  HandleScope scope(isolate);
+  DCHECK_EQ(3, args.length());
+  if (!args[0].IsString() || !args[1].IsString()) {
+    return ReadOnlyRoots(isolate).undefined_value();
+  }
+  CONVERT_ARG_HANDLE_CHECKED(String, lhs, 0);
+  CONVERT_ARG_HANDLE_CHECKED(String, rhs, 1);
+  CONVERT_SMI_ARG_CHECKED(op, 2);
+  tainttracking::ForkAssignment fa =
+      tainttracking::QueryFork(isolate, lhs, rhs, op);
+  if (!fa.available) return ReadOnlyRoots(isolate).undefined_value();
+  Handle<FixedArray> arr = isolate->factory()->NewFixedArray(2);
+  arr->set(0, *isolate->factory()->NewStringFromUtf8(
+                  Vector<const char>(fa.lhs_assignment.data(),
+                                     fa.lhs_assignment.size()))
+                  .ToHandleChecked());
+  arr->set(1, *isolate->factory()->NewStringFromUtf8(
+                  Vector<const char>(fa.rhs_assignment.data(),
+                                     fa.rhs_assignment.size()))
+                  .ToHandleChecked());
+  return *isolate->factory()->NewJSArrayWithElements(arr);
+}
 
 }  // namespace internal
 }  // namespace v8
