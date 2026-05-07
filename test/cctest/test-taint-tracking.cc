@@ -254,8 +254,12 @@ TEST(TaintEncodingUriComponent) {
 
   decoded = Uri::DecodeUri(isolate, encoded)
     .ToHandleChecked();
+  // [Minnie] MULTIPLE_ENCODINGS was retired from TaintType when the
+  // shadow-byte layout shrank to 3 encoding bits (see include/v8.h).
+  // Conflicting encoding ops now settle back to NO_ENCODING; the
+  // taint type is preserved.
   CHECK_EQ(GetTaintStatus(*decoded, 18),
-           TaintType::TAINTED | TaintType::MULTIPLE_ENCODINGS);
+           TaintType::TAINTED);
 }
 
 class TestTaintListener : public TaintListener {
@@ -699,17 +703,21 @@ TEST(SubStringExternalStringShort) {
 }
 
 TEST(TaintFlagToString) {
+  // [Minnie] Legacy browser-taint labels (URL/DOM/WINDOWNAME/COOKIE)
+  // retired in favour of the paper's Table IX categories. See
+  // include/v8.h TaintType. Re-point this test at the miniapp-facing
+  // labels (Profile / Location / Storage / Phone).
   CHECK_EQ(TaintTypeToString(TaintType::UNTAINTED), "Untainted");
-  CHECK_EQ(TaintTypeToString(TaintType::URL), "Url");
+  CHECK_EQ(TaintTypeToString(TaintType::PROFILE), "Profile");
   CHECK_EQ(
-      TaintFlagToString(AddFlag(AddFlag(0, TaintType::URL), TaintType::DOM)),
-      "Url&Dom");
+      TaintFlagToString(AddFlag(AddFlag(0, TaintType::PROFILE), TaintType::LOCATION)),
+      "Profile&Location");
   CHECK_EQ(
-      TaintFlagToString(AddFlag(0, TaintType::WINDOWNAME)),
-      "WindowName");
+      TaintFlagToString(AddFlag(0, TaintType::STORAGE)),
+      "Storage");
   CHECK_EQ(
-      TaintFlagToString(AddFlag(AddFlag(0, TaintType::URL), TaintType::COOKIE)),
-      "Cookie&Url");
+      TaintFlagToString(AddFlag(AddFlag(0, TaintType::PROFILE), TaintType::PHONE)),
+      "Profile&Phone");
 }
 
 TEST(TaintUrlEscapeRaw) {

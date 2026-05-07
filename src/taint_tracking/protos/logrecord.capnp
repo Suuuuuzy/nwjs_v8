@@ -5,8 +5,15 @@ using Ast = import "ast.capnp" .Ast;
 struct TaintLogRecord {
 
   enum TaintType {
+    # [Minnie] Paper Table IX source categories take IDs 2-9; see
+    # include/v8.h TaintType enum. Cap'n Proto ordinals (@N) are
+    # append-only, so the legacy browser-taint enumerants are kept
+    # to preserve ordinal stability even though the C++ enum no
+    # longer emits them.
     untainted @0;
     tainted @1;
+    # legacy browser labels - RETAINED ONLY FOR CAPNP ORDINAL
+    # STABILITY, never emitted by the miniapp instrumentation.
     cookie @2;
     message @3;
     url @4;
@@ -21,16 +28,28 @@ struct TaintLogRecord {
     dom @5;
     referrer @6;
     windowname @7;
-    storage @8;
+    storage @8;         # reused as paper Table IX Storage (ID 2)
     network @9;
     javascriptUrl @12;
     multipleTaints @10;
     error @11;
     messageOrigin @21;
+    # Minnie-internal framework labels
     inputBox @22;
     formSubmit @23;
     onLaunch @24;
     sensWechatApi @25;
+    # [Minnie] Paper Table IX categories added below. These are what
+    # the miniapp runtime emits; Storage reuses the existing `storage`
+    # ordinal so downstream log readers built against earlier schema
+    # still decode it.
+    profile @26;
+    location @27;
+    address @28;
+    phone @29;
+    device @30;
+    media @31;
+    others @32;
   }
 
   enum TaintEncoding {

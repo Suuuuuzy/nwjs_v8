@@ -744,29 +744,27 @@ TaintType TaintFlagToType(TaintFlag flag) {
 }
 
 std::string TaintTypeToString(TaintType type) {
-  switch (type){
+  switch (type & TaintType::TAINT_TYPE_MASK){
     case TaintType::UNTAINTED:
       return "Untainted";
     case TaintType::TAINTED:
       return "Tainted";
-    case TaintType::COOKIE:
-      return "Cookie";
-    case TaintType::MESSAGE:
-      return "Message";
-    case TaintType::URL:
-      return "Url";
-    case TaintType::DOM:
-      return "Dom";
-    case TaintType::REFERRER:
-      return "Referrer";
-    case TaintType::WINDOWNAME:
-      return "WindowName";
     case TaintType::STORAGE:
       return "Storage";
-    case TaintType::NETWORK:
-      return "Network";
-    case TaintType::MULTIPLE_TAINTS:
-      return "MultipleTaints";
+    case TaintType::PROFILE:
+      return "Profile";
+    case TaintType::LOCATION:
+      return "Location";
+    case TaintType::ADDRESS:
+      return "Address";
+    case TaintType::PHONE:
+      return "Phone";
+    case TaintType::DEVICE:
+      return "Device";
+    case TaintType::MEDIA:
+      return "Media";
+    case TaintType::OTHERS:
+      return "Others";
     case TaintType::INPUT_BOX:
       return "InputBox";
     case TaintType::FORM_SUBMIT:
@@ -775,7 +773,8 @@ std::string TaintTypeToString(TaintType type) {
       return "OnLaunch";
     case TaintType::SENS_WECHAT_API:
       return "WechatAPI";
-    case TaintType::MAX_TAINT_TYPE:
+    case TaintType::MULTIPLE_TAINTS:
+      return "MultipleTaints";
     default:
       return "UnknownTaintError:" + std::to_string(
           static_cast<uint8_t>(type));
@@ -783,6 +782,11 @@ std::string TaintTypeToString(TaintType type) {
 }
 
 ::TaintLogRecord::TaintEncoding TaintTypeToRecordEncoding(TaintType type) {
+  // [Minnie] MULTIPLE_ENCODINGS retired - the previous 3-bit encoding
+  // field had 8 values; the new 3-bit field reuses its 7 slots for the
+  // single-encoding kinds and reserves the 8th for a future base64
+  // label. In practice the old MULTIPLE_ENCODINGS case was never
+  // emitted, so no compat shim is needed.
   switch (type & TaintType::ENCODING_TYPE_MASK) {
     case TaintType::NO_ENCODING:
       return TaintLogRecord::TaintEncoding::NONE;
@@ -792,8 +796,6 @@ std::string TaintTypeToString(TaintType type) {
       return TaintLogRecord::TaintEncoding::URL_COMPONENT_ENCODED;
     case TaintType::ESCAPE_ENCODED:
       return TaintLogRecord::TaintEncoding::ESCAPE_ENCODED;
-    case TaintType::MULTIPLE_ENCODINGS:
-      return TaintLogRecord::TaintEncoding::MULTIPLE_ENCODINGS;
     case TaintType::URL_DECODED:
       return TaintLogRecord::TaintEncoding::URL_DECODED;
     case TaintType::URL_COMPONENT_DECODED:
@@ -806,47 +808,30 @@ std::string TaintTypeToString(TaintType type) {
 }
 
 ::TaintLogRecord::TaintType TaintTypeToRecordEnum(TaintType type) {
+  // [Minnie] Paper Table IX source categories. Storage reuses the
+  // existing capnp ordinal @8 for backwards compatibility; the other
+  // paper categories got fresh ordinals (@26-@32).
   switch (type & TaintType::TAINT_TYPE_MASK) {
     case TaintType::UNTAINTED:
       return TaintLogRecord::TaintType::UNTAINTED;
     case TaintType::TAINTED:
       return TaintLogRecord::TaintType::TAINTED;
-    case TaintType::COOKIE:
-      return TaintLogRecord::TaintType::COOKIE;
-    case TaintType::MESSAGE:
-      return TaintLogRecord::TaintType::MESSAGE;
-    case TaintType::URL:
-      return TaintLogRecord::TaintType::URL;
-    case TaintType::URL_HASH:
-      return TaintLogRecord::TaintType::URL_HASH;
-    case TaintType::URL_PROTOCOL:
-      return TaintLogRecord::TaintType::URL_PROTOCOL;
-    case TaintType::URL_HOST:
-      return TaintLogRecord::TaintType::URL_HOST;
-    case TaintType::URL_HOSTNAME:
-      return TaintLogRecord::TaintType::URL_HOSTNAME;
-    case TaintType::URL_ORIGIN:
-      return TaintLogRecord::TaintType::URL_ORIGIN;
-    case TaintType::URL_PORT:
-      return TaintLogRecord::TaintType::URL_PORT;
-    case TaintType::URL_PATHNAME:
-      return TaintLogRecord::TaintType::URL_PATHNAME;
-    case TaintType::URL_SEARCH:
-      return TaintLogRecord::TaintType::URL_SEARCH;
-    case TaintType::DOM:
-      return TaintLogRecord::TaintType::DOM;
-    case TaintType::REFERRER:
-      return TaintLogRecord::TaintType::REFERRER;
-    case TaintType::WINDOWNAME:
-      return TaintLogRecord::TaintType::WINDOWNAME;
     case TaintType::STORAGE:
       return TaintLogRecord::TaintType::STORAGE;
-    case TaintType::NETWORK:
-      return TaintLogRecord::TaintType::NETWORK;
-    case TaintType::MULTIPLE_TAINTS:
-      return TaintLogRecord::TaintType::MULTIPLE_TAINTS;
-    case TaintType::MESSAGE_ORIGIN:
-      return TaintLogRecord::TaintType::MESSAGE_ORIGIN;
+    case TaintType::PROFILE:
+      return TaintLogRecord::TaintType::PROFILE;
+    case TaintType::LOCATION:
+      return TaintLogRecord::TaintType::LOCATION;
+    case TaintType::ADDRESS:
+      return TaintLogRecord::TaintType::ADDRESS;
+    case TaintType::PHONE:
+      return TaintLogRecord::TaintType::PHONE;
+    case TaintType::DEVICE:
+      return TaintLogRecord::TaintType::DEVICE;
+    case TaintType::MEDIA:
+      return TaintLogRecord::TaintType::MEDIA;
+    case TaintType::OTHERS:
+      return TaintLogRecord::TaintType::OTHERS;
     case TaintType::INPUT_BOX:
       return TaintLogRecord::TaintType::INPUT_BOX;
     case TaintType::FORM_SUBMIT:
@@ -855,6 +840,8 @@ std::string TaintTypeToString(TaintType type) {
       return TaintLogRecord::TaintType::ON_LAUNCH;
     case TaintType::SENS_WECHAT_API:
       return TaintLogRecord::TaintType::SENS_WECHAT_API;
+    case TaintType::MULTIPLE_TAINTS:
+      return TaintLogRecord::TaintType::MULTIPLE_TAINTS;
   }
   return TaintLogRecord::TaintType::ERROR;
 }
@@ -2166,6 +2153,10 @@ JSTaintConstants(v8::internal::Isolate* isolate) {
   MaybeHandle<Object> ignore;
   for (int i = TaintType::UNTAINTED; i < TaintType::MAX_TAINT_TYPE; i++) {
     std::string taint_string = TaintTypeToString(static_cast<TaintType>(i));
+    // [Minnie] Skip unknown slots (reserved IDs that produce
+    // "UnknownTaintError:<n>") so __taintConstants__() in JS stays a
+    // clean label->id map.
+    if (taint_string.compare(0, 18, "UnknownTaintError:") == 0) continue;
     Vector<const char> js_string(taint_string.data(), taint_string.size());
     ignore = Object::SetProperty(
         isolate, ret,
@@ -2474,14 +2465,20 @@ void OnGenericOperation(SymbolicType type, T source) {
       uint8_t type_i = static_cast<uint8_t>(type_arr[i]);
       uint8_t old_encoding = type_i & TaintType::ENCODING_TYPE_MASK;
 
-      // If the old encoding is nothing, then we move to the mask encoding. If the
-      // old encoding was the inverse operation, then we move to no encoding. If
-      // it is neither, then we move to the multiple encoding state.
+      // If the old encoding is nothing, then we move to the mask
+      // encoding. If the old encoding was the inverse operation, then
+      // we move to no encoding. If it is neither (conflicting encoding
+      // stack), fall back to NO_ENCODING and drop the attribution -
+      // the previous MULTIPLE_ENCODINGS sentinel was retired when the
+      // shadow byte layout shrank to 3 encoding bits (see paper III-B,
+      // include/v8.h TaintType). This keeps the taint type itself but
+      // loses the fact that the byte went through multiple conflicting
+      // encodings, which was never consulted by downstream analysis.
       uint8_t new_encoding = old_encoding == TaintType::NO_ENCODING
         ? mask : (
             old_encoding == anti_mask
             ? TaintType::NO_ENCODING
-            : TaintType::MULTIPLE_ENCODINGS);
+            : TaintType::NO_ENCODING);
 
       type_arr[i] = static_cast<TaintType>(
           (type_i & TaintType::TAINT_TYPE_MASK) | new_encoding);

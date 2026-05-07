@@ -3318,62 +3318,72 @@ class V8_EXPORT String : public Name {
   typedef uint8_t TaintData;
 
 
-  // A taint type stores a single byte of taint information about a single
-  // character of string data. The most significant three bits are used for the
-  // encoding and the last significant 5 bits are used for the taint type.
+  // [Minnie] Unified byte-level shadow memory (paper III-B, Fig. 3).
+  // One shadow byte per character carries three pieces of metadata:
   //
-  // 0 0 0      0 0 0 0 0
-  // \___/      \_______/
-  //   |            |
-  // encoding    taint type
+  //   7       6 5 4     3 2 1 0
+  //  [ S ]   [ E E E ] [ T T T T ]
+  //    |        |          |
+  //   symbolic  encoding   taint type (paper Table IX IDs)
   //
-  // Must be kept in sync with
-  // ../../third_party/WebKit/Source/wtf/text/TaintTracking.h
+  //   - symbolic bit (1 = byte is a symbolic-execution candidate; the
+  //     concolic engine consults this when emitting SMT queries).
+  //   - encoding (3 bits, 7 values): records what reversible encoding
+  //     op the byte has passed through so decoding can restore the
+  //     original taint - URL_ENCODED/URL_DECODED etc.
+  //   - taint type (4 bits, 16 values): 0 = untainted, 1 = generic
+  //     tainted (no specific source), 2-9 = paper Table IX source
+  //     categories (Storage=2, Profile=3, Location=4, Address=5,
+  //     Phone=6, Device=7, Media=8, Others=9), 10-13 = Minnie-
+  //     internal labels surfaced from framework hooks (InputBox,
+  //     FormSubmit, OnLaunch, SENS_WECHAT_API), 15 = MULTIPLE_TAINTS
+  //     sentinel. 14 reserved.
+  //
+  // Downstream Chromium / WebKit taint-tracking enum consumers were
+  // retired when the WebKit mirror went away (we are building nwjs,
+  // not Blink). The legacy browser labels (COOKIE, URL, URL_HOST,
+  // DOM, REFERRER, ...) are gone - miniapp sources / sinks do not
+  // need them, and their numeric IDs collided with the paper's
+  // Table IX IDs for Profile / Location / Address / Phone / Device
+  // / Media / Others, which caused storage reads to be logged as
+  // COOKIE, getUserInfo as MESSAGE, etc.
   enum TaintType {
     UNTAINTED = 0,
     TAINTED = 1,
-    COOKIE = 2,
-    MESSAGE = 3,
-    URL = 4,
-    URL_HASH = 5,
-    URL_PROTOCOL = 6,
-    URL_HOST = 7,
-    URL_HOSTNAME = 8,
-    URL_ORIGIN = 9,
-    URL_PORT = 10,
-    URL_PATHNAME = 11,
-    URL_SEARCH = 12,
-    DOM = 13,
-    REFERRER = 14,
-    WINDOWNAME = 15,
-    STORAGE = 16,
-    NETWORK = 17,
-    MULTIPLE_TAINTS = 18,       // Used when combining multiple bytes with
-                                // different taints.
-    MESSAGE_ORIGIN = 19,
-    // added by jianjia
-    INPUT_BOX = 20,
-    FORM_SUBMIT = 21,
-    ON_LAUNCH = 22,
-    SENS_WECHAT_API = 23,
-    // This must be less than the value of URL_ENCODED
-    MAX_TAINT_TYPE = 24,
+    // paper Table IX source categories
+    STORAGE = 2,
+    PROFILE = 3,
+    LOCATION = 4,
+    ADDRESS = 5,
+    PHONE = 6,
+    DEVICE = 7,
+    MEDIA = 8,
+    OTHERS = 9,
+    // Minnie-internal framework-level labels
+    INPUT_BOX = 10,
+    FORM_SUBMIT = 11,
+    ON_LAUNCH = 12,
+    SENS_WECHAT_API = 13,
+    // 14 reserved for future paper source category
+    MULTIPLE_TAINTS = 15,       // combining bytes with different taints
+    // Sentinel; exclusive upper bound of the 4-bit taint-type field.
+    MAX_TAINT_TYPE = 16,
 
-    // Encoding types
-    URL_ENCODED = 32,            // 1 << 5
-    URL_COMPONENT_ENCODED = 64,  // 2 << 5
-    ESCAPE_ENCODED = 96,         // 3 << 5
-    MULTIPLE_ENCODINGS = 128,    // 4 << 5
-    URL_DECODED = 160,           // 5 << 5
-    URL_COMPONENT_DECODED = 192, // 6 << 5
-    ESCAPE_DECODED = 224,        // 7 << 5
-
-    NO_ENCODING = 0,            // Must use the encoding mask to compare to no
-                                // encoding.
+    // Encoding types. Bits 4-6, so 1 unit = (1 << 4) = 16.
+    NO_ENCODING = 0,
+    URL_ENCODED = 16,            // 1 << 4
+    URL_COMPONENT_ENCODED = 32,  // 2 << 4
+    ESCAPE_ENCODED = 48,         // 3 << 4
+    URL_DECODED = 64,            // 4 << 4
+    URL_COMPONENT_DECODED = 80,  // 5 << 4
+    ESCAPE_DECODED = 96,         // 6 << 4
+    // 7 reserved for a future encoding kind (e.g. base64); previously
+    // MULTIPLE_ENCODINGS, which is unused in practice.
 
     // Masks
-    TAINT_TYPE_MASK = 31,       // 1 << 5 - 1 (all ones in lower 5 bits)
-    ENCODING_TYPE_MASK = 224   // 7 << 5 (all ones in top 3 bits)
+    TAINT_TYPE_MASK = 0x0F,     // bits 0-3
+    ENCODING_TYPE_MASK = 0x70,  // bits 4-6
+    SYMBOLIC_MASK = 0x80        // bit 7 - set when the byte is symbolic
   };
 
   enum TaintSinkLabel {
